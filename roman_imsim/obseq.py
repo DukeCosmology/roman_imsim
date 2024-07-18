@@ -61,6 +61,11 @@ def ObSeqData(config, base, value_type):
     val = value_type(pointing.get(field))
     return val, safe
 
+<<<<<<< HEAD
 
 RegisterInputType("obseq_data", InputLoader(ObSeqDataLoader, file_scope=True, takes_logger=True))
 RegisterValueType("ObSeqData", ObSeqData, [float, int, str, Angle], input_type="obseq_data")
+=======
+RegisterInputType('obseq_data', InputLoader(ObSeqDataLoader, file_scope=True, takes_logger=True))
+RegisterValueType('ObSeqData', ObSeqData, [float, int, str, Angle], input_type='obseq_data')
+>>>>>>> baca009 (HACK: treat H158 as SNPrism)
