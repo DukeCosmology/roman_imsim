@@ -98,7 +98,7 @@ class modify_image(object):
     Class to simulate non-idealities and noise of roman detector images.
     """
 
-    def __init__(self, params, visit, sca, dither_from_file, sca_filepath=None, use_galsim=False):
+    def __init__(self, params, visit, sca, dither_from_file=None, sca_filepath=None, use_galsim=False):
         """
         Set up noise properties of image
 
@@ -1265,7 +1265,8 @@ class modify_image(object):
 
             im_pad = self.qe(im_pad)
             im_pad = self.bfe(im_pad)
-            im_pad = self.add_persistence(im_pad, pointing)
+            if self.params["dither_from_file"]:
+                im_pad = self.add_persistence(im_pad, pointing)
             im_pad.quantize()
             im_pad += self.im_dark
             im_pad = self.saturate(im_pad)
