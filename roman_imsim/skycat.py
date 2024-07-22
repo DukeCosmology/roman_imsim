@@ -183,9 +183,12 @@ class SkyCatalogInterface:
         gsobjs = skycat_obj.get_gsobject_components(gsparams)
 
         # Compute the flux or get the cached value.
-        flux = (
-            skycat_obj.get_roman_flux(self.bandpass.name, mjd=self.mjd) * self.exptime * roman.collecting_area
-        )
+        try:
+            flux = skycat_obj.get_roman_flux(self.bandpass.name, mjd=self.mjd)*self.exptime*roman.collecting_area
+        except KeyError:
+            # This happens because SNANA knows nothing about SNPrism yet
+            self.logger.warning("Switching to H158 from %s for %s", self.bandpass.name, skycat_obj)
+            flux = skycat_obj.get_roman_flux("H158", mjd=self.mjd)*self.exptime*roman.collecting_area
         if np.isnan(flux):
             return None
 
