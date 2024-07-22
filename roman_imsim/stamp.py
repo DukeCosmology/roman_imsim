@@ -99,8 +99,9 @@ class Roman_stamp(StampBuilder):
                 # # Get storead achromatic PSF
                 # psf = galsim.config.BuildGSObject(base, 'psf', logger=logger)[0]['achromatic']
                 # obj = galsim.Convolve(gal_achrom, psf).withFlux(self.flux)
-                obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20))
+                obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20, folding_threshold=0.001))
                 image_size = obj.getGoodImageSize(roman.pixel_scale)
+                image_size = max(image_size, config.get("min_size", 0))
 
         # print('stamp setup3',process.memory_info().rss)
         base["pupil_bin"] = self.pupil_bin
