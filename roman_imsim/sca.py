@@ -9,6 +9,7 @@ from galsim.image import Image
 from astropy.time import Time
 import numpy as np
 
+
 from .detector_effects import detector_effects
 import roman_imsim.effects as roman_effects
 
@@ -228,10 +229,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 logger.debug("image %d: Overlap = %s", image_num, str(bounds))
                 full_image[bounds] += stamps[k][bounds]
             stamps=None
-            
-            # [TODO] TEST
+
+            # # [TODO]
             # break
-            
 
         # # Bring the image so far up to a flat noise variance
         # current_var = FlattenNoiseVariance(
