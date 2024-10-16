@@ -8,6 +8,8 @@ from galsim.config.image_scattered import ScatteredImageBuilder
 from galsim.image import Image
 from astropy.time import Time
 import numpy as np
+from astropy.time import Time
+import numpy as np
 
 
 from .detector_effects import detector_effects
