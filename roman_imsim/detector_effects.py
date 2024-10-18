@@ -551,7 +551,8 @@ class detector_effects(object):
                 x.array[:,:] = galsim.Image(fio.FITS(fn)[0].read()).array[:,:]
                 x = self.recip_failure(x)
 
-                x = x.clip(0) ##remove negative stimulus
+                # x = x.clip(0) ##remove negative stimulus
+                x.array.clip(0) ##remove negative stimulus
 
                 im.array[:,:] += galsim.roman.roman_detectors.fermi_linear(x.array, dt) * pointing.exptime
 
