@@ -13,7 +13,7 @@ from .obseq import *
 from .photonOps import *
 from .psf import *
 from .sca import *
-from .skycat import *
+from .roman_coadd import *
 from .stamp import *
 from .wcs import *
 from .skycat import *

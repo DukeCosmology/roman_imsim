@@ -85,15 +85,15 @@ class detector_effects(object):
     def set_diff(self, im=None):
         if self.save_diff:
             self.pre = im.copy()
-            self.pre.write('bg.fits', dir=self.params['diff_dir'])
+            self.pre.write('bg.fits', dir=self.params['image']['diff_dir'])
         return
 
     def diff(self, msg, im=None, verbose=True):
         if self.save_diff:
             diff = im-self.pre
-            diff.write('%s_diff.fits'%msg , dir=self.params['diff_dir'])
+            diff.write('%s_diff.fits'%msg , dir=self.params['image']['diff_dir'])
             self.pre = im.copy()
-            im.write('%s_cumul.fits'%msg, dir=self.params['diff_dir'])
+            im.write('%s_cumul.fits'%msg, dir=self.params['image']['diff_dir'])
         return 
 
     def qe(self, im):
@@ -336,7 +336,7 @@ class detector_effects(object):
 
         self.sky.addNoise(self.noise)
 
-    def add_background(self, im, save_diff=False, draw_method='phot'):
+    def add_background(self, im, draw_method='phot', save_diff=None):
         """
         Add backgrounds to image (sky, thermal).
 
@@ -351,10 +351,13 @@ class detector_effects(object):
         im                  : Image
         """
 
+        if save_diff is None:
+            save_diff = self.save_diff
+
         # If requested, dump an initial fits image to disk for diagnostics
         if save_diff:
             orig = im.copy()
-            orig.write('orig.fits')
+            orig.write('orig.fits', dir=self.params['image']['diff_dir'])
 
         if draw_method != 'phot':
             im.addNoise(self.noise)
@@ -366,7 +369,7 @@ class detector_effects(object):
         if save_diff:
             prev = im.copy()
             diff = prev-orig
-            diff.write('sky_a.fits')
+            diff.write('sky_a.fits', dir=self.params['image']['diff_dir'])
 
         return im
 
@@ -521,6 +524,9 @@ class detector_effects(object):
         if pointing is None:
             pointing = self.pointing
 
+        xmax = im.array.shape[0]
+        ymax = im.array.shape[1]
+
         # load the dithers of sky images that were simulated
         dither_sca_array=np.loadtxt(self.params['image']['dither_from_file']).astype(int)
 
@@ -546,7 +552,7 @@ class detector_effects(object):
                 ## apply all the effects that occured before persistence on the previouse exposures
                 ## since max of the sky background is of order 100, it is thus negligible for persistence
                 bound_pad = galsim.BoundsI( xmin=1, ymin=1,
-                                            xmax=4088, ymax=4088)
+                                            xmax=xmax, ymax=ymax)
                 x = galsim.Image(bound_pad)
                 x.array[:,:] = galsim.Image(fio.FITS(fn)[0].read()).array[:,:]
                 x = self.recip_failure(x)
@@ -583,7 +589,7 @@ class detector_effects(object):
                 ## since max of the sky background is of order 100, it is thus negligible for persistence
                 ## same for brighter fatter effect
                 bound_pad = galsim.BoundsI( xmin=1, ymin=1,
-                                            xmax=4096, ymax=4096)
+                                            xmax=self.df['PERSIST'].shape[0], ymax=self.df['PERSIST'].shape[1])
                 x = galsim.Image(bound_pad)
                 x.array[4:-4, 4:-4] = galsim.Image(fio.FITS(fn)[0].read()).array[:,:]
                 x = self.qe(x).array[:,:]
@@ -789,7 +795,7 @@ class detector_effects(object):
         im.array[:,:] +=  bias
         return im
 
-    def finalize_sky_im(self,im, pointing=None):
+    def finalize_sky_im(self, im, pointing=None, xmax=4096, ymax=4096):
         """
         Finalize sky background for subtraction from final image. Add dark current,
         convert to analog voltage, and quantize.
@@ -800,6 +806,9 @@ class detector_effects(object):
 
         if pointing is None:
             pointing = self.pointing
+        
+        xmax = im.array.shape[0]
+        ymax = im.array.shape[1]
 
         if self.df is None:
             im.quantize()
@@ -811,7 +820,7 @@ class detector_effects(object):
         else:
 
             bound_pad = galsim.BoundsI( xmin=1, ymin=1,
-                                        xmax=4096, ymax=4096)
+                                        xmax=xmax, ymax=ymax)
             im_pad = galsim.Image(bound_pad)
             im_pad.array[4:-4, 4:-4] = im.array[:,:]
 

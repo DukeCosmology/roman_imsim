@@ -17,9 +17,7 @@ class SkyCatalogInterface:
     """Interface to skyCatalogs package."""
 
     _trivial_sed = galsim.SED(
-        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"),
-        wave_type="nm",
-        flux_type="fphotons",
+        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"), wave_type="nm", flux_type="fphotons"
     )
 
     def __init__(
@@ -254,6 +252,7 @@ class SkyCatalogLoader(InputLoader):
         }
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt)
         wcs = galsim.config.BuildWCS(base["image"], "wcs", base, logger=logger)
+
         kwargs["wcs"] = wcs
         kwargs["logger"] = logger
 
@@ -261,6 +260,9 @@ class SkyCatalogLoader(InputLoader):
             base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)[0]
 
         kwargs["bandpass"] = base["bandpass"]
+        if base["image"]["type"] == "roman_coadd":
+            kwargs["xsize"] = base["image"]["xsize"]
+            kwargs["ysize"] = base["image"]["ysize"]
         # Sky catalog object lists are created per CCD, so they are
         # not safe to reuse.
         safe = False

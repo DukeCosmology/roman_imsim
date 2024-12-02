@@ -69,6 +69,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             "dither_from_file": str,
             "sca_filepath": str,
             "save_diff": bool,
+            "diff_dir": str,
         }
         params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
