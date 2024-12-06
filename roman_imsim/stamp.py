@@ -16,9 +16,7 @@ class Roman_stamp(StampBuilder):
     """
 
     _trivial_sed = galsim.SED(
-        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"),
-        wave_type="nm",
-        flux_type="fphotons",
+        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"), wave_type="nm", flux_type="fphotons"
     )
 
     def setup(self, config, base, xsize, ysize, ignore, logger):
@@ -127,6 +125,11 @@ class Roman_stamp(StampBuilder):
         else:
             world_pos = None
 
+        if base["image"]["type"] == "roman_coadd":
+            self.is_coadd = True
+        else:
+            self.is_coadd = False
+
         return image_size, image_size, image_pos, world_pos
 
     def buildPSF(self, config, base, gsparams, logger):
@@ -149,7 +152,7 @@ class Roman_stamp(StampBuilder):
             return galsim.config.BuildGSObject(base, "psf", gsparams=gsparams, logger=logger)[0]
 
         roman_psf = galsim.config.GetInputObj("roman_psf", config, base, "buildPSF")
-        psf = roman_psf.getPSF(self.pupil_bin, base["image_pos"])
+        psf = roman_psf.getPSF(self.pupil_bin, base["image_pos"], is_coadd=self.is_coadd)
         return psf
 
     def getDrawMethod(self, config, base, logger):
@@ -313,7 +316,8 @@ class Roman_stamp(StampBuilder):
                 raise
             # Some pixels can end up negative from FFT numerics.  Just set them to 0.
             fft_image.array[fft_image.array < 0] = 0.0
-            fft_image.addNoise(galsim.PoissonNoise(rng=self.rng))
+            if not self.is_coadd:
+                fft_image.addNoise(galsim.PoissonNoise(rng=self.rng))
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
 

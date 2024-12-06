@@ -219,8 +219,8 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         # current_var = FlattenNoiseVariance(
         #         base, full_image, stamps, current_vars, logger)
 
-        print('roman pixel scale: %.5f' % (roman.pixel_scale))
-        full_image /= (roman.pixel_scale/0.11)**2
+        logger.info('roman pixel scale: %.5f' % (roman.pixel_scale))
+        full_image /= (0.0390625/0.11)**2
 
         return full_image, None
 
