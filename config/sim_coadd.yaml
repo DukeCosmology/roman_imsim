@@ -21,9 +21,13 @@ image:
     # It also by default applies a number of detector effects, but these can be turned
     # off if desired by setting some parameters (given below) to False.
     type: roman_coadd
-    coadd_file: '/cwork/cmh215/OU24-Roman-Coadds/H158/prod_H_00_00_map.fits.gz'
+    # coadd_file: '/cwork/cmh215/OU24-Roman-Coadds/H158/prod_H_00_00_map.fits.gz'
+    coadd_file: '/hpc/group/cosmology/yuedong/H158_Row00/prod_H_00_00_map.fits'
     xsize: 2688
     ysize: 2688
+    white_scale: 0.7
+    pink_scale: 0.3
+    pixel_scale: 0.0390625
 
     wcs:
         type: RomanWCS
@@ -80,7 +84,7 @@ image:
     # that.  The fft rendering for chromatic is a factor of 10 or so slower still, whereas
     # chromatic photon shooting is only slighly slower than achromatic, so the difference
     # is even more pronounced in this case.
-    draw_method: 'auto'
+    draw_method: 'fft'
 
     # These are all by default turned on, but you can turn any of them off if desired:
     # ignore_noise: True
@@ -102,6 +106,8 @@ image:
     # ipc: True
     # read_noise: True
     # sky_subtract: False
+
+    ignore_noise: False
 
     dither_from_file: /hpc/home/yf194/Work/final_sims_2023/Roman_WAS_obseq_11_1_23_ditherlist.txt
     # sca_filepath: /hpc/group/cosmology/phy-lsst/roman_sensors
@@ -153,7 +159,8 @@ output:
     dir: /hpc/group/cosmology/yuedong/roman_output/test_coadd/images/truth
     file_name:
         type: FormattedStr
-        format: "Roman_WAS_truth_%s_%i_%i.fits.gz"
+        # format: "Roman_WAS_truth_%s_%i_%i.fits.gz"
+        format: "noise_mixture_Roman_WAS_truth_%s_%i_%i.fits.gz"
         items:
             - { type: ObSeqData, field: filter }
             - { type: ObSeqData, field: visit }

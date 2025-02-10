@@ -49,7 +49,10 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
             'filter': str,
             'mjd': float,
             'exptime': float,
-            'coadd_file': str
+            'coadd_file': str,
+            'white_scale': float,
+            'pink_scale': float,
+            'pixel_scale': float
         }
         opt = {
             'draw_method': str,
@@ -123,6 +126,8 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
                 base['image'], 'bandpass', base, logger=logger)
 
         self.coadd_hdu = fits.open(params["coadd_file"])
+        self.white_scale = params['white_scale']
+        self.pink_scale = params['pink_scale']
 
         # return roman.n_pix, roman.n_pix
         return int(self.coadd_hdu[0].header['NAXIS1']), int(self.coadd_hdu[0].header['NAXIS2'])
@@ -246,6 +251,11 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         # rng = galsim.config.GetRNG(config, base)
         logger.info('image %d: Start RomanSCA detector effects',
                     base.get('image_num', 0))
+
+        noise_white = self.coadd_hdu[0].data[0][11]
+        noise_pink = self.coadd_hdu[0].data[0][10]
+        image += noise_white * self.white_scale
+        image += noise_pink * self.pink_scale
 
         # self.effects.setup_sky(image, force_cvz=self.effects.force_cvz,
         #                        stray_light=self.stray_light, thermal_background=self.thermal_background)

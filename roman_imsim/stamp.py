@@ -49,6 +49,14 @@ class Roman_stamp(StampBuilder):
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
         base["object_type"] = gal.object_type
         bandpass = base["bandpass"]
+
+        if base["image"]["type"] == "roman_coadd":
+            self.is_coadd = True
+            self.pixel_scale = float(base["image"]["pixel_scale"])
+        else:
+            self.is_coadd = False
+            self.pixel_scale = roman.pixel_scale
+
         if not hasattr(gal, "flux"):
             # In this case, the object flux has not been precomputed
             # or cached by the skyCatalogs code.
@@ -106,7 +114,7 @@ class Roman_stamp(StampBuilder):
                 # psf = galsim.config.BuildGSObject(base, 'psf', logger=logger)[0]['achromatic']
                 # obj = galsim.Convolve(gal_achrom, psf).withFlux(self.flux)
                 obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20))
-                image_size = obj.getGoodImageSize(roman.pixel_scale)
+                image_size = obj.getGoodImageSize(self.pixel_scale)
 
         # print('stamp setup3',process.memory_info().rss)
         base["pupil_bin"] = self.pupil_bin
@@ -124,11 +132,6 @@ class Roman_stamp(StampBuilder):
             world_pos = galsim.config.ParseWorldPos(config, "world_pos", base, logger)
         else:
             world_pos = None
-
-        if base["image"]["type"] == "roman_coadd":
-            self.is_coadd = True
-        else:
-            self.is_coadd = False
 
         return image_size, image_size, image_pos, world_pos
 
