@@ -969,19 +969,12 @@ class modify_image(object):
         if self.df is None:
             # iterate over previous exposures
             for p in p_pers:
-<<<<<<< HEAD
                 dt = (
                     pointing.date - p.date
                 ).total_seconds() - roman.exptime / 2  # avg time since end of exposures
                 self.params["output"]["file_name"]["items"] = [p.filter, p.visit, p.sca]
                 imfilename = ParseValue(self.params["output"], "file_name", self.params, str)[0]
                 fn = os.path.join(self.params["output"]["dir"], imfilename)
-=======
-                dt = (pointing.date-p.date).total_seconds() - roman.exptime/2 ##avg time since end of exposures
-                self.params['output']['file_name']['items'] = [p.filter_,p.visit,p.sca]
-                imfilename = ParseValue(self.params['output'], 'file_name', self.params, str)[0]
-                fn = os.path.join(self.params['output']['dir'],imfilename)
->>>>>>> 901e111 (Use filter_ instead of filter)
 
                 # apply all the effects that occured before persistence on the previouse exposures
                 # since max of the sky background is of order 100, it is thus negligible for persistence
