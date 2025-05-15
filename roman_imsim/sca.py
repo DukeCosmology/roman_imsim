@@ -1,11 +1,11 @@
 import galsim
-import galsim.roman as roman
 import galsim.config
+import galsim.roman as roman
+import numpy as np
+from astropy.time import Time
 from galsim.config import RegisterImageType
 from galsim.config.image_scattered import ScatteredImageBuilder
 from galsim.image import Image
-from astropy.time import Time
-import numpy as np
 
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):

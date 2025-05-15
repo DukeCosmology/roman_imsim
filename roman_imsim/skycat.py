@@ -2,14 +2,14 @@
 Interface to obtain objects from skyCatalogs.
 """
 
-import numpy as np
 import galsim
 import galsim.roman as roman
+import numpy as np
 from galsim.config import (
     InputLoader,
     RegisterInputType,
-    RegisterValueType,
     RegisterObjectType,
+    RegisterValueType,
 )
 
 

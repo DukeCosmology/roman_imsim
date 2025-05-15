@@ -2,8 +2,9 @@ try:
     from lsst.utils.threads import disable_implicit_threading
 
     disable_implicit_threading()
-except:
+except ImportError:
     pass
+
 # Import core modules for public use
 from . import bandpass
 from . import wcs

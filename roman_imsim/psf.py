@@ -1,7 +1,7 @@
 import galsim
-import galsim.roman as roman
 import galsim.config
-from galsim.config import RegisterInputType, InputLoader
+import galsim.roman as roman
+from galsim.config import InputLoader, RegisterInputType
 
 
 class RomanPSF(object):

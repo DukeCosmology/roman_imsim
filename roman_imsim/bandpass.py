@@ -1,5 +1,5 @@
 import galsim.roman as roman
-from galsim.config import BandpassBuilder, RegisterBandpassType, GetAllParams
+from galsim.config import BandpassBuilder, GetAllParams, RegisterBandpassType
 
 
 class RomanBandpassBuilder(BandpassBuilder):

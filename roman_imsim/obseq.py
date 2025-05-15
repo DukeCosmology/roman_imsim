@@ -1,9 +1,9 @@
-from astropy.time import Time
 import fitsio as fio
 import galsim
 import galsim.config
+from astropy.time import Time
 from galsim.angle import Angle
-from galsim.config import InputLoader, RegisterValueType, RegisterInputType
+from galsim.config import InputLoader, RegisterInputType, RegisterValueType
 
 
 class ObSeqDataLoader(object):

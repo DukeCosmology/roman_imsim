@@ -1,0 +1,26 @@
+name: lint
+
+on:
+  push:
+    branches:
+      - main
+      - v2.0
+  pull_request: null
+  workflow_dispatch: null
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install flake8==7.1.1 flake8-github-annotations
+
+      - name: Run linter
+        run: flake8 --format github

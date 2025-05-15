@@ -3,6 +3,7 @@ import os
 import warnings
 import astropy.time
 import galsim
+import galsim.roman as roman
 from galsim.config import OutputBuilder, RegisterOutputType
 import galsim.roman as roman
 

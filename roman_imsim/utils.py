@@ -1,9 +1,9 @@
-import numpy as np
+from itertools import product
+
 import galsim
 import galsim.config
 import galsim.roman as roman
-
-from itertools import product
+import numpy as np
 
 
 class roman_utils(object):
@@ -129,7 +129,8 @@ class roman_utils(object):
             pupil_bin: pupil image binning factor
             sed: SED to be used to draw the PSF - default is a flat SED.
             oversampling_factor: factor by which to oversample native roman pixel scale
-            include_photonOps: include additional contributions from other photon operators in effective psf image
+            include_photonOps: include additional contributions from other photon operators in effective psf
+                               image
             n_phot: Number of photons to generate PSF using photon shooting method.
                     Relevant only if include_photonOps is True (default: 1e6)
             method: Method used to generate the PSF image.
