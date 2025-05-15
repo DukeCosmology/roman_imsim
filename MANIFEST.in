@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include pyproject.toml
+include requirements.txt
+recursive-include roman_imsim *.py
+recursive-include tests *.py
+recursive-include docs *.md *.rst *.txt
+global-exclude __pycache__ *.py[cod] *.so *.pyd *.dll
