@@ -147,8 +147,8 @@ class SlitlessSpecBuilder(PhotonOpBuilder):
     def buildPhotonOp(self, config, base, logger):
         req, opt, single, takes_rng = get_cls_params(SlitlessSpec)
         kwargs, safe = GetAllParams(config, base, req, opt, single)
-        if 'sky_pos' in base:
-            kwargs['obj_coord'] = base['sky_pos']
+        #if 'sky_pos' in base:
+        #    kwargs['obj_coord'] = base['sky_pos']
         return SlitlessSpec(**kwargs)
 
 RegisterPhotonOpType('SlitlessSpec', SlitlessSpecBuilder())
