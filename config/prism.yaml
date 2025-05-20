@@ -96,6 +96,7 @@ stamp:
         type: SkyCatWorldPos
     exptime: { type: ObSeqData, field: exptime }
     min_size: 1024
+    flux_cap: 1e6
 
     photon_ops:
         -
