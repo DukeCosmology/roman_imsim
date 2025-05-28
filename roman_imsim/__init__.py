@@ -11,4 +11,5 @@ from .wcs import *
 from .skycat import *
 from .photonOps import *
 from .bandpass import *
-from .detector_physics import *
+# from .detector_physics import *
+from .detector_effects import *

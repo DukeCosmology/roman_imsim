@@ -96,7 +96,11 @@ image:
     nonlinearity: True
     ipc: True
     read_noise: True
-    sky_subtract: False
+    sky_subtract: True
+
+    dither_from_file: /hpc/home/yf194/Work/final_sims_2023/Roman_WAS_obseq_11_1_23_ditherlist.txt
+    sca_filepath: /hpc/group/cosmology/phy-lsst/roman_sensors
+    save_diff: False
 
     # nobjects: 500
 
@@ -126,7 +130,7 @@ input:
     obseq_data:
         # file_name: /lus/grand/projects/RomanDESC/final_roman_runfiles/was/Roman_WAS_obseq_11_1_23.fits
         file_name: /hpc/group/cosmology/OpenUniverse2024/RomanWAS/Roman_WAS_obseq_11_1_23.fits
-        visit: 1
+        visit: 4906
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
