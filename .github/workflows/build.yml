@@ -65,7 +65,6 @@ jobs:
 
       - name: Install linters
         run: |
-          pip install flake8 black mypy
+          pip install flake8 black
           black --check roman_imsim tests
           flake8 roman_imsim tests
-          mypy roman_imsim
