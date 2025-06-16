@@ -1,11 +1,11 @@
 import copy
 import os
 import warnings
+
 import astropy.time
 import galsim
 import galsim.roman as roman
 from galsim.config import OutputBuilder, RegisterOutputType
-import galsim.roman as roman
 
 
 class SCABuilder(OutputBuilder):
@@ -27,9 +27,7 @@ class SCABuilder(OutputBuilder):
         logger.debug("file %d: seed = %d", file_num, seed)
 
         if "exptime" in config:
-            base["exptime"] = galsim.config.ParseValue(config, "exptime", base, float)[
-                0
-            ]
+            base["exptime"] = galsim.config.ParseValue(config, "exptime", base, float)[0]
         else:
             base["exptime"] = roman.exptime
 
@@ -88,14 +86,13 @@ class SCABuilder(OutputBuilder):
 
         image = galsim.config.BuildImage(base, image_num, obj_num, logger=logger)
 
+        data_dir = ""
         # Add cosmic rays.
         cosmic_ray_rate = params.get("cosmic_ray_rate", 0)
         if cosmic_ray_rate > 0:
             cosmic_ray_catalog = params.get("cosmic_ray_catalog", None)
             if cosmic_ray_catalog is None:
-                cosmic_ray_catalog = os.path.join(
-                    data_dir, "cosmic_rays_itl_2017.fits.gz"
-                )
+                cosmic_ray_catalog = os.path.join(data_dir, "cosmic_rays_itl_2017.fits.gz")
             if not os.path.isfile(cosmic_ray_catalog):
                 raise FileNotFoundError(f"{cosmic_ray_catalog} not found")
 
