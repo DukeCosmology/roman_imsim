@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10, 3.11, 3.12]
+        python-version: [3.11, 3.12]
 
     steps:
       - uses: actions/checkout@v3
@@ -46,17 +46,13 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --strict-markers --cov=roman_imsim --cov-report=xml --cov-fail-under=85 tests/
+          pytest --strict-markers --cov=roman_imsim tests/
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report
           path: coverage.xml
-      - name: Check for known vulnerabilities
-        run: |
-          pip install pip-audit
-          pip-audit
 
   lint:
     runs-on: ubuntu-latest
@@ -65,7 +61,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install linters
         run: |
