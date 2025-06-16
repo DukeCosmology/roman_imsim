@@ -62,9 +62,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             "sky_subtract": bool,
             "ignore_noise": bool,
         }
-        params = galsim.config.GetAllParams(
-            config, base, req=req, opt=opt, ignore=ignore + extra_ignore
-        )[0]
+        params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
         self.sca = params["SCA"]
         base["SCA"] = self.sca
@@ -84,9 +82,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.sky_subtract = params.get("sky_subtract", False)
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
-        self.draw_method = params.get(
-            "draw_method", base.get("stamp", {}).get("draw_method", "auto")
-        )
+        self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "auto"))
 
         # pointing = CelestialCoord(ra=params['ra'], dec=params['dec'])
         # wcs = roman.getWCS(world_pos        = pointing,
@@ -101,9 +97,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
         # If user hasn't overridden the bandpass to use, get the standard one.
         if "bandpass" not in config:
-            base["bandpass"] = galsim.config.BuildBandpass(
-                base["image"], "bandpass", base, logger=logger
-            )
+            base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
 
         return roman.n_pix, roman.n_pix
 
@@ -137,13 +131,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image.header = galsim.FitsHeader()
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
-        full_image.header["DATE-OBS"] = Time(
-            self.mjd, format="mjd"
-        ).datetime.isoformat()
+        full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
         full_image.header["FILTER"] = self.filter
-        full_image.header["ZPTMAG"] = 2.5 * np.log10(
-            self.exptime * roman.collecting_area
-        )
+        full_image.header["ZPTMAG"] = 2.5 * np.log10(self.exptime * roman.collecting_area)
 
         base["current_image"] = full_image
 
@@ -194,9 +184,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                     # avoid an error.  But this isn't covered in the imsim test suite.
                     continue
 
-                logger.debug(
-                    "image %d: full bounds = %s", image_num, str(full_image.bounds)
-                )
+                logger.debug("image %d: full bounds = %s", image_num, str(full_image.bounds))
                 logger.debug(
                     "image %d: stamp %d bounds = %s",
                     image_num,
@@ -233,9 +221,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         wcs = base["wcs"]
         bp = base["bandpass"]
         rng = galsim.config.GetRNG(config, base)
-        logger.info(
-            "image %d: Start RomanSCA detector effects", base.get("image_num", 0)
-        )
+        logger.info("image %d: Start RomanSCA detector effects", base.get("image_num", 0))
 
         # Things that will eventually be subtracted (if sky_subtract) will have their expectation
         # value added to sky_image.  So technically, this includes things that aren't just sky.
@@ -290,9 +276,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             dc = roman.dark_current * self.exptime
             logger.debug("Adding dark current: %s", dc)
             sky_image += dc
-            dark_noise = galsim.noise.DeviateNoise(
-                galsim.random.PoissonDeviate(rng, dc)
-            )
+            dark_noise = galsim.noise.DeviateNoise(galsim.random.PoissonDeviate(rng, dc))
             image.addNoise(dark_noise)
 
         if self.nonlinearity:

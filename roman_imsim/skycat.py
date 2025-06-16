@@ -79,9 +79,7 @@ class SkyCatalogInterface:
 
         if obj_types is not None:
             self.logger.warning(f"Object types restricted to {obj_types}")
-        self.sca_center = wcs.toWorld(
-            galsim.PositionD(self.xsize / 2.0, self.ysize / 2.0)
-        )
+        self.sca_center = wcs.toWorld(galsim.PositionD(self.xsize / 2.0, self.ysize / 2.0))
         self._objects = None
 
         # import os, psutil
@@ -106,14 +104,10 @@ class SkyCatalogInterface:
             vertices = []
             for x, y in corners:
                 sky_coord = self.wcs.toWorld(galsim.PositionD(x, y))
-                vertices.append(
-                    (sky_coord.ra / galsim.degrees, sky_coord.dec / galsim.degrees)
-                )
+                vertices.append((sky_coord.ra / galsim.degrees, sky_coord.dec / galsim.degrees))
             region = skyCatalogs.PolygonalRegion(vertices)
             sky_cat = skyCatalogs.open_catalog(self.file_name)
-            self._objects = sky_cat.get_objects_by_region(
-                region, obj_type_set=self.obj_types, mjd=self.mjd
-            )
+            self._objects = sky_cat.get_objects_by_region(region, obj_type_set=self.obj_types, mjd=self.mjd)
             if not self._objects:
                 self.logger.warning("No objects found on image.")
             # import os, psutil
@@ -183,9 +177,7 @@ class SkyCatalogInterface:
 
         # Compute the flux or get the cached value.
         flux = (
-            skycat_obj.get_roman_flux(self.bandpass.name, mjd=self.mjd)
-            * self.exptime
-            * roman.collecting_area
+            skycat_obj.get_roman_flux(self.bandpass.name, mjd=self.mjd) * self.exptime * roman.collecting_area
         )
         if np.isnan(flux):
             return None
@@ -208,22 +200,14 @@ class SkyCatalogInterface:
         gs_obj_list = []
         for component in gsobjs:
             if faint:
-                gsobjs[component] = gsobjs[component].evaluateAtWavelength(
-                    self.bandpass
-                )
+                gsobjs[component] = gsobjs[component].evaluateAtWavelength(self.bandpass)
                 gs_obj_list.append(
-                    gsobjs[component]
-                    * self._trivial_sed
-                    * self.exptime
-                    * roman.collecting_area
+                    gsobjs[component] * self._trivial_sed * self.exptime * roman.collecting_area
                 )
             else:
                 if component in seds:
                     gs_obj_list.append(
-                        gsobjs[component]
-                        * seds[component]
-                        * self.exptime
-                        * roman.collecting_area
+                        gsobjs[component] * seds[component] * self.exptime * roman.collecting_area
                     )
 
         if not gs_obj_list:
@@ -239,9 +223,7 @@ class SkyCatalogInterface:
         gs_object.withFlux(gs_object.flux, self.bandpass)
 
         # Get the object type
-        if (skycat_obj.object_type == "diffsky_galaxy") | (
-            skycat_obj.object_type == "galaxy"
-        ):
+        if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
             gs_object.object_type = "galaxy"
         if skycat_obj.object_type == "star":
             gs_object.object_type = "star"
@@ -269,9 +251,7 @@ class SkyCatalogLoader(InputLoader):
         kwargs["logger"] = logger
 
         if "bandpass" not in config:
-            base["bandpass"] = galsim.config.BuildBandpass(
-                base["image"], "bandpass", base, logger=logger
-            )[0]
+            base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)[0]
 
         kwargs["bandpass"] = base["bandpass"]
         # Sky catalog object lists are created per CCD, so they are
@@ -345,9 +325,7 @@ def SkyCatWorldPos(config, base, value_type):
 
 RegisterInputType("sky_catalog", SkyCatalogLoader(SkyCatalogInterface, has_nobj=True))
 RegisterObjectType("SkyCatObj", SkyCatObj, input_type="sky_catalog")
-RegisterValueType(
-    "SkyCatWorldPos", SkyCatWorldPos, [galsim.CelestialCoord], input_type="sky_catalog"
-)
+RegisterValueType("SkyCatWorldPos", SkyCatWorldPos, [galsim.CelestialCoord], input_type="sky_catalog")
 
 # This class was modified from https://github.com/LSSTDESC/imSim/. License info follows:
 

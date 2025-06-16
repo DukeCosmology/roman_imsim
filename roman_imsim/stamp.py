@@ -91,9 +91,7 @@ class Roman_stamp(StampBuilder):
 
         else:
             gal_achrom = gal.evaluateAtWavelength(bandpass.effective_wavelength)
-            if hasattr(gal_achrom, "original") and isinstance(
-                gal_achrom.original, galsim.DeltaFunction
-            ):
+            if hasattr(gal_achrom, "original") and isinstance(gal_achrom.original, galsim.DeltaFunction):
                 # For bright stars, set the following stamp size limits
                 if self.flux < 1e6:
                     image_size = 500
@@ -115,16 +113,12 @@ class Roman_stamp(StampBuilder):
         # print('stamp setup3',process.memory_info().rss)
         base["pupil_bin"] = self.pupil_bin
         logger.info("Object flux is %d", self.flux)
-        logger.info(
-            "Object %d will use stamp size = %s", base.get("obj_num", 0), image_size
-        )
+        logger.info("Object %d will use stamp size = %s", base.get("obj_num", 0), image_size)
 
         # Determine where this object is going to go:
         # This is the same as what the base StampBuilder does:
         if "image_pos" in config:
-            image_pos = galsim.config.ParseValue(
-                config, "image_pos", base, galsim.PositionD
-            )[0]
+            image_pos = galsim.config.ParseValue(config, "image_pos", base, galsim.PositionD)[0]
         else:
             image_pos = None
 
@@ -152,9 +146,7 @@ class Roman_stamp(StampBuilder):
             the PSF
         """
         if base.get("psf", {}).get("type", "roman_psf") != "roman_psf":
-            return galsim.config.BuildGSObject(
-                base, "psf", gsparams=gsparams, logger=logger
-            )[0]
+            return galsim.config.BuildGSObject(base, "psf", gsparams=gsparams, logger=logger)[0]
 
         roman_psf = galsim.config.GetInputObj("roman_psf", config, base, "buildPSF")
         psf = roman_psf.getPSF(self.pupil_bin, base["image_pos"])
@@ -179,16 +171,12 @@ class Roman_stamp(StampBuilder):
                 logger.info("Auto -> Use FFT drawing for object %d.", base["obj_num"])
                 return "fft"
             else:
-                logger.info(
-                    "Auto -> Use photon shooting for object %d.", base["obj_num"]
-                )
+                logger.info("Auto -> Use photon shooting for object %d.", base["obj_num"])
                 return "phot"
         else:
             # If user sets something specific for the method, rather than auto,
             # then respect their wishes.
-            logger.info(
-                "Use specified method=%s for object %d.", method, base["obj_num"]
-            )
+            logger.info("Use specified method=%s for object %d.", method, base["obj_num"])
             return method
 
     @classmethod
@@ -201,16 +189,11 @@ class Roman_stamp(StampBuilder):
             sed = prof.SED
             # TODO: This bit should probably be ported back to Galsim.
             #       Something like sed.make_tabulated()
-            if (
-                not isinstance(sed._spec, galsim.LookupTable)
-                or sed._spec.interpolant != "linear"
-            ):
+            if not isinstance(sed._spec, galsim.LookupTable) or sed._spec.interpolant != "linear":
                 # Workaround for https://github.com/GalSim-developers/GalSim/issues/1228
                 f = np.broadcast_to(sed(wave_list), wave_list.shape)
                 new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
-                new_sed = galsim.SED(
-                    new_spec, "nm", "fphotons" if sed.spectral else "1"
-                )
+                new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
                 prof.SED = new_sed
 
             # Also recurse onto any components.
@@ -302,9 +285,7 @@ class Roman_stamp(StampBuilder):
             if not faint and config.get("fft_photon_ops"):
                 kwargs.update(
                     {
-                        "photon_ops": galsim.config.BuildPhotonOps(
-                            config, "fft_photon_ops", base, logger
-                        ),
+                        "photon_ops": galsim.config.BuildPhotonOps(config, "fft_photon_ops", base, logger),
                         "maxN": maxN,
                         "rng": self.rng,
                         "n_subsample": 1,
@@ -323,9 +304,7 @@ class Roman_stamp(StampBuilder):
                 # and raise the error.
                 logger.error("Caught error trying to draw using FFT:")
                 logger.error("%s", e)
-                logger.error(
-                    "You may need to add a gsparams field with maximum_fft_size to"
-                )
+                logger.error("You may need to add a gsparams field with maximum_fft_size to")
                 logger.error("either the psf or gal field to allow larger FFTs.")
                 logger.info("prof = %r", prof)
                 logger.info("fft_image = %s", fft_image)
@@ -345,9 +324,7 @@ class Roman_stamp(StampBuilder):
             # print('stamp draw3b ',process.memory_info().rss)
 
             if not faint and "photon_ops" in config:
-                photon_ops = galsim.config.BuildPhotonOps(
-                    config, "photon_ops", base, logger
-                )
+                photon_ops = galsim.config.BuildPhotonOps(config, "photon_ops", base, logger)
             else:
                 photon_ops = []
 

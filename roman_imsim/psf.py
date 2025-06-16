@@ -51,9 +51,7 @@ class RomanPSF(object):
         else:
             return pupil_bin
 
-    def _psf_call(
-        self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations
-    ):
+    def _psf_call(self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations):
 
         if pupil_bin == 8:
             psf = roman.getPSF(
@@ -117,9 +115,9 @@ class RomanPSF(object):
         wlu = (roman.n_pix - pos.x) * (pos.y - 1)
         wul = (pos.x - 1) * (roman.n_pix - pos.y)
         wuu = (pos.x - 1) * (pos.y - 1)
-        return (
-            wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]
-        ) / ((roman.n_pix - 1) * (roman.n_pix - 1))
+        return (wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]) / (
+            (roman.n_pix - 1) * (roman.n_pix - 1)
+        )
 
 
 class PSFLoader(InputLoader):
@@ -145,9 +143,7 @@ class PSFLoader(InputLoader):
         else:
             req["SCA"] = int
 
-        kwargs, safe = galsim.config.GetAllParams(
-            config, base, req=req, opt=opt, ignore=ignore
-        )
+        kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore)
 
         # If not given in kwargs, then it must have been in base, so this is ok.
         if "SCA" not in kwargs:
@@ -156,12 +152,8 @@ class PSFLoader(InputLoader):
         kwargs["extra_aberrations"] = galsim.config.ParseAberrations(
             "extra_aberrations", config, base, "RomanPSF"
         )
-        kwargs["WCS"] = galsim.config.BuildWCS(
-            base["image"], "wcs", base, logger=logger
-        )
-        kwargs["bpass"] = galsim.config.BuildBandpass(
-            base["image"], "bandpass", base, logger
-        )[0]
+        kwargs["WCS"] = galsim.config.BuildWCS(base["image"], "wcs", base, logger=logger)
+        kwargs["bpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger)[0]
 
         logger.debug("kwargs = %s", kwargs)
 
