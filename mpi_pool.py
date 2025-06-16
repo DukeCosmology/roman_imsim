@@ -10,14 +10,14 @@ class _function_wrapper(object):
 
 
 def _error_function(task):
-    raise RuntimeError("Pool was sent tasks before being told what "
-                       "function to apply.")
+    raise RuntimeError("Pool was sent tasks before being told what " "function to apply.")
 
 
 class MPIPool(object):
     def __init__(self, debug=False, comm=None):
         try:
             from mpi4py import MPI
+
             self.MPI = MPI
         except ImportError:
             raise RuntimeError("MPI environment not found!")
@@ -40,8 +40,7 @@ class MPIPool(object):
             raise RuntimeError("Master node told to await jobs")
         status = self.MPI.Status()
         while True:
-            task = self.comm.recv(source=0, tag=self.MPI.ANY_TAG,
-                                  status=status)
+            task = self.comm.recv(source=0, tag=self.MPI.ANY_TAG, status=status)
 
             if isinstance(task, _close_pool_message):
                 break
@@ -52,10 +51,12 @@ class MPIPool(object):
                 continue
 
             if self.callback:
+
                 def compose(x):
                     result = self.function(x)
                     self.callback(x, result)
                     return result
+
                 results = map(compose, task)
             else:
                 results = map(self.function, task)
@@ -72,34 +73,34 @@ class MPIPool(object):
             self.function = function
             self.callback = callback
             F = _function_wrapper(function, callback)
-            requests = [self.comm.send(F, dest=i)
-                        for i in range(1, self.size)]
-            #self.MPI.Request.waitall(requests)
+            requests = [self.comm.send(F, dest=i) for i in range(1, self.size)]
+            # self.MPI.Request.waitall(requests)
 
         # distribute tasks to workers
         requests = []
         for i in range(1, self.size):
-            req = self.comm.send(tasks[i::self.size], dest=i)
+            req = self.comm.send(tasks[i :: self.size], dest=i)
             requests.append(req)
 
         # process local work
-        results = [None]*len(tasks)
+        results = [None] * len(tasks)
 
         if self.callback:
+
             def compose(x):
                 result = self.function(x)
                 self.callback(x, result)
                 return result
-            results[::self.size] = map(compose, tasks[::self.size])
+
+            results[:: self.size] = map(compose, tasks[:: self.size])
         else:
-            results[::self.size] = map(self.function, tasks[::self.size])
+            results[:: self.size] = map(self.function, tasks[:: self.size])
 
         # recover results from workers (in any order)
         status = self.MPI.Status()
-        for i in range(self.size-1):
-            result = self.comm.recv(source=self.MPI.ANY_SOURCE,
-                                    status=status)
-            results[status.source::self.size] = result
+        for i in range(self.size - 1):
+            result = self.comm.recv(source=self.MPI.ANY_SOURCE, status=status)
+            results[status.source :: self.size] = result
         return results
 
     def gather(self, data, root=0):

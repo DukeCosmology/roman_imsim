@@ -1,3 +1,5 @@
+![Build](https://github.com/matroxel/roman_imsim/actions/workflows/build.yml/badge.svg)
+
 # wfirst_imsim
 
 Nonstandard dependencies are represented in setup.py.
