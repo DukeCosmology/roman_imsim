@@ -15,10 +15,7 @@ class ChargeDiff(PhotonOp):
     """
     def __init__(self, rng=None, **kwargs):
 
-        self.ud   = UniformDeviate(rng)
-        self.gd1  = GaussianDeviate(rng, sigma=_s1)
-        self.gd2  = GaussianDeviate(rng, sigma=_s2)
-        self.gd3  = GaussianDeviate(rng, sigma=_s3)
+        self.rng = rng
 
     def applyTo(self, photon_array, local_wcs=None, rng=None):
         """Apply the charge diffusion effect to the photons
@@ -29,6 +26,11 @@ class ChargeDiff(PhotonOp):
                             bundle in case the operator needs this information.  [default: None]
             rng:            A random number generator to use if needed. [default: None]
         """
+
+        self.ud   = UniformDeviate(rng)
+        self.gd1  = GaussianDeviate(rng, sigma=_s1)
+        self.gd2  = GaussianDeviate(rng, sigma=_s2)
+        self.gd3  = GaussianDeviate(rng, sigma=_s3)
 
         # Choose which weighted Gausian to use in sech model approximation
         u  = np.empty(len(photon_array.x))
