@@ -5,7 +5,7 @@ import galsim
 import galsim.config
 import galsim.roman as roman
 
-from skycat import SkyCatalogInterface
+from roman_imsim.skycat import SkyCatalogInterface
 
 class roman_utils(object):
     """
