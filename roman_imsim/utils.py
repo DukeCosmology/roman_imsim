@@ -1,10 +1,11 @@
 from itertools import product
+import numpy as np
 
 import galsim
 import galsim.config
 import galsim.roman as roman
-import numpy as np
 
+from skycat import SkyCatalogInterface
 
 class roman_utils(object):
     """
@@ -171,3 +172,21 @@ class roman_utils(object):
             photon_ops=photon_ops,
             poisson_flux=False,
         )
+
+class transient_utils(object):
+    """
+    Class to assist with retrieving transient information.
+    """
+
+    def __init__(
+        self,
+        file_name,
+        obj_id
+    ):
+
+        skycat_int = SkyCatalogInterface( 
+                                        file_name,
+                                        exptime = 30,  # Arbitrary, re-defines this later
+                                        )
+
+        return skycat_int
