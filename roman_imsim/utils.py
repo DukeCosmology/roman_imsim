@@ -173,21 +173,6 @@ class roman_utils(object):
             poisson_flux=False,
         )
 
-class transient_utils(object):
-    """
-    Class to assist with retrieving transient information.
-    """
+    def getTransient(self, obj_id):
 
-    def __init__(
-        self,
-        file_name,
-        obj_id
-    ):
-
-        skycat_int = SkyCatalogInterface( 
-                                        file_name,
-                                        exptime = 30,  # Arbitrary, re-defines this later
-                                        obj_types = ['transient']
-                                        )
-
-        return skycat_int
+        return self.skycat
