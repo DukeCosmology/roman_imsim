@@ -187,6 +187,7 @@ class transient_utils(object):
         skycat_int = SkyCatalogInterface( 
                                         file_name,
                                         exptime = 30,  # Arbitrary, re-defines this later
+                                        obj_types = ['transient']
                                         )
 
         return skycat_int
