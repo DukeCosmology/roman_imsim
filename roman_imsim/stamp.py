@@ -1,7 +1,7 @@
 import galsim
 import galsim.config
 import galsim.roman as roman
-import numpy as np
+import numpy as np 
 from galsim.config import RegisterStampType, StampBuilder
 
 # import os, psutil
@@ -46,6 +46,13 @@ class Roman_stamp(StampBuilder):
         """
         # print('stamp setup',process.memory_info().rss)
 
+        #Define the exp time for use in adjusting flux/photon for any dt 
+        # slice and exposure time based on previously defined values
+        if "exptime" in config:
+            self.exptime = galsim.config.ParseValue(config, "exptime", base, float)[0]
+        else:
+            self.exptime = roman.exptime
+
         gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
         if gal is None:
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
@@ -55,10 +62,11 @@ class Roman_stamp(StampBuilder):
             # In this case, the object flux has not been precomputed
             # or cached by the skyCatalogs code.
             gal.flux = gal.calculateFlux(bandpass)
-        self.flux = gal.flux
-        # Cap (star) flux at 30M photons to avoid gross artifacts when trying
+        self.flux = gal.flux /(dt/self.exptime)#need to check if we change flux here or elsewhere before its passed to stamps
+
+        # Cap (star) flux at 30M photons/(dt/exptime) to avoid gross artifacts when trying
         # to draw the Roman PSF in finite time and memory
-        flux_cap = 3e7
+        flux_cap = 3e7/(dt/self.exptime)
         if self.flux > flux_cap:
             if (
                 hasattr(gal, "original")
@@ -68,13 +76,13 @@ class Roman_stamp(StampBuilder):
                 gal = gal.withFlux(flux_cap, bandpass)
                 self.flux = flux_cap
                 gal.flux = flux_cap
-        base["flux"] = gal.flux
+        base["flux"] = gal.flux #need to check if we change flux here or elsewhere (this is currently the full exptime flux)
         base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
         # print('stamp setup2',process.memory_info().rss)
 
         # Compute or retrieve the realized flux.
         self.rng = galsim.config.GetRNG(config, base, logger, "Roman_stamp")
-        self.realized_flux = galsim.PoissonDeviate(self.rng, mean=self.flux)()
+        self.realized_flux = galsim.PoissonDeviate(self.rng, mean=gal.flux)()
         base["realized_flux"] = self.realized_flux
 
         # Check if the realized flux is 0.
@@ -84,7 +92,7 @@ class Roman_stamp(StampBuilder):
             raise galsim.config.SkipThisObject("realized flux=0")
 
         # Otherwise figure out the stamp size
-        if self.flux < 10:
+        if self.flux < 10/(dt/self.exptime):
             # For really faint things, don't try too hard.  Just use 32x32.
             image_size = 32
             self.pupil_bin = "achromatic"
@@ -93,10 +101,10 @@ class Roman_stamp(StampBuilder):
             gal_achrom = gal.evaluateAtWavelength(bandpass.effective_wavelength)
             if hasattr(gal_achrom, "original") and isinstance(gal_achrom.original, galsim.DeltaFunction):
                 # For bright stars, set the following stamp size limits
-                if self.flux < 1e6:
+                if self.flux < 1e6/(dt/self.exptime):
                     image_size = 500
                     self.pupil_bin = 8
-                elif self.flux < 6e6:
+                elif self.flux < 6e6/(dt/self.exptime):
                     image_size = 1000
                     self.pupil_bin = 4
                 else:
@@ -233,12 +241,12 @@ class Roman_stamp(StampBuilder):
                 cls._fix_seds_25(prof.original, bandpass)
 
     def draw(self, prof, image, method, offset, config, base, logger):
-        """Draw the profile on the postage stamp image.
+        """Draw the profile on the postage stamp image for fft and convert to photonArray or create photonArray for shooting
 
         Parameters:
             prof:       The profile to draw.
             image:      The image onto which to draw the profile (which may be None).
-            method:     The method to use in drawImage.
+            method:     The method to use to determine how the photonArray is made.
             offset:     The offset to apply when drawing.
             config:     The configuration dict for the stamp field.
             base:       The base configuration dict.
@@ -258,7 +266,7 @@ class Roman_stamp(StampBuilder):
 
         gal, *psfs = prof.obj_list if hasattr(prof, "obj_list") else [prof]
 
-        faint = self.flux < 40
+        faint = self.flux < 40/(dt/self.exptime)
         bandpass = base["bandpass"]
         if faint:
             logger.info("Flux = %.0f  Using trivial sed", self.flux)
@@ -269,12 +277,12 @@ class Roman_stamp(StampBuilder):
 
         # Set limit on the size of photons batches to consider when
         # calling gsobject.drawImage.
-        maxN = int(1e6)
+        maxN = int(1e6/(dt/self.exptime))
         if "maxN" in config:
             maxN = galsim.config.ParseValue(config, "maxN", base, int)[0]
         # print('stamp draw2',process.memory_info().rss)
 
-        if method == "fft":
+        if method == "fft": 
             fft_image = image.copy()
             fft_offset = offset
             kwargs = dict(
@@ -282,15 +290,16 @@ class Roman_stamp(StampBuilder):
                 offset=fft_offset,
                 image=fft_image,
             )
-            if not faint and config.get("fft_photon_ops"):
-                kwargs.update(
-                    {
-                        "photon_ops": galsim.config.BuildPhotonOps(config, "fft_photon_ops", base, logger),
-                        "maxN": maxN,
-                        "rng": self.rng,
-                        "n_subsample": 1,
-                    }
-                )
+            # ignore photon ops at this stage since we will convert this image to a photon array
+            # if not faint and config.get("fft_photon_ops"):
+            #     kwargs.update(
+            #         {
+            #             "photon_ops": galsim.config.BuildPhotonOps(config, "fft_photon_ops", base, logger),
+            #             "maxN": maxN,
+            #             "rng": self.rng,
+            #             "n_subsample": 1,
+            #         }
+            #     )
 
             # Go back to a combined convolution for fft drawing.
             gal = gal.withFlux(self.flux, bandpass)
@@ -313,25 +322,26 @@ class Roman_stamp(StampBuilder):
                 raise
             # Some pixels can end up negative from FFT numerics.  Just set them to 0.
             fft_image.array[fft_image.array < 0] = 0.0
-            fft_image.addNoise(galsim.PoissonNoise(rng=self.rng))
+            fft_image.addNoise(galsim.PoissonNoise(rng=self.rng)) #not sure if this should be kept before converting to photon array
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
-
+            #TODO: convert image from fft to photon array 
         else:
             # We already calculated realized_flux above.  Use that now and tell GalSim not
-            # recalculate the Poisson realization of the flux.
-            gal = gal.withFlux(self.realized_flux, bandpass)
+            # recalculate the Poisson realization of the flux. TODO: This shouldn't be necessary with the photon approach.
+            #gal = gal.withFlux(self.realized_flux, bandpass)
             # print('stamp draw3b ',process.memory_info().rss)
 
-            if not faint and "photon_ops" in config:
-                photon_ops = galsim.config.BuildPhotonOps(config, "photon_ops", base, logger)
-            else:
-                photon_ops = []
+            #ignore photon ops at this stage since we will convert this image to a phont array
+            # if not faint and "photon_ops" in config:
+            #     photon_ops = galsim.config.BuildPhotonOps(config, "photon_ops", base, logger)
+            # else:
+            #     photon_ops = []
 
             # Put the psfs at the start of the photon_ops.
             # Probably a little better to put them a bit later than the start in some cases
             # (e.g. after TimeSampler, PupilAnnulusSampler), but leave that as a todo for now.
-            photon_ops = psfs + photon_ops
+            #photon_ops = psfs + photon_ops
 
             # prof = galsim.Convolve([gal] + psfs)
 
@@ -339,22 +349,40 @@ class Roman_stamp(StampBuilder):
             # print('-------- psf ----------',psfs)
 
             # print('stamp draw3a',process.memory_info().rss)
-            gal.drawImage(
-                bandpass,
-                method="phot",
-                offset=offset,
-                rng=self.rng,
-                maxN=maxN,
-                n_photons=self.realized_flux,
-                image=image,
-                photon_ops=photon_ops,
-                sensor=None,
-                add_to_image=True,
-                poisson_flux=False,
-            )
+            #may want to just use makePhot() in the future
+
+            #TODO: calculate n_photons value, for now using self.flux
+            _, photons = gal.drawPhot(
+                image, 
+                gain=1.0, 
+                add_to_image=False, 
+                n_photons=self.flux, 
+                rng=self.rng, 
+                max_extra_noise=0.0, 
+                poisson_flux=None, 
+                sensor=None, 
+                photon_ops=(), 
+                maxN=maxN, 
+                orig_center=galsim.PositionI(x=0, y=0), 
+                local_wcs=None, 
+                surface_ops=None)
+            # gal.drawImage(
+            #     bandpass,
+            #     method="phot",
+            #     offset=offset,
+            #     rng=self.rng,
+            #     maxN=maxN,
+            #     n_photons=self.realized_flux,
+            #     image=image,
+            #     photon_ops=photon_ops,
+            #     sensor=None,
+            #     add_to_image=True,
+            #     poisson_flux=False,
+            # )
+
         # print('stamp draw3',process.memory_info().rss)
 
-        return image
+        return photons
 
 
 # Pick the right function to be _fix_seds.
