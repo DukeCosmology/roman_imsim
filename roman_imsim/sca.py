@@ -66,8 +66,10 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             'ignore_noise' : bool,
             'sca_filepath' : str,
             'dither_from_file': str,
-            'sca_filepath': str,
-            'save_diff': bool
+            'save_diff': bool,
+
+            'quantum_efficiency': str,
+            'brighter_fatter': str,
         }
         params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
@@ -77,16 +79,21 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.mjd = params["mjd"]
         self.exptime = params["exptime"]
 
-        self.ignore_noise = params.get("ignore_noise", False)
+        self.ignore_noise = params.get('ignore_noise', False)
+        
         # self.exptime = params.get('exptime', roman.exptime)  # Default is roman standard exposure time.
-        self.stray_light = params.get("stray_light", False)
-        self.thermal_background = params.get("thermal_background", False)
-        self.reciprocity_failure = params.get("reciprocity_failure", False)
-        self.dark_current = params.get("dark_current", False)
-        self.nonlinearity = params.get("nonlinearity", False)
-        self.ipc = params.get("ipc", False)
-        self.read_noise = params.get("read_noise", False)
-        self.sky_subtract = params.get("sky_subtract", False)
+        self.stray_light = params.get('stray_light', False)
+        self.thermal_background = params.get('thermal_background', False)
+        self.reciprocity_failure = params.get('reciprocity_failure', False)
+        self.dark_current = params.get('dark_current', False)
+        self.nonlinearity = params.get('nonlinearity', False)
+        self.ipc = params.get('ipc', False)
+        self.read_noise = params.get('read_noise', False)
+        self.sky_subtract = params.get('sky_subtract', False)
+
+        # [TODO]TEST
+        self.qe = params.get('quantum_efficiency', None)
+        self.bfe = params.get('brighter_fatter', None)
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
         self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "auto"))
@@ -116,8 +123,10 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                                         sca_filepath = self.sca_filepath)
 
         # If user hasn't overridden the bandpass to use, get the standard one.
-        if "bandpass" not in config:
-            base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
+        if 'bandpass' not in config:
+            base['bandpass'] = galsim.config.BuildBandpass(base['image'], 'bandpass', base, logger=logger)
+        
+        self.base = base
 
         return roman.n_pix, roman.n_pix
 
@@ -271,11 +280,30 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             im_pad = galsim.Image(bound_pad)
             im_pad.array[4:-4, 4:-4] = image.array[:,:]
             self.effects.set_diff(im_pad)
-            im_pad = self.effects.qe(im_pad)
-            self.effects.diff('qe', im_pad)
+            
+            # im_pad = self.effects.qe(im_pad)
+            # self.effects.diff('qe', im_pad)
+            if self.qe:
+                qe = self.effects.quantum_efficiency(
+                    params=self.base,
+                    logger=logger,
+                    model=self.qe,
+                    sca_filepath=self.sca_filepath
+                )
+                im_pad = qe.apply(image = im_pad)
+                self.effects.diff('qe', im_pad)
 
-            im_pad = self.effects.bfe(im_pad)
-            self.effects.diff('bfe', im_pad)
+            # im_pad = self.effects.bfe(im_pad)
+            # self.effects.diff('bfe', im_pad)
+            if self.bfe:
+                bfe = self.effects.bfe(
+                    params=self.base,
+                    logger=logger,
+                    model=self.bfe,
+                    sca_filepath=self.sca_filepath
+                )
+                im_pad = bfe.apply(image = im_pad)
+                self.effects.diff('bfe', im_pad)
 
             im_pad = self.effects.add_persistence(im_pad)
             self.effects.diff('pers', im_pad)

@@ -81,6 +81,198 @@ class detector_effects(object):
         self.save_diff = False
         if 'save_diff' in self.params['image']:
             self.save_diff = bool(self.params['image']['save_diff'])
+            
+    class quantum_efficiency(object):
+        def __init__(self, params, logger, model='simple_model', sca_filepath=None):
+            self.model = getattr(self, model)
+            self.sca_filepath = sca_filepath
+            self.params = params
+            self.logger = logger
+            
+        def simple_model(self, image):
+            self.logger.info("Applying the simple QE model...")
+            return image
+        
+        def lab_model(self, image):
+            if self.sca_filepath is None:
+                self.logger.warning("No QE data file provided; a default value of QE = 1 will be used.")
+                return image
+            
+            self.df = fio.FITS(os.path.join(self.sca_filepath, sca_number_to_file[self.params['SCA']]))
+            self.logger.info("Applying the QE model derived from lab data…")
+            image.array[:,:] *= self.df['RELQE1'][:,:] #4096x4096 array
+            return image
+
+        def apply(self, image):
+            image = self.model(image)
+            return image
+        
+    class bfe(object):
+        def __init__(self, params, logger, model='simple_model', sca_filepath=None, saturation_level=100000):
+            self.model = getattr(self, model)
+            self.sca_filepath = sca_filepath
+            self.params = params
+            self.logger = logger
+            self.saturation_level = saturation_level
+            
+        def simple_model(sefl, image):
+            self.logger.info("No bfe effect will be applied.")
+            return image
+        
+        def lab_model(self, image):
+            """
+            Apply brighter-fatter effect.
+            Brighter fatter effect is a non-linear effect that deflects photons due to the
+            the eletric field built by the accumulated charges. This effect exists in both
+            CCD and CMOS detectors and typically percent level change in charge.
+            The built-in electric field by the charges in pixels tends to repulse charges
+            to nearby pixels. Thus, the profile of more illuminous ojbect becomes broader.
+            This effect can also be understood effectly as change in pixel area and pixel
+            boundaries.
+            BFE is defined in terms of the Antilogus coefficient kernel of total pixel area change
+            in the detector effect charaterization file. Kernel of the total pixel area, however,
+            is not sufficient. Image simulation of the brighter fatter effect requires the shift
+            of the four pixel boundaries. Before we get better data, we solve for the boundary
+            shift components from the kernel of total pixel area by assumming several symmetric constraints.
+            Input
+            im                                      : Image
+            BFE[nbfe+Delta y, nbfe+Delta x, y, x]   : bfe coefficient kernel, nbfe=2
+            """
+            if self.sca_filepath is None:
+                self.logger.warning("No BFE kernel data file provided; no bfe effect will be applied.")
+                return image
+
+            self.df = fio.FITS(os.path.join(self.sca_filepath, sca_number_to_file[self.params['SCA']]))
+
+            nbfe = 2 ## kernel of bfe in shape (2 x nbfe+1)*(2 x nbfe+1)
+            bin_size = 128
+            n_max = 32
+            m_max = 32
+            num_grids = 4
+            n_sub = n_max//num_grids
+            m_sub = m_max//num_grids
+
+            ##=======================================================================
+            ##     solve boundary shfit kernel aX components
+            ##=======================================================================
+            a_area = self.df['BFE'][:,:,:,:] #5x5x32x32
+            a_components = np.zeros( (4, 2*nbfe+1, 2*nbfe+1, n_max, m_max) ) #4x5x5x32x32
+
+            ##solve aR aT aL aB for each a
+            for n in range(n_max): #m_max and n_max = 32 (binned in 128x128)
+                for m in range(m_max):
+                    a = a_area[:,:, n, m] ## a in (2 x nbfe+1)*(2 x nbfe+1)
+
+                    ## assume two parity symmetries
+                    a = ( a + np.fliplr(a) + np.flipud(a) + np.flip(a)  )/4.
+
+                    r = 0.5* ( 3.25/4.25  )**(1.5) / 1.5   ## source-boundary projection
+                    B = (a[2,2], a[3,2], a[2,3], a[3,3],
+                        a[4,2], a[2,4], a[3,4], a[4,4] )
+
+                    A = np.array( [ [ -2 , -2 ,  0 ,  0 ,  0 ,  0 ,  0 ],
+                                    [  0 ,  1 ,  0 , -1 , -2 ,  0 ,  0 ],
+                                    [  1 ,  0 , -1 ,  0 , -2 ,  0 ,  0 ],
+                                    [  0 ,  0 ,  0 ,  0 ,  2 , -2 ,  0 ],
+                                    [  0 ,  0 ,  0 ,  1 ,  0 ,-2*r,  0 ],
+                                    [  0 ,  0 ,  1 ,  0 ,  0 ,-2*r,  0 ],
+                                    [  0 ,  0 ,  0 ,  0 ,  0 , 1+r, -1 ],
+                                    [  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  2 ]  ])
+
+
+                    s1,s2,s3,s4,s5,s6,s7 = np.linalg.lstsq(A, B, rcond=None)[0]
+
+                    aR = np.array( [[ 0.   , -s7  ,-r*s6 , r*s6 ,  s7  ],
+                                    [ 0.   , -s6  , -s5  ,  s5  ,  s6  ],
+                                    [ 0.   , -s3  , -s1  ,  s1  ,  s3  ],
+                                    [ 0.   , -s6  , -s5  ,  s5  ,  s6  ],
+                                    [ 0.   , -s7  ,-r*s6 , r*s6 ,  s7  ],])
+
+
+                    aT = np.array( [[   0.  ,  0. ,  0.  ,   0. ,   0.   ],
+                                    [  -s7  , -s6 , -s4  , -s6  ,  -s7   ],
+                                    [ -r*s6 , -s5 , -s2  , -s5  , -r*s6  ],
+                                    [  r*s6 ,  s5 ,  s2  ,  s5  ,  r*s6  ],
+                                    [   s7  ,  s6 ,  s4  ,  s6  ,   s7   ],])
+
+
+                    aL = aR[::-1, ::-1]
+                    aB = aT[::-1, ::-1]
+
+
+
+
+                    a_components[0, :,:, n, m] = aR[:,:]
+                    a_components[1, :,:, n, m] = aT[:,:]
+                    a_components[2, :,:, n, m] = aL[:,:]
+                    a_components[3, :,:, n, m] = aB[:,:]
+
+            ##=============================
+            ## Apply bfe to image
+            ##=============================
+
+            ## pad and expand kernels
+            ## The img is clipped by the saturation level here to cap the brighter fatter effect and avoid unphysical behavior
+
+            # array_pad = self.saturate(image.copy()).array[4:-4,4:-4] # img of interest 4088x4088
+            array_pad = image.copy().array
+            saturation_array = np.ones_like(array_pad) * self.saturation_level
+            where_sat = np.where(array_pad > saturation_array)
+            array_pad[ where_sat ] = saturation_array[ where_sat ]
+            array_pad = array_pad[4:-4,4:-4]
+            array_pad = np.pad(array_pad, [(4+nbfe,4+nbfe),(4+nbfe,4+nbfe)], mode='symmetric') #4100x4100 array
+
+
+            dQ_components = np.zeros( (4, bin_size*n_max, bin_size*m_max) )   #(4, 4096, 4096) in order of [aR, aT, aL, aB]
+
+
+            ### run in sub grids to reduce memory
+
+            ## pad and expand kernels
+            t = np.zeros((bin_size*n_sub, n_sub))
+            for row in range(t.shape[0]):
+                t[row, row//(bin_size) ] =1
+
+
+
+            for gj in range(num_grids):
+                for gi in range(num_grids):
+
+                    a_components_pad = np.zeros( (4, 2*nbfe+1, 2*nbfe+1, bin_size*n_sub+2*nbfe, bin_size*m_sub+2*nbfe)  ) #(4,5,5,sub_grid,sub_grid)
+
+
+                    for comp in range(4):
+                        for j in range(2*nbfe+1):
+                            for i in range(2*nbfe+1):
+                                tmp = (t.dot(  a_components[comp,j,i,gj*n_sub:(gj+1)*n_sub,gi*m_sub:(gi+1)*m_sub]  ) ).dot(t.T) #sub_grid*sub_grid
+                                a_components_pad[comp, j, i, :, :] = np.pad(tmp, [(nbfe,nbfe),(nbfe,nbfe)], mode='symmetric')
+
+                    #convolve aX_ij with Q_ij
+                    for comp in range(4):
+                        for dy in range(-nbfe, nbfe+1):
+                            for dx in range(-nbfe, nbfe+1):
+                                dQ_components[comp, gj*bin_size*n_sub : (gj+1)*bin_size*n_sub , gi*bin_size*m_sub : (gi+1)*bin_size*m_sub]\
+                            += a_components_pad[comp, nbfe+dy, nbfe+dx,  nbfe-dy:nbfe-dy+bin_size*n_sub, nbfe-dx:nbfe-dx+bin_size*m_sub ]\
+                                *array_pad[  -dy + nbfe + gj*bin_size*n_sub :  -dy + nbfe+ (gj+1)*bin_size*n_sub  ,  -dx + nbfe + gi*bin_size*m_sub : -dx + nbfe + (gi+1)*bin_size*m_sub ]
+
+                        dj = int(np.sin(comp*np.pi/2))
+                        di = int(np.cos(comp*np.pi/2))
+
+                        dQ_components[comp, gj*bin_size*n_sub : (gj+1)*bin_size*n_sub , gi*bin_size*m_sub : (gi+1)*bin_size*m_sub]\
+                        *= 0.5*(array_pad[   nbfe + gj*bin_size*n_sub :    nbfe+ (gj+1)*bin_size*n_sub  ,    nbfe + gi*bin_size*m_sub :    nbfe + (gi+1)*bin_size*m_sub ] +\
+                                array_pad[dj+nbfe + gj*bin_size*n_sub : dj+nbfe+ (gj+1)*bin_size*n_sub  , di+nbfe + gi*bin_size*m_sub : di+nbfe + (gi+1)*bin_size*m_sub]  )
+
+            image.array[:,:]  -= dQ_components.sum(axis=0)
+            image.array[:,1:] += dQ_components[0][:,:-1]
+            image.array[1:,:] += dQ_components[1][:-1,:]
+            image.array[:,:-1] += dQ_components[2][:,1:]
+            image.array[:-1,:] += dQ_components[3][1:,:]
+
+            return image
+        
+        def apply(self, image):
+            image = self.model(image)
+            return image
 
     def set_diff(self, im=None):
         if self.save_diff:
@@ -107,147 +299,147 @@ class detector_effects(object):
         im.array[:,:] *= self.df['RELQE1'][:,:] #4096x4096 array
         return im
 
-    def bfe(self, im):
-        """
-        Apply brighter-fatter effect.
-        Brighter fatter effect is a non-linear effect that deflects photons due to the
-        the eletric field built by the accumulated charges. This effect exists in both
-        CCD and CMOS detectors and typically percent level change in charge.
-        The built-in electric field by the charges in pixels tends to repulse charges
-        to nearby pixels. Thus, the profile of more illuminous ojbect becomes broader.
-        This effect can also be understood effectly as change in pixel area and pixel
-        boundaries.
-        BFE is defined in terms of the Antilogus coefficient kernel of total pixel area change
-        in the detector effect charaterization file. Kernel of the total pixel area, however,
-        is not sufficient. Image simulation of the brighter fatter effect requires the shift
-        of the four pixel boundaries. Before we get better data, we solve for the boundary
-        shift components from the kernel of total pixel area by assumming several symmetric constraints.
-        Input
-        im                                      : Image
-        BFE[nbfe+Delta y, nbfe+Delta x, y, x]   : bfe coefficient kernel, nbfe=2
-        """
+    # def bfe(self, im):
+    #     """
+    #     Apply brighter-fatter effect.
+    #     Brighter fatter effect is a non-linear effect that deflects photons due to the
+    #     the eletric field built by the accumulated charges. This effect exists in both
+    #     CCD and CMOS detectors and typically percent level change in charge.
+    #     The built-in electric field by the charges in pixels tends to repulse charges
+    #     to nearby pixels. Thus, the profile of more illuminous ojbect becomes broader.
+    #     This effect can also be understood effectly as change in pixel area and pixel
+    #     boundaries.
+    #     BFE is defined in terms of the Antilogus coefficient kernel of total pixel area change
+    #     in the detector effect charaterization file. Kernel of the total pixel area, however,
+    #     is not sufficient. Image simulation of the brighter fatter effect requires the shift
+    #     of the four pixel boundaries. Before we get better data, we solve for the boundary
+    #     shift components from the kernel of total pixel area by assumming several symmetric constraints.
+    #     Input
+    #     im                                      : Image
+    #     BFE[nbfe+Delta y, nbfe+Delta x, y, x]   : bfe coefficient kernel, nbfe=2
+    #     """
 
-        nbfe = 2 ## kernel of bfe in shape (2 x nbfe+1)*(2 x nbfe+1)
-        bin_size = 128
-        n_max = 32
-        m_max = 32
-        num_grids = 4
-        n_sub = n_max//num_grids
-        m_sub = m_max//num_grids
+    #     nbfe = 2 ## kernel of bfe in shape (2 x nbfe+1)*(2 x nbfe+1)
+    #     bin_size = 128
+    #     n_max = 32
+    #     m_max = 32
+    #     num_grids = 4
+    #     n_sub = n_max//num_grids
+    #     m_sub = m_max//num_grids
 
-        ##=======================================================================
-        ##     solve boundary shfit kernel aX components
-        ##=======================================================================
-        a_area = self.df['BFE'][:,:,:,:] #5x5x32x32
-        a_components = np.zeros( (4, 2*nbfe+1, 2*nbfe+1, n_max, m_max) ) #4x5x5x32x32
+    #     ##=======================================================================
+    #     ##     solve boundary shfit kernel aX components
+    #     ##=======================================================================
+    #     a_area = self.df['BFE'][:,:,:,:] #5x5x32x32
+    #     a_components = np.zeros( (4, 2*nbfe+1, 2*nbfe+1, n_max, m_max) ) #4x5x5x32x32
 
-        ##solve aR aT aL aB for each a
-        for n in range(n_max): #m_max and n_max = 32 (binned in 128x128)
-            for m in range(m_max):
-                a = a_area[:,:, n, m] ## a in (2 x nbfe+1)*(2 x nbfe+1)
+    #     ##solve aR aT aL aB for each a
+    #     for n in range(n_max): #m_max and n_max = 32 (binned in 128x128)
+    #         for m in range(m_max):
+    #             a = a_area[:,:, n, m] ## a in (2 x nbfe+1)*(2 x nbfe+1)
 
-                ## assume two parity symmetries
-                a = ( a + np.fliplr(a) + np.flipud(a) + np.flip(a)  )/4.
+    #             ## assume two parity symmetries
+    #             a = ( a + np.fliplr(a) + np.flipud(a) + np.flip(a)  )/4.
 
-                r = 0.5* ( 3.25/4.25  )**(1.5) / 1.5   ## source-boundary projection
-                B = (a[2,2], a[3,2], a[2,3], a[3,3],
-                     a[4,2], a[2,4], a[3,4], a[4,4] )
+    #             r = 0.5* ( 3.25/4.25  )**(1.5) / 1.5   ## source-boundary projection
+    #             B = (a[2,2], a[3,2], a[2,3], a[3,3],
+    #                  a[4,2], a[2,4], a[3,4], a[4,4] )
 
-                A = np.array( [ [ -2 , -2 ,  0 ,  0 ,  0 ,  0 ,  0 ],
-                                [  0 ,  1 ,  0 , -1 , -2 ,  0 ,  0 ],
-                                [  1 ,  0 , -1 ,  0 , -2 ,  0 ,  0 ],
-                                [  0 ,  0 ,  0 ,  0 ,  2 , -2 ,  0 ],
-                                [  0 ,  0 ,  0 ,  1 ,  0 ,-2*r,  0 ],
-                                [  0 ,  0 ,  1 ,  0 ,  0 ,-2*r,  0 ],
-                                [  0 ,  0 ,  0 ,  0 ,  0 , 1+r, -1 ],
-                                [  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  2 ]  ])
-
-
-                s1,s2,s3,s4,s5,s6,s7 = np.linalg.lstsq(A, B, rcond=None)[0]
-
-                aR = np.array( [[ 0.   , -s7  ,-r*s6 , r*s6 ,  s7  ],
-                                [ 0.   , -s6  , -s5  ,  s5  ,  s6  ],
-                                [ 0.   , -s3  , -s1  ,  s1  ,  s3  ],
-                                [ 0.   , -s6  , -s5  ,  s5  ,  s6  ],
-                                [ 0.   , -s7  ,-r*s6 , r*s6 ,  s7  ],])
+    #             A = np.array( [ [ -2 , -2 ,  0 ,  0 ,  0 ,  0 ,  0 ],
+    #                             [  0 ,  1 ,  0 , -1 , -2 ,  0 ,  0 ],
+    #                             [  1 ,  0 , -1 ,  0 , -2 ,  0 ,  0 ],
+    #                             [  0 ,  0 ,  0 ,  0 ,  2 , -2 ,  0 ],
+    #                             [  0 ,  0 ,  0 ,  1 ,  0 ,-2*r,  0 ],
+    #                             [  0 ,  0 ,  1 ,  0 ,  0 ,-2*r,  0 ],
+    #                             [  0 ,  0 ,  0 ,  0 ,  0 , 1+r, -1 ],
+    #                             [  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  2 ]  ])
 
 
-                aT = np.array( [[   0.  ,  0. ,  0.  ,   0. ,   0.   ],
-                                [  -s7  , -s6 , -s4  , -s6  ,  -s7   ],
-                                [ -r*s6 , -s5 , -s2  , -s5  , -r*s6  ],
-                                [  r*s6 ,  s5 ,  s2  ,  s5  ,  r*s6  ],
-                                [   s7  ,  s6 ,  s4  ,  s6  ,   s7   ],])
+    #             s1,s2,s3,s4,s5,s6,s7 = np.linalg.lstsq(A, B, rcond=None)[0]
+
+    #             aR = np.array( [[ 0.   , -s7  ,-r*s6 , r*s6 ,  s7  ],
+    #                             [ 0.   , -s6  , -s5  ,  s5  ,  s6  ],
+    #                             [ 0.   , -s3  , -s1  ,  s1  ,  s3  ],
+    #                             [ 0.   , -s6  , -s5  ,  s5  ,  s6  ],
+    #                             [ 0.   , -s7  ,-r*s6 , r*s6 ,  s7  ],])
 
 
-                aL = aR[::-1, ::-1]
-                aB = aT[::-1, ::-1]
+    #             aT = np.array( [[   0.  ,  0. ,  0.  ,   0. ,   0.   ],
+    #                             [  -s7  , -s6 , -s4  , -s6  ,  -s7   ],
+    #                             [ -r*s6 , -s5 , -s2  , -s5  , -r*s6  ],
+    #                             [  r*s6 ,  s5 ,  s2  ,  s5  ,  r*s6  ],
+    #                             [   s7  ,  s6 ,  s4  ,  s6  ,   s7   ],])
 
 
-
-
-                a_components[0, :,:, n, m] = aR[:,:]
-                a_components[1, :,:, n, m] = aT[:,:]
-                a_components[2, :,:, n, m] = aL[:,:]
-                a_components[3, :,:, n, m] = aB[:,:]
-
-        ##=============================
-        ## Apply bfe to image
-        ##=============================
-
-        ## pad and expand kernels
-        ## The img is clipped by the saturation level here to cap the brighter fatter effect and avoid unphysical behavior
-
-        array_pad = self.saturate(im.copy()).array[4:-4,4:-4] # img of interest 4088x4088
-        array_pad = np.pad(array_pad, [(4+nbfe,4+nbfe),(4+nbfe,4+nbfe)], mode='symmetric') #4100x4100 array
-
-
-        dQ_components = np.zeros( (4, bin_size*n_max, bin_size*m_max) )   #(4, 4096, 4096) in order of [aR, aT, aL, aB]
-
-
-        ### run in sub grids to reduce memory
-
-        ## pad and expand kernels
-        t = np.zeros((bin_size*n_sub, n_sub))
-        for row in range(t.shape[0]):
-            t[row, row//(bin_size) ] =1
+    #             aL = aR[::-1, ::-1]
+    #             aB = aT[::-1, ::-1]
 
 
 
-        for gj in range(num_grids):
-            for gi in range(num_grids):
 
-                a_components_pad = np.zeros( (4, 2*nbfe+1, 2*nbfe+1, bin_size*n_sub+2*nbfe, bin_size*m_sub+2*nbfe)  ) #(4,5,5,sub_grid,sub_grid)
+    #             a_components[0, :,:, n, m] = aR[:,:]
+    #             a_components[1, :,:, n, m] = aT[:,:]
+    #             a_components[2, :,:, n, m] = aL[:,:]
+    #             a_components[3, :,:, n, m] = aB[:,:]
 
+    #     ##=============================
+    #     ## Apply bfe to image
+    #     ##=============================
 
-                for comp in range(4):
-                    for j in range(2*nbfe+1):
-                        for i in range(2*nbfe+1):
-                            tmp = (t.dot(  a_components[comp,j,i,gj*n_sub:(gj+1)*n_sub,gi*m_sub:(gi+1)*m_sub]  ) ).dot(t.T) #sub_grid*sub_grid
-                            a_components_pad[comp, j, i, :, :] = np.pad(tmp, [(nbfe,nbfe),(nbfe,nbfe)], mode='symmetric')
+    #     ## pad and expand kernels
+    #     ## The img is clipped by the saturation level here to cap the brighter fatter effect and avoid unphysical behavior
 
-                #convolve aX_ij with Q_ij
-                for comp in range(4):
-                    for dy in range(-nbfe, nbfe+1):
-                        for dx in range(-nbfe, nbfe+1):
-                            dQ_components[comp, gj*bin_size*n_sub : (gj+1)*bin_size*n_sub , gi*bin_size*m_sub : (gi+1)*bin_size*m_sub]\
-                         += a_components_pad[comp, nbfe+dy, nbfe+dx,  nbfe-dy:nbfe-dy+bin_size*n_sub, nbfe-dx:nbfe-dx+bin_size*m_sub ]\
-                            *array_pad[  -dy + nbfe + gj*bin_size*n_sub :  -dy + nbfe+ (gj+1)*bin_size*n_sub  ,  -dx + nbfe + gi*bin_size*m_sub : -dx + nbfe + (gi+1)*bin_size*m_sub ]
-
-                    dj = int(np.sin(comp*np.pi/2))
-                    di = int(np.cos(comp*np.pi/2))
-
-                    dQ_components[comp, gj*bin_size*n_sub : (gj+1)*bin_size*n_sub , gi*bin_size*m_sub : (gi+1)*bin_size*m_sub]\
-                    *= 0.5*(array_pad[   nbfe + gj*bin_size*n_sub :    nbfe+ (gj+1)*bin_size*n_sub  ,    nbfe + gi*bin_size*m_sub :    nbfe + (gi+1)*bin_size*m_sub ] +\
-                            array_pad[dj+nbfe + gj*bin_size*n_sub : dj+nbfe+ (gj+1)*bin_size*n_sub  , di+nbfe + gi*bin_size*m_sub : di+nbfe + (gi+1)*bin_size*m_sub]  )
-
-        im.array[:,:]  -= dQ_components.sum(axis=0)
-        im.array[:,1:] += dQ_components[0][:,:-1]
-        im.array[1:,:] += dQ_components[1][:-1,:]
-        im.array[:,:-1] += dQ_components[2][:,1:]
-        im.array[:-1,:] += dQ_components[3][1:,:]
+    #     array_pad = self.saturate(im.copy()).array[4:-4,4:-4] # img of interest 4088x4088
+    #     array_pad = np.pad(array_pad, [(4+nbfe,4+nbfe),(4+nbfe,4+nbfe)], mode='symmetric') #4100x4100 array
 
 
-        return im
+    #     dQ_components = np.zeros( (4, bin_size*n_max, bin_size*m_max) )   #(4, 4096, 4096) in order of [aR, aT, aL, aB]
+
+
+    #     ### run in sub grids to reduce memory
+
+    #     ## pad and expand kernels
+    #     t = np.zeros((bin_size*n_sub, n_sub))
+    #     for row in range(t.shape[0]):
+    #         t[row, row//(bin_size) ] =1
+
+
+
+    #     for gj in range(num_grids):
+    #         for gi in range(num_grids):
+
+    #             a_components_pad = np.zeros( (4, 2*nbfe+1, 2*nbfe+1, bin_size*n_sub+2*nbfe, bin_size*m_sub+2*nbfe)  ) #(4,5,5,sub_grid,sub_grid)
+
+
+    #             for comp in range(4):
+    #                 for j in range(2*nbfe+1):
+    #                     for i in range(2*nbfe+1):
+    #                         tmp = (t.dot(  a_components[comp,j,i,gj*n_sub:(gj+1)*n_sub,gi*m_sub:(gi+1)*m_sub]  ) ).dot(t.T) #sub_grid*sub_grid
+    #                         a_components_pad[comp, j, i, :, :] = np.pad(tmp, [(nbfe,nbfe),(nbfe,nbfe)], mode='symmetric')
+
+    #             #convolve aX_ij with Q_ij
+    #             for comp in range(4):
+    #                 for dy in range(-nbfe, nbfe+1):
+    #                     for dx in range(-nbfe, nbfe+1):
+    #                         dQ_components[comp, gj*bin_size*n_sub : (gj+1)*bin_size*n_sub , gi*bin_size*m_sub : (gi+1)*bin_size*m_sub]\
+    #                      += a_components_pad[comp, nbfe+dy, nbfe+dx,  nbfe-dy:nbfe-dy+bin_size*n_sub, nbfe-dx:nbfe-dx+bin_size*m_sub ]\
+    #                         *array_pad[  -dy + nbfe + gj*bin_size*n_sub :  -dy + nbfe+ (gj+1)*bin_size*n_sub  ,  -dx + nbfe + gi*bin_size*m_sub : -dx + nbfe + (gi+1)*bin_size*m_sub ]
+
+    #                 dj = int(np.sin(comp*np.pi/2))
+    #                 di = int(np.cos(comp*np.pi/2))
+
+    #                 dQ_components[comp, gj*bin_size*n_sub : (gj+1)*bin_size*n_sub , gi*bin_size*m_sub : (gi+1)*bin_size*m_sub]\
+    #                 *= 0.5*(array_pad[   nbfe + gj*bin_size*n_sub :    nbfe+ (gj+1)*bin_size*n_sub  ,    nbfe + gi*bin_size*m_sub :    nbfe + (gi+1)*bin_size*m_sub ] +\
+    #                         array_pad[dj+nbfe + gj*bin_size*n_sub : dj+nbfe+ (gj+1)*bin_size*n_sub  , di+nbfe + gi*bin_size*m_sub : di+nbfe + (gi+1)*bin_size*m_sub]  )
+
+    #     im.array[:,:]  -= dQ_components.sum(axis=0)
+    #     im.array[:,1:] += dQ_components[0][:,:-1]
+    #     im.array[1:,:] += dQ_components[1][:-1,:]
+    #     im.array[:,:-1] += dQ_components[2][:,1:]
+    #     im.array[:-1,:] += dQ_components[3][1:,:]
+
+
+    #     return im
     
     def get_eff_sky_bg(self, pointing=None):
         """
@@ -522,12 +714,15 @@ class detector_effects(object):
             pointing = self.pointing
 
         # load the dithers of sky images that were simulated
-        dither_sca_array=np.loadtxt(self.params['image']['dither_from_file']).astype(int)
+        # dither_sca_array=np.loadtxt(self.params['image']['dither_from_file']).astype(int)
 
         # select adjacent exposures for the same sca (within 10*roman.exptime)
-        dither_list_selected = dither_sca_array[dither_sca_array[:,1] == pointing.sca, 0]
-        dither_list_selected = dither_list_selected[ np.abs(dither_list_selected - pointing.visit) < 10  ]
-        p_list = np.array([get_pointing(self.params, i, self.sca) for i in dither_list_selected])
+        # dither_list_selected = dither_sca_array[dither_sca_array[:,1] == pointing.sca, 0]
+        # dither_list_selected = dither_list_selected[ np.abs(dither_list_selected - pointing.visit) < 10  ]
+        # p_list = np.array([get_pointing(self.params, i, self.sca) for i in dither_list_selected])
+
+        p_list = np.array([get_pointing(self.params, i, self.sca) for i in range(pointing.visit - 10, pointing.visit)])
+
         dt_list = np.array([(pointing.date - p.date).total_seconds() for p in p_list])
         p_pers = p_list[ np.where((dt_list > 0) & (dt_list < pointing.exptime*10))]
 
@@ -789,48 +984,48 @@ class detector_effects(object):
         im.array[:,:] +=  bias
         return im
 
-    def finalize_sky_im(self,im, pointing=None):
-        """
-        Finalize sky background for subtraction from final image. Add dark current,
-        convert to analog voltage, and quantize.
+    # def finalize_sky_im(self,im, pointing=None):
+    #     """
+    #     Finalize sky background for subtraction from final image. Add dark current,
+    #     convert to analog voltage, and quantize.
 
-        Input
-        im : sky image
-        """
+    #     Input
+    #     im : sky image
+    #     """
 
-        if pointing is None:
-            pointing = self.pointing
+    #     if pointing is None:
+    #         pointing = self.pointing
 
-        if self.df is None:
-            im.quantize()
-            im += self.im_dark
-            im = self.saturate(im)
-            im += self.im_read
-            im = self.e_to_ADU(im)
-            im.quantize()
-        else:
+    #     if self.df is None:
+    #         im.quantize()
+    #         im += self.im_dark
+    #         im = self.saturate(im)
+    #         im += self.im_read
+    #         im = self.e_to_ADU(im)
+    #         im.quantize()
+    #     else:
 
-            bound_pad = galsim.BoundsI( xmin=1, ymin=1,
-                                        xmax=4096, ymax=4096)
-            im_pad = galsim.Image(bound_pad)
-            im_pad.array[4:-4, 4:-4] = im.array[:,:]
+    #         bound_pad = galsim.BoundsI( xmin=1, ymin=1,
+    #                                     xmax=4096, ymax=4096)
+    #         im_pad = galsim.Image(bound_pad)
+    #         im_pad.array[4:-4, 4:-4] = im.array[:,:]
 
-            im_pad = self.qe(im_pad)
-            im_pad = self.bfe(im_pad)
-            im_pad = self.add_persistence(im_pad, pointing)
-            im_pad.quantize()
-            im_pad += self.im_dark
-            im_pad = self.saturate(im_pad)
-            im_pad = self.nonlinearity(im_pad)
-            im_pad = self.interpix_cap(im_pad)
-            im_pad = self.deadpix(im_pad)
-            im_pad = self.vtpe(im_pad)
-            im_pad += self.im_read
-            im_pad = self.add_gain(im_pad)
-            im_pad = self.add_bias(im_pad)
-            im_pad.quantize()
-            # output 4088x4088 img in uint16
-            im.array[:,:] = im_pad.array[4:-4, 4:-4]
-            im = galsim.Image(im, dtype=np.uint16)
+    #         im_pad = self.qe(im_pad)
+    #         im_pad = self.bfe(im_pad)
+    #         im_pad = self.add_persistence(im_pad, pointing)
+    #         im_pad.quantize()
+    #         im_pad += self.im_dark
+    #         im_pad = self.saturate(im_pad)
+    #         im_pad = self.nonlinearity(im_pad)
+    #         im_pad = self.interpix_cap(im_pad)
+    #         im_pad = self.deadpix(im_pad)
+    #         im_pad = self.vtpe(im_pad)
+    #         im_pad += self.im_read
+    #         im_pad = self.add_gain(im_pad)
+    #         im_pad = self.add_bias(im_pad)
+    #         im_pad.quantize()
+    #         # output 4088x4088 img in uint16
+    #         im.array[:,:] = im_pad.array[4:-4, 4:-4]
+    #         im = galsim.Image(im, dtype=np.uint16)
 
-        return im
+    #     return im
