@@ -89,6 +89,8 @@ image:
     # sky_subtract: False
 
     ignore_noise: False
+    quantum_efficiency: lab_model
+    brighter_fatter: lab_model
     stray_light: True
     thermal_background: True
     reciprocity_failure: True
@@ -96,9 +98,9 @@ image:
     nonlinearity: True
     ipc: True
     read_noise: True
-    sky_subtract: True
+    sky_subtract: False
 
-    dither_from_file: /hpc/home/yf194/Work/final_sims_2023/Roman_WAS_obseq_11_1_23_ditherlist.txt
+    # dither_from_file: /hpc/home/yf194/Work/final_sims_2023/Roman_WAS_obseq_11_1_23_ditherlist.txt
     sca_filepath: /hpc/group/cosmology/phy-lsst/roman_sensors
     save_diff: False
 
