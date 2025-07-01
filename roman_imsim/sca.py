@@ -5,7 +5,9 @@ import numpy as np
 from astropy.time import Time
 from galsim.config import RegisterImageType
 from galsim.config.image_scattered import ScatteredImageBuilder
+from galsim.config.input import LoadInputObj
 from galsim.image import Image
+from galsim.util import LoggerWrapper
 
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
@@ -38,6 +40,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         )
 
         self.nobjects = self.getNObj(config, base, image_num, logger=logger)
+        self.flux = self.getSourceFluxes(config, base, image_num, logger=logger)
         logger.debug("image %d: nobj = %d", image_num, self.nobjects)
 
         # These are allowed for Scattered, but we don't use them here.
@@ -105,6 +108,18 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
     #     if not hasattr(self, 'all_roman_bp'):
     #         self.all_roman_bp = roman.getBandpasses()
     #     return self.all_roman_bp[filter_name]
+
+    def getSourceFluxes(self, config, logger=None):
+        """ """
+        logger = LoggerWrapper(logger)
+
+        if "input" in config:
+            if "sky_catalog" in config["input"]:
+                input_obj = LoadInputObj(config, "sky_catalog", num=0, logger=logger)
+                flux = input_obj.load_fluxes()
+                return flux
+
+        return None
 
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
