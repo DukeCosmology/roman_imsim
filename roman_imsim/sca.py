@@ -101,11 +101,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
         return 4000, 12000
 
-    # def getBandpass(self, filter_name):
-    #     if not hasattr(self, 'all_roman_bp'):
-    #         self.all_roman_bp = roman.getBandpasses()
-    #     return self.all_roman_bp[filter_name]
-
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
 
