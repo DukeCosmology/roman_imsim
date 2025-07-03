@@ -1,4 +1,4 @@
-import galsim.roman as roman
+import galsim
 from galsim.config import BandpassBuilder, GetAllParams, RegisterBandpassType
 
 
@@ -21,13 +21,50 @@ class RomanBandpassBuilder(BandpassBuilder):
         Returns:
             the constructed Bandpass object.
         """
-        req = {"name": str}
+        req = {"name": int}
         kwargs, safe = GetAllParams(config, base, req=req)
 
         name = kwargs["name"]
-        bandpass = roman.getBandpasses(red_limit=2000)[name]
+        if int(name) > 747:
+            return None
 
-        return bandpass, safe
+        # Define wavelength range
+        def dl(l_, R):
+            return l_ / R
+
+        # Define next lambda center
+        def lc(ll, R):
+            return ll / (1 - 1 / 2.0 / R)
+
+        # Define next lambda right
+        def lr_(ll, R):
+            return lc(ll, R) + dl(ll, R) / 2.0
+
+        # Wavelength range in microns
+        lambda_min = 0.2 * 10000
+        # lambda_max = 2.5 * 10000
+        R = 300  # spectral resolution
+
+        def tophat(wl):
+            return 1.0
+
+        ll = lambda_min
+        lr = lr_(ll, R)
+        if int(name) != 0:
+            for i in range(int(name)):
+                ll = lr
+                lr = lr_(ll, R)
+
+        # Set up a dictionary.
+        bandpass_dict = {}
+
+        bp = galsim.Bandpass(tophat, blue_limit=ll, red_limit=lr, wave_type="Ang")
+
+        # Add it to the dictionary.
+        bp.name = name
+        bandpass_dict[bp.name] = bp
+
+        return bp, safe
 
 
 RegisterBandpassType("RomanBandpassTrimmed", RomanBandpassBuilder())

@@ -99,7 +99,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         if "bandpass" not in config:
             base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
 
-        return roman.n_pix, roman.n_pix
+        return 4000, 12000
 
     # def getBandpass(self, filter_name):
     #     if not hasattr(self, 'all_roman_bp'):

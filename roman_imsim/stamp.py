@@ -1,6 +1,5 @@
 import galsim
 import galsim.config
-import galsim.roman as roman
 import numpy as np
 from galsim.config import RegisterStampType, StampBuilder
 
@@ -54,22 +53,23 @@ class Roman_stamp(StampBuilder):
         if not hasattr(gal, "flux"):
             # In this case, the object flux has not been precomputed
             # or cached by the skyCatalogs code.
-            gal.flux = gal.calculateFlux(bandpass)
+            gal.flux = gal.calculateFlux(bandpass) * 10**23  # Jy
+            print(gal.flux)
         self.flux = gal.flux
         # Cap (star) flux at 30M photons to avoid gross artifacts when trying
         # to draw the Roman PSF in finite time and memory
-        flux_cap = 3e7
-        if self.flux > flux_cap:
-            if (
-                hasattr(gal, "original")
-                and hasattr(gal.original, "original")
-                and isinstance(gal.original.original, galsim.DeltaFunction)
-            ) or (isinstance(gal, galsim.DeltaFunction)):
-                gal = gal.withFlux(flux_cap, bandpass)
-                self.flux = flux_cap
-                gal.flux = flux_cap
+        # flux_cap = 3e7
+        # if self.flux > flux_cap:
+        #     if (
+        #         hasattr(gal, "original")
+        #         and hasattr(gal.original, "original")
+        #         and isinstance(gal.original.original, galsim.DeltaFunction)
+        #     ) or (isinstance(gal, galsim.DeltaFunction)):
+        #         gal = gal.withFlux(flux_cap, bandpass)
+        #         self.flux = flux_cap
+        #         gal.flux = flux_cap
         base["flux"] = gal.flux
-        base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
+        # base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
         # print('stamp setup2',process.memory_info().rss)
 
         # Compute or retrieve the realized flux.
@@ -77,11 +77,11 @@ class Roman_stamp(StampBuilder):
         self.realized_flux = galsim.PoissonDeviate(self.rng, mean=self.flux)()
         base["realized_flux"] = self.realized_flux
 
-        # Check if the realized flux is 0.
-        if self.realized_flux == 0:
-            # If so, we'll skip everything after this.
-            # The mechanism within GalSim to do this is to raise a special SkipThisObject class.
-            raise galsim.config.SkipThisObject("realized flux=0")
+        # # Check if the realized flux is 0.
+        # if self.realized_flux == 0:
+        #     # If so, we'll skip everything after this.
+        #     # The mechanism within GalSim to do this is to raise a special SkipThisObject class.
+        #     raise galsim.config.SkipThisObject("realized flux=0")
 
         # Otherwise figure out the stamp size
         if self.flux < 10:
@@ -102,13 +102,14 @@ class Roman_stamp(StampBuilder):
                 else:
                     image_size = 1600
                     self.pupil_bin = 2
+                image_size = 32
             else:
                 self.pupil_bin = 8
                 # # Get storead achromatic PSF
                 # psf = galsim.config.BuildGSObject(base, 'psf', logger=logger)[0]['achromatic']
                 # obj = galsim.Convolve(gal_achrom, psf).withFlux(self.flux)
                 obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20))
-                image_size = obj.getGoodImageSize(roman.pixel_scale)
+                image_size = obj.getGoodImageSize(0.003)
 
         # print('stamp setup3',process.memory_info().rss)
         base["pupil_bin"] = self.pupil_bin
@@ -145,6 +146,7 @@ class Roman_stamp(StampBuilder):
         Returns:
             the PSF
         """
+        return None
         if base.get("psf", {}).get("type", "roman_psf") != "roman_psf":
             return galsim.config.BuildGSObject(base, "psf", gsparams=gsparams, logger=logger)[0]
 
@@ -294,7 +296,8 @@ class Roman_stamp(StampBuilder):
 
             # Go back to a combined convolution for fft drawing.
             gal = gal.withFlux(self.flux, bandpass)
-            prof = galsim.Convolve([gal] + psfs)
+            prof = gal.withGSParams(galsim.GSParams(maximum_fft_size=24576))
+            # prof = galsim.Convolve([gal] + psfs)
             try:
                 prof.drawImage(bandpass, **kwargs)
             except galsim.errors.GalSimFFTSizeError as e:
@@ -331,7 +334,7 @@ class Roman_stamp(StampBuilder):
             # Put the psfs at the start of the photon_ops.
             # Probably a little better to put them a bit later than the start in some cases
             # (e.g. after TimeSampler, PupilAnnulusSampler), but leave that as a todo for now.
-            photon_ops = psfs + photon_ops
+            # photon_ops = psfs + photon_ops
 
             # prof = galsim.Convolve([gal] + psfs)
 

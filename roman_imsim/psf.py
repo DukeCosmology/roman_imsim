@@ -9,7 +9,6 @@ class RomanPSF(object):
 
     def __init__(
         self,
-        SCA=None,
         WCS=None,
         n_waves=None,
         bpass=None,
@@ -18,6 +17,8 @@ class RomanPSF(object):
     ):
 
         logger = galsim.config.LoggerWrapper(logger)
+
+        SCA = None
 
         if n_waves == -1:
             if bpass.name == "W146":
@@ -138,16 +139,10 @@ class PSFLoader(InputLoader):
 
         # If SCA is in base, then don't require it in the config file.
         # (Presumably because using Roman image type, which sets it there for convenience.)
-        if "SCA" in base:
-            opt["SCA"] = int
-        else:
-            req["SCA"] = int
 
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore)
 
         # If not given in kwargs, then it must have been in base, so this is ok.
-        if "SCA" not in kwargs:
-            kwargs["SCA"] = base["SCA"]
 
         kwargs["extra_aberrations"] = galsim.config.ParseAberrations(
             "extra_aberrations", config, base, "RomanPSF"

@@ -3,8 +3,6 @@ Interface to obtain objects from skyCatalogs.
 """
 
 import galsim
-import galsim.roman as roman
-import numpy as np
 from galsim.config import (
     InputLoader,
     RegisterInputType,
@@ -68,11 +66,11 @@ class SkyCatalogInterface:
         if xsize is not None:
             self.xsize = xsize
         else:
-            self.xsize = roman.n_pix
+            self.xsize = 4000
         if ysize is not None:
             self.ysize = ysize
         else:
-            self.ysize = roman.n_pix
+            self.ysize = 12000
         self.obj_types = obj_types
         self.edge_pix = edge_pix
         self.logger = galsim.config.LoggerWrapper(logger)
@@ -88,9 +86,9 @@ class SkyCatalogInterface:
 
     @property
     def objects(self):
-        from skycatalogs import skyCatalogs
-        from skycatalogs import __version__ as skycatalogs_version
         from packaging.version import Version
+        from skycatalogs import __version__ as skycatalogs_version
+        from skycatalogs import skyCatalogs
 
         if Version(skycatalogs_version) < Version("2.0"):
             PolygonalRegion = skyCatalogs.PolygonalRegion
@@ -182,25 +180,6 @@ class SkyCatalogInterface:
         skycat_obj = self.objects[index]
         gsobjs = skycat_obj.get_gsobject_components(gsparams)
 
-        # Compute the flux or get the cached value.
-        flux = (
-            skycat_obj.get_roman_flux(self.bandpass.name, mjd=self.mjd) * self.exptime * roman.collecting_area
-        )
-        if np.isnan(flux):
-            return None
-
-        # if True and skycat_obj.object_type == 'galaxy':
-        #     # Apply DC2 dilation to the individual galaxy components.
-        #     for component, gsobj in gsobjs.items():
-        #         comp = component if component != 'knots' else 'disk'
-        #         a = skycat_obj.get_native_attribute(f'size_{comp}_true')
-        #         b = skycat_obj.get_native_attribute(f'size_minor_{comp}_true')
-        #         scale = np.sqrt(a/b)
-        #         gsobjs[component] = gsobj.dilate(scale)
-
-        # Set up simple SED if too faint
-        if flux < 40:
-            faint = True
         if not faint:
             seds = skycat_obj.get_observer_sed_components(mjd=self.mjd)
 
@@ -208,14 +187,10 @@ class SkyCatalogInterface:
         for component in gsobjs:
             if faint:
                 gsobjs[component] = gsobjs[component].evaluateAtWavelength(self.bandpass)
-                gs_obj_list.append(
-                    gsobjs[component] * self._trivial_sed * self.exptime * roman.collecting_area
-                )
+                gs_obj_list.append(gsobjs[component] * self._trivial_sed)
             else:
                 if component in seds:
-                    gs_obj_list.append(
-                        gsobjs[component] * seds[component] * self.exptime * roman.collecting_area
-                    )
+                    gs_obj_list.append(gsobjs[component] * seds[component])
 
         if not gs_obj_list:
             return None
@@ -226,8 +201,8 @@ class SkyCatalogInterface:
             gs_object = galsim.Add(gs_obj_list)
 
         # Give the object the right flux
-        gs_object.flux = flux
-        gs_object.withFlux(gs_object.flux, self.bandpass)
+        # gs_object.flux = flux
+        # gs_object.withFlux(gs_object.flux, self.bandpass)
 
         # Get the object type
         if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
