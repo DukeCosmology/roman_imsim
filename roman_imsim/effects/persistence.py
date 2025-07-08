@@ -2,9 +2,7 @@ import os
 import numpy as np
 import fitsio as fio
 import galsim
-import galsim.roman as roman
 from roman_imsim.effects import roman_effects
-import roman_imsim.effects as effects
 from galsim.config import ParseValue
 from .utils import sca_number_to_file, get_pointing
 
@@ -41,8 +39,6 @@ class persistence(roman_effects):
             x = galsim.Image(bound_pad)
             x.array[4:-4, 4:-4] = galsim.Image(fio.FITS(fn)[0].read()).array[:,:]
             
-            # recip_failure_param = self.base['image']['add_effects']['recip_failure']
-            # recip_failure = effects.recip_failure(recip_failure_param, self.base, self.logger, self.rng)
             recip_failure = self.cross_refer('recip_failure')
             x = recip_failure.apply(image = x)
 

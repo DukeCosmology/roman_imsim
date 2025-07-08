@@ -7,3 +7,7 @@ from .persistence import persistence
 from .recip_failure import recip_failure
 from .dark_current import dark_current
 from .saturate import saturate
+from .interpix_cap import interpix_cap
+from .dead_pix import dead_pix
+from .vtpe import vtpe
+from .read_noise import read_noise
