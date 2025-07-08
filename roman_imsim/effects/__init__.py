@@ -11,3 +11,5 @@ from .interpix_cap import interpix_cap
 from .dead_pix import dead_pix
 from .vtpe import vtpe
 from .read_noise import read_noise
+from .gain import gain
+from .bias import bias
