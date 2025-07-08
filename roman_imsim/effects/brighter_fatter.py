@@ -15,7 +15,7 @@ class brighter_fatter(roman_effects):
             self.model = self.simple_model
         
     def simple_model(self, image):
-        self.logger.info("No bfe effect will be applied.")
+        self.logger.warning("No bfe effect will be applied.")
         return image
     
     def lab_model(self, image):
@@ -40,10 +40,9 @@ class brighter_fatter(roman_effects):
         if self.sca_filepath is None:
             self.logger.warning("No BFE kernel data file provided; no bfe effect will be applied.")
             return image
+        self.df = fio.FITS(os.path.join(self.sca_filepath, sca_number_to_file[self.sca]))
         
         self.logger.warning("Lab measured model will be applied for brighter-fatter effect.")
-
-        self.df = fio.FITS(os.path.join(self.sca_filepath, sca_number_to_file[self.sca]))
 
         nbfe = 2 ## kernel of bfe in shape (2 x nbfe+1)*(2 x nbfe+1)
         bin_size = 128
