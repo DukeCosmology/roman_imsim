@@ -99,7 +99,7 @@ image:
             model: lab_model
         persistence:
             model: lab_model
-        # reciprocity_failure: 
+        # reciprocity_failure:
         #     model: simple_model
         dark_current: 
             model: lab_model
@@ -107,10 +107,18 @@ image:
             model: lab_model
         nonlinearity: 
             model: lab_model
-        # ipc: 
-        #     model: simple_model
-        # read_noise: 
-        #     model: simple_model
+        interpix_cap:
+            model: lab_model
+        dead_pix:
+            model: lab_model
+        vtpe:
+            model: lab_model
+        read_noise: 
+            model: lab_model
+        gain:
+            model: lab_model
+        bias:
+            model: lab_model
         # sky_subtract: False
 
     # dither_from_file: /hpc/home/yf194/Work/final_sims_2023/Roman_WAS_obseq_11_1_23_ditherlist.txt
