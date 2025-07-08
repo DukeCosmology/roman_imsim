@@ -97,7 +97,6 @@ image:
             model: lab_model
         brighter_fatter: 
             model: lab_model
-            saturation_level: 100000
         persistence:
             model: lab_model
         # reciprocity_failure: 

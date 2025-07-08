@@ -22,6 +22,7 @@ class persistence(roman_effects):
         self.p_pers = p_list[ np.where((dt_list > 0) & (dt_list < self.pointing.exptime*10))]
         
     def simple_model(self, image):
+        self.logger.warning("Simple model will be applied for persistence effect.")
         for p in self.p_pers:
             dt = (self.pointing.date - p.date).total_seconds() - self.pointing.exptime/2 ##avg time since end of exposures
             # self.base['output']['file_name']['items'] = [p.filter, p.visit, p.sca]
@@ -40,8 +41,9 @@ class persistence(roman_effects):
             x = galsim.Image(bound_pad)
             x.array[4:-4, 4:-4] = galsim.Image(fio.FITS(fn)[0].read()).array[:,:]
             
-            recip_failure_param = self.base['image']['add_effects']['recip_failure']
-            recip_failure = effects.recip_failure(recip_failure_param, self.base, self.logger, self.rng)
+            # recip_failure_param = self.base['image']['add_effects']['recip_failure']
+            # recip_failure = effects.recip_failure(recip_failure_param, self.base, self.logger, self.rng)
+            recip_failure = self.cross_refer('recip_failure')
             x = recip_failure.apply(image = x)
 
             x.array.clip(0) ##remove negative stimulus
@@ -73,6 +75,7 @@ class persistence(roman_effects):
             fac_dt = (self.pointing.exptime/2.) / dt  ##linear time dependence (approximate until we get t1 and Delat t of the data)
             # self.base['output']['file_name']['items'] = [p.filter, p.visit, p.sca]
             # imfilename = ParseValue(self.base['output'], 'file_name', self.base, str)[0]
+            
             imfilename = self.base['output']['file_name']['format']%(p.filter, p.visit, p.sca)
             fn = os.path.join(self.base['output']['dir'], imfilename)
 
@@ -89,8 +92,7 @@ class persistence(roman_effects):
             x.array[4:-4, 4:-4] = galsim.Image(fio.FITS(fn)[0].read()).array[:,:]
             # x = self.qe(x).array[:,:]
             
-            qe_param = self.base['image']['add_effects']['quantum_efficiency']
-            qe = effects.quantum_efficiency(qe_param, self.base, self.logger, self.rng)
+            qe = self.cross_refer('quantum_efficiency')
             x = qe.apply(image = x).array[:, :]
 
             x = x.clip(0.1) ##remove negative and zero stimulus
