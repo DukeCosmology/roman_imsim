@@ -20,6 +20,7 @@ class recip_failure(roman_effects):
             
     def simple_model(self, image):
         # Add reciprocity effect
+        self.logger.warning("Simple model will be applied for reciprocity failure effect.")
         exptime = self.pointing.exptime
         image.addReciprocityFailure(exp_time=exptime, alpha=self.alpha, base_flux=self.base_flux)
         return image
