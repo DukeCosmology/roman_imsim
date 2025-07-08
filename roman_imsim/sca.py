@@ -10,6 +10,7 @@ from astropy.time import Time
 import numpy as np
 
 from .detector_effects import detector_effects
+import roman_imsim.effects as roman_effects
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
 
@@ -59,7 +60,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             'thermal_background' : bool,
             'reciprocity_failure' : bool,
             'dark_current' : bool,
-            'nonlinearity' : bool,
             'ipc' : bool,
             'read_noise' : bool,
             'sky_subtract' : bool,
@@ -69,7 +69,11 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             'save_diff': bool,
 
             'quantum_efficiency': str,
-            'brighter_fatter': str,
+            # 'brighter_fatter': str,
+            # 'nonlinearity' : str,
+            'brighter_fatter': bool,
+            'nonlinearity' : bool,
+            'add_effects' : dict,
         }
         params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
@@ -86,14 +90,14 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.thermal_background = params.get('thermal_background', False)
         self.reciprocity_failure = params.get('reciprocity_failure', False)
         self.dark_current = params.get('dark_current', False)
-        self.nonlinearity = params.get('nonlinearity', False)
         self.ipc = params.get('ipc', False)
         self.read_noise = params.get('read_noise', False)
         self.sky_subtract = params.get('sky_subtract', False)
 
         # [TODO]TEST
         self.qe = params.get('quantum_efficiency', None)
-        self.bfe = params.get('brighter_fatter', None)
+        self.bfe = params.get('brighter_fatter', False)
+        self.nonlinearity = params.get('nonlinearity', False)
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
         self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "auto"))
@@ -127,6 +131,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             base['bandpass'] = galsim.config.BuildBandpass(base['image'], 'bandpass', base, logger=logger)
         
         self.base = base
+        self.logger = logger
 
         return roman.n_pix, roman.n_pix
 
@@ -223,6 +228,10 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 logger.debug("image %d: Overlap = %s", image_num, str(bounds))
                 full_image[bounds] += stamps[k][bounds]
             stamps=None
+            
+            # [TODO] TEST
+            break
+            
 
         # # Bring the image so far up to a flat noise variance
         # current_var = FlattenNoiseVariance(
@@ -254,7 +263,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         logger.info('image %d: Start RomanSCA detector effects',base.get('image_num',0))
 
 
-        self.effects.setup_sky(image, force_cvz=self.effects.force_cvz, stray_light=self.stray_light, thermal_background=self.thermal_background)
+        # self.effects.setup_sky(image, force_cvz=self.effects.force_cvz, stray_light=self.stray_light, thermal_background=self.thermal_background)
         # [TODO] quantize() at this step?
 
         # The image up to here is an expectation value.
@@ -271,115 +280,147 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #     logger.debug("Adding poisson noise")
         #     image += sky_image
         #     image.addNoise(poisson_noise)
-        image = self.effects.add_background(image, draw_method=self.draw_method)
-
-        if self.sca_filepath is not None:
-            ## create padded image
-            bound_pad = galsim.BoundsI( xmin=1, ymin=1,
-                                        xmax=4096, ymax=4096)
-            im_pad = galsim.Image(bound_pad)
-            im_pad.array[4:-4, 4:-4] = image.array[:,:]
-            self.effects.set_diff(im_pad)
+        # image = self.effects.add_background(image, draw_method=self.draw_method)
+        
+        # create padded image
+        bound_pad = galsim.BoundsI( xmin=1, ymin=1,
+                                    xmax=4096, ymax=4096)
+        im_pad = galsim.Image(bound_pad)
+        im_pad.array[4:-4, 4:-4] = image.array[:,:]
+        
+        effects_list = self.base['image']['add_effects'].keys()
+        for effect_name in effects_list:
+            args = (self.base['image']['add_effects'][effect_name], self.base, self.logger, self.rng)
+            effect = getattr(roman_effects, effect_name)(*args)
+            im_pad = effect.apply(image = im_pad)
             
-            # im_pad = self.effects.qe(im_pad)
-            # self.effects.diff('qe', im_pad)
-            if self.qe:
-                qe = self.effects.quantum_efficiency(
-                    params=self.base,
-                    logger=logger,
-                    model=self.qe,
-                    sca_filepath=self.sca_filepath
-                )
-                im_pad = qe.apply(image = im_pad)
-                self.effects.diff('qe', im_pad)
+        im_pad.quantize()
+        # output 4088x4088 img in uint16
+        image.array[:,:] = im_pad.array[4:-4, 4:-4]
 
-            # im_pad = self.effects.bfe(im_pad)
-            # self.effects.diff('bfe', im_pad)
-            if self.bfe:
-                bfe = self.effects.bfe(
-                    params=self.base,
-                    logger=logger,
-                    model=self.bfe,
-                    sca_filepath=self.sca_filepath
-                )
-                im_pad = bfe.apply(image = im_pad)
-                self.effects.diff('bfe', im_pad)
-
-            im_pad = self.effects.add_persistence(im_pad)
-            self.effects.diff('pers', im_pad)
-
-            im_pad.quantize()
-            self.effects.diff('quantize1', im_pad)
-
-            im_pad = self.effects.dark_current(im_pad)
-            self.effects.diff('dark', im_pad)
+        # if self.sca_filepath is not None:
+        #     ## create padded image
+        #     bound_pad = galsim.BoundsI( xmin=1, ymin=1,
+        #                                 xmax=4096, ymax=4096)
+        #     im_pad = galsim.Image(bound_pad)
+        #     im_pad.array[4:-4, 4:-4] = image.array[:,:]
+        #     self.effects.set_diff(im_pad)
             
-            im_pad = self.effects.saturate(im_pad)
-            self.effects.diff('sat', im_pad)
+        #     # im_pad = self.effects.qe(im_pad)
+        #     # self.effects.diff('qe', im_pad)
+        #     if self.qe:
+        #         qe = self.effects.quantum_efficiency(
+        #             params=self.base,
+        #             logger=logger,
+        #             model=self.qe,
+        #             sca_filepath=self.sca_filepath
+        #         )
+        #         im_pad = qe.apply(image = im_pad)
+        #         self.effects.diff('qe', im_pad)
 
-            im_pad = self.effects.nonlinearity(im_pad)
-            self.effects.diff('cnl', im_pad)
+        #     # im_pad = self.effects.bfe(im_pad)
+        #     # self.effects.diff('bfe', im_pad)
+        #     if self.bfe:
+        #         # bfe = self.effects.bfe(
+        #         #     params=self.base,
+        #         #     logger=logger,
+        #         #     model=self.bfe,
+        #         #     sca_filepath=self.sca_filepath
+        #         # )
+        #         bfe = roman_effects.bfe(
+        #             params   = self.base['image']['add_effects']['brighter_fatter'],
+        #             base     = self.base,
+        #             logger   = self.logger,
+        #             rng      = self.rng,
+        #         )
+        #         im_pad = bfe.apply(image = im_pad)
+        #         self.effects.diff('bfe', im_pad)
 
-            im_pad = self.effects.interpix_cap(im_pad)
-            self.effects.diff('ipc', im_pad)
+        #     im_pad = self.effects.add_persistence(im_pad)
+        #     self.effects.diff('pers', im_pad)
 
-            im_pad = self.effects.deadpix(im_pad)
-            self.effects.diff('deadpix', im_pad)
+        #     im_pad.quantize()
+        #     self.effects.diff('quantize1', im_pad)
 
-            im_pad = self.effects.vtpe(im_pad)
-            self.effects.diff('vtpe', im_pad)
-
-            im_pad = self.effects.add_read_noise(im_pad)
-            self.effects.diff('read', im_pad)
-
-            im_pad = self.effects.add_gain(im_pad)
-            self.effects.diff('gain', im_pad)
-
-            im_pad = self.effects.add_bias(im_pad)
-            self.effects.diff('bias', im_pad)
-
-            im_pad.quantize()
-            self.effects.diff('quantize2', im_pad)
-
-            # output 4088x4088 img in uint16
-            image.array[:,:] = im_pad.array[4:-4, 4:-4]
-
-            # [TODO]
-            # # data quality image
-            # # 0x1 -> non-responsive
-            # # 0x2 -> hot pixel
-            # # 0x4 -> very hot pixel
-            # # 0x8 -> adjacent to pixel with strange response
-            # # 0x10 -> low CDS, high total noise pixel (may have strange settling behaviors, not recommended for precision applications)
-            # # 0x20 -> CNL fit went down to the minimum number of points (remaining degrees of freedom = 0)
-            # # 0x40 -> no solid-waffle solution for this region (set gain value to array median). normally occurs in a few small regions of some SCAs with lots of bad pixels. [recommend not to use these regions for WL analysis]
-            # # 0x80 -> wt==0
-            # dq = self.df['BADPIX'][4:4092, 4:4092]
-            # # get weight map
-            # if wt is not None:
-            # dq[wt==0] += 128
-
-            # sky_noise = self.sky.copy()
-            # sky_noise = self.finalize_sky_im(sky_noise, pointing)
+        #     im_pad = self.effects.dark_current(im_pad)
+        #     self.effects.diff('dark', im_pad)
             
-        else:
-            image = self.effects.recip_failure(image) # Introduce reciprocity failure to image
-            image.quantize() # At this point in the image generation process, an integer number of photons gets detected
-            image = self.effects.dark_current(image) # Add dark current to image
-            image = self.effects.add_persistence(image)
-            image = self.effects.saturate(image)
-            image= self.effects.nonlinearity(image) # Apply nonlinearity
-            image = self.effects.interpix_cap(image) # Introduce interpixel capacitance to image.
-            image = self.effects.add_read_noise(image)
-            image = self.effects.e_to_ADU(image) # Convert electrons to ADU
+        #     im_pad = self.effects.saturate(im_pad)
+        #     self.effects.diff('sat', im_pad)
+
+        #     # im_pad = self.effects.nonlinearity(im_pad)
+        #     # self.effects.diff('cnl', im_pad)
+            
+        #     if self.nonlinearity:
+        #         nonlinearity = roman_effects.nonlinearity(
+        #             params   = self.base['image']['add_effects']['nonlinearity'],
+        #             base     = self.base,
+        #             logger   = self.logger,
+        #             rng      = self.rng,
+        #         )
+        #         im_pad = nonlinearity.apply(image = im_pad)
+        #         self.effects.diff('cnl', im_pad)
+
+        #     im_pad = self.effects.interpix_cap(im_pad)
+        #     self.effects.diff('ipc', im_pad)
+
+        #     im_pad = self.effects.deadpix(im_pad)
+        #     self.effects.diff('deadpix', im_pad)
+
+        #     im_pad = self.effects.vtpe(im_pad)
+        #     self.effects.diff('vtpe', im_pad)
+
+        #     im_pad = self.effects.add_read_noise(im_pad)
+        #     self.effects.diff('read', im_pad)
+
+        #     im_pad = self.effects.add_gain(im_pad)
+        #     self.effects.diff('gain', im_pad)
+
+        #     im_pad = self.effects.add_bias(im_pad)
+        #     self.effects.diff('bias', im_pad)
+
+        #     im_pad.quantize()
+        #     self.effects.diff('quantize2', im_pad)
+
+        #     # output 4088x4088 img in uint16
+        #     image.array[:,:] = im_pad.array[4:-4, 4:-4]
+
+        #     # [TODO]
+        #     # # data quality image
+        #     # # 0x1 -> non-responsive
+        #     # # 0x2 -> hot pixel
+        #     # # 0x4 -> very hot pixel
+        #     # # 0x8 -> adjacent to pixel with strange response
+        #     # # 0x10 -> low CDS, high total noise pixel (may have strange settling behaviors, not recommended for precision applications)
+        #     # # 0x20 -> CNL fit went down to the minimum number of points (remaining degrees of freedom = 0)
+        #     # # 0x40 -> no solid-waffle solution for this region (set gain value to array median). normally occurs in a few small regions of some SCAs with lots of bad pixels. [recommend not to use these regions for WL analysis]
+        #     # # 0x80 -> wt==0
+        #     # dq = self.df['BADPIX'][4:4092, 4:4092]
+        #     # # get weight map
+        #     # if wt is not None:
+        #     # dq[wt==0] += 128
+
+        #     # sky_noise = self.sky.copy()
+        #     # sky_noise = self.finalize_sky_im(sky_noise, pointing)
+            
+        # else:
+        #     image = self.effects.recip_failure(image) # Introduce reciprocity failure to image
+        #     image.quantize() # At this point in the image generation process, an integer number of photons gets detected
+        #     image = self.effects.dark_current(image) # Add dark current to image
+        #     image = self.effects.add_persistence(image)
+        #     image = self.effects.saturate(image)
+        #     image= self.effects.nonlinearity(image) # Apply nonlinearity
+        #     image = self.effects.interpix_cap(image) # Introduce interpixel capacitance to image.
+        #     image = self.effects.add_read_noise(image)
+        #     image = self.effects.e_to_ADU(image) # Convert electrons to ADU
 
         # Make integer ADU now.
-        image.quantize()
+        # image.quantize()
 
-        if self.sky_subtract:
-            logger.debug("Subtracting sky image")
-            sky_image = self.effects.finalize_sky_im(self.effects.sky.copy())
-            image -= sky_image
+        # if self.sky_subtract:
+        #     logger.debug("Subtracting sky image")
+        #     sky_image = self.effects.finalize_sky_im(self.effects.sky.copy())
+        #     image -= sky_image
 
 
 # Register this as a valid type
