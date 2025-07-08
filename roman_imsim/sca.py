@@ -230,7 +230,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             stamps=None
             
             # [TODO] TEST
-            break
+            # break
             
 
         # # Bring the image so far up to a flat noise variance
