@@ -7,7 +7,7 @@ from .utils import sca_number_to_file
 class brighter_fatter(roman_effects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
-        self.saturation_level = self.params['saturation_level'] if 'saturation_level' in self.params else 100000
+        # self.saturation_level = self.params['saturation_level'] if 'saturation_level' in self.params else 100000
         
         self.model = getattr(self, self.params['model'])
         if self.model is None:
@@ -115,12 +115,13 @@ class brighter_fatter(roman_effects):
         ## pad and expand kernels
         ## The img is clipped by the saturation level here to cap the brighter fatter effect and avoid unphysical behavior
 
-        # array_pad = self.saturate(image.copy()).array[4:-4,4:-4] # img of interest 4088x4088
-        array_pad = image.copy().array
-        saturation_array = np.ones_like(array_pad) * self.saturation_level
-        where_sat = np.where(array_pad > saturation_array)
-        array_pad[ where_sat ] = saturation_array[ where_sat ]
-        array_pad = array_pad[4:-4,4:-4]
+        # array_pad = image.copy().array
+        # saturation_array = np.ones_like(array_pad) * self.saturation_level
+        # where_sat = np.where(array_pad > saturation_array)
+        # array_pad[ where_sat ] = saturation_array[ where_sat ]
+        # array_pad = array_pad[4:-4,4:-4]
+        saturate = self.cross_refer('saturate')
+        array_pad = saturate.apply(image = image.copy()).array[4:-4,4:-4] # img of interest 4088x4088
         array_pad = np.pad(array_pad, [(4+nbfe,4+nbfe),(4+nbfe,4+nbfe)], mode='symmetric') #4100x4100 array
 
 

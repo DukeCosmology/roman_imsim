@@ -5,6 +5,7 @@ import numpy as np
 import galsim.roman as roman
 from galsim.config import ParseValue
 from .utils import get_pointing
+import roman_imsim.effects as effects
         
 class roman_effects(object):
     """
@@ -42,6 +43,24 @@ class roman_effects(object):
     def simple_model(self, image):
         self.logger.info("Applying the default model...")
         return image
+    
+    def cross_refer(self, effect_name):
+        if effect_name not in self.base['image']['add_effects']:
+            try:
+                effect = getattr(effects, effect_name)({'model':'simple_model'}, self.base, self.logger, self.rng)
+            except Exception as e:
+                self.logger.warning(e)
+                # self.logger.warning("Effect %s is not implemented!"%(effect_name))
+                return None
+        else:
+            try:
+                params = self.base['image']['add_effects'][effect_name]
+                effect = getattr(effects, effect_name)(params, self.base, self.logger, self.rng)
+            except Exception as e:
+                self.logger.warning(e)
+                # self.logger.warning("Effect %s is not implemented!"%(effect_name))
+                return None
+        return effect
     
     def apply(self, image):
             image = self.model(image)
