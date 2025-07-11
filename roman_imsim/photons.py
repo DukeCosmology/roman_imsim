@@ -2,14 +2,18 @@ import galsim
 import galsim.config
 import galsim.roman as roman
 import numpy as np 
-from galsim.config import RegisterStampType, StampBuilder
+from galsim.config import (
+    RegisterObjectType,
+    RegisterValueType,
+    StampBuilder,
+)
 
 # import os, psutil
 # process = psutil.Process()
 
 
-class Roman_stamp(StampBuilder):
-    """This performs the tasks necessary for building the stamp for a single object.
+class Roman_stamp_photons(StampBuilder):
+    """This performs the tasks necessary for building the stamp photonArray for a single object.
 
     It uses the regular Basic functions for most things.
     It specializes the quickSkip, buildProfile, and draw methods.
@@ -253,7 +257,7 @@ class Roman_stamp(StampBuilder):
             logger:     A logger object to log progress.
 
         Returns:
-            the resulting image
+            the resulting photonArray
         """
         if prof is None:
             # If was decide to do any rejection steps, this could be set to None, in which case,
@@ -325,7 +329,7 @@ class Roman_stamp(StampBuilder):
             fft_image.addNoise(galsim.PoissonNoise(rng=self.rng)) #not sure if this should be kept before converting to photon array
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
-            photons = galsim.photonArray.makeFromImage(image, max_flux=1.0, rng=None)
+            #TODO: convert image from fft to photon array 
         else:
             # We already calculated realized_flux above.  Use that now and tell GalSim not
             # recalculate the Poisson realization of the flux. TODO: This shouldn't be necessary with the photon approach.
@@ -351,7 +355,7 @@ class Roman_stamp(StampBuilder):
             # print('stamp draw3a',process.memory_info().rss)
             #may want to just use makePhot() in the future
 
-            #TODO: calculate appropriate n_photons value, for now using self.flux
+            #TODO: calculate n_photons value, for now using self.flux
             _, photons = gal.drawPhot(
                 image, 
                 gain=1.0, 

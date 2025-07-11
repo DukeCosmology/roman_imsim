@@ -1,0 +1,30 @@
+Metadata-Version: 2.4
+Name: roman_imsim
+Version: 2.0
+Summary: Image simulation tools for the Roman Space Telescope
+Home-page: 
+Author: Michael Troxel
+Author-email: Michael Troxel <michael.troxel@duke.edu>
+License: MIT
+Project-URL: Homepage, https://github.com/matroxel/roman_imsim
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: galsim
+Requires-Dist: fitsio
+Requires-Dist: astropy
+Requires-Dist: healpy
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: scipy
+Dynamic: author
+Dynamic: license-file
+
+![Build](https://github.com/matroxel/roman_imsim/actions/workflows/build.yml/badge.svg)
+
+# wfirst_imsim
+
+Nonstandard dependencies are represented in setup.py.
+
+See wiki for information on how to run and documentation.
+

@@ -1,0 +1,7 @@
+galsim
+fitsio
+astropy
+healpy
+numpy
+matplotlib
+scipy
