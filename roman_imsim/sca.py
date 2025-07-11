@@ -417,10 +417,13 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # Make integer ADU now.
         # image.quantize()
 
-        # if self.sky_subtract:
-        #     logger.debug("Subtracting sky image")
-        #     sky_image = self.effects.finalize_sky_im(self.effects.sky.copy())
-        #     image -= sky_image
+        if self.sky_subtract:
+            logger.debug("Subtracting sky image")
+            sky = roman_effects.setup_sky(self.base, self.logger, self.rng)
+            sky_image = sky.get_sky_image()
+            image -= sky_image
+            sky.save_sky_img(outdir=self.base['output']['dir'])
+            
 
 
 # Register this as a valid type
