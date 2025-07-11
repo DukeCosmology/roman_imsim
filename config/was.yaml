@@ -119,7 +119,7 @@ image:
             model: lab_model
         bias:
             model: lab_model
-        # sky_subtract: False
+    sky_subtract: False
 
     # dither_from_file: /hpc/home/yf194/Work/final_sims_2023/Roman_WAS_obseq_11_1_23_ditherlist.txt
     sca_filepath: /hpc/group/cosmology/phy-lsst/roman_sensors
