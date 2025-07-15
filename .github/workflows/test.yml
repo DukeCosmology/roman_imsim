@@ -31,6 +31,11 @@ jobs:
         git lfs install
         git clone https://github.com/DukeCosmology/SimHackJune2025
 
+    - name: Snoop
+      run: |
+        ls .
+        ls ..
+
     - name: Install package (editable)
       run: pip install .
 
