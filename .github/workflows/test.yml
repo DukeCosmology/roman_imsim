@@ -41,4 +41,5 @@ jobs:
 
     - name: Run config files
       run: |
-        galsim config/was.yaml
+        cd SimHackJune2025
+        galsim ../config/was.yaml
