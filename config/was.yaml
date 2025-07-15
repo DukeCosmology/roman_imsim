@@ -126,16 +126,16 @@ gal:
 input:
     obseq_data:
         # file_name: /lus/grand/projects/RomanDESC/final_roman_runfiles/was/Roman_WAS_obseq_11_1_23.fits
-        file_name: /hpc/group/cosmology/OpenUniverse2024/RomanWAS/Roman_WAS_obseq_11_1_23.fits
+        file_name: SimHackJune2025/Roman_WAS_obseq_11_1_23.fits
         visit: 1
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
         n_waves: 5
     sky_catalog:
-        # file_name: /lus/grand/projects/RomanDESC/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
-        # file_name: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
-        file_name: /hpc/home/yf194/Work/projects/roman_imsim/config/skyCatalog.yaml
+        # file_name: /lus/grand/projects/RomanDESC/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml
+        # file_name: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml
+        file_name: SimHackJune2025/sktCatalog/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }
@@ -145,7 +145,7 @@ output:
 
     nfiles: 1
     # dir: /lus/grand/projects/RomanDESC/roman_output/RomanWAS/images/truth
-    dir: /hpc/group/cosmology/yuedong/roman_output/RomanWAS/images/truth
+    dir: output/RomanWAS/images/truth
     file_name:
         type: FormattedStr
         format: "Roman_WAS_truth_%s_%i_%i.fits.gz"
@@ -156,7 +156,7 @@ output:
 
     truth:
         # dir: /lus/grand/projects/RomanDESC/roman_output/RomanWAS/truth
-        dir: /hpc/group/cosmology/yuedong/roman_output/RomanWAS/truth
+        dir: output/RomanWAS/truth
         file_name:
             type: FormattedStr
             format: "Roman_WAS_index_%s_%i_%i.txt"
