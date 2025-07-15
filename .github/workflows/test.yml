@@ -27,7 +27,9 @@ jobs:
         python-version: "3.12"
 
     - name: Checkout LFS objects
-      run: git clone https://github.com/DukeCosmology/SimHackJune2025
+      run: |
+        git lfs install
+        git clone https://github.com/DukeCosmology/SimHackJune2025
 
     - name: Install package (editable)
       run: pip install .
