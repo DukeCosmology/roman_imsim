@@ -11,6 +11,10 @@ jobs:
   build:
     name: Set up
     runs-on: ubuntu-latest
+    defaults:
+        run:
+            # cf. https://github.com/conda-incubator/setup-miniconda#important
+            shell: bash -l {0}
 
     steps:
     - uses: actions/checkout@v4
@@ -24,6 +28,9 @@ jobs:
 
     - name: Checkout LFS objects
       run: git clone https://github.com/DukeCosmology/SimHackJune2025
+
+    - name: Install package (editable)
+      run: pip install .
 
     - name: Run config files
       run: |
