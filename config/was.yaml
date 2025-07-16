@@ -126,7 +126,7 @@ gal:
 input:
     obseq_data:
         # file_name: /lus/grand/projects/RomanDESC/final_roman_runfiles/was/Roman_WAS_obseq_11_1_23.fits
-        file_name: SimHackJune2025/Roman_WAS_obseq_11_1_23.fits
+        file_name: Roman_WAS_obseq_11_1_23.fits
         visit: 1
         SCA: '@image.SCA'
     roman_psf:
@@ -135,7 +135,7 @@ input:
     sky_catalog:
         # file_name: /lus/grand/projects/RomanDESC/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml
         # file_name: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml
-        file_name: SimHackJune2025/skyCatalog/skyCatalog.yaml
+        file_name: skyCatalog/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }
