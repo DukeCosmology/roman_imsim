@@ -16,6 +16,9 @@ jobs:
             # cf. https://github.com/conda-incubator/setup-miniconda#important
             shell: bash -l {0}
 
+    env:
+      VIRTUAL_ENV: .venv
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -36,8 +39,11 @@ jobs:
         ls .
         ls ..
 
-    - name: Install package (editable)
-      run: pip install .
+    - name: Install package
+      run: |
+        pip install --upgrade-pip uv
+        uv venv
+        uv pip install .
 
     - name: Run config files
       run: |
