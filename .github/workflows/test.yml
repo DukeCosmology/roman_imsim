@@ -43,6 +43,7 @@ jobs:
       run: |
         pip install --upgrade-pip uv
         uv venv
+        uv pip install git+https://github.com/LSSTDESC/skyCatalogs@gaia_lsst
         uv pip install .
 
     - name: Run config files
