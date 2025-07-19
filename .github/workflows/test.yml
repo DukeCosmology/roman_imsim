@@ -39,10 +39,20 @@ jobs:
         ls .
         ls ..
 
+    - name: Setup conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+          activate-environment: test
+          python-version: "3.12"
+
+    - name: Install packages on conda
+      run: |
+        conda update -n base conda
+        conda install galsim lsstdesc-diffsky
+
     - name: Install package
       run: |
         pip install --upgrade pip uv
-        uv venv
         uv pip install git+https://github.com/LSSTDESC/skyCatalogs@gaia_lsst
         uv pip install .
 
