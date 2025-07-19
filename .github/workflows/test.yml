@@ -49,4 +49,5 @@ jobs:
     - name: Run config files
       run: |
         cd SimHackJune2025
+        source .venv/bin/activate
         python -m galsim ../config/was.yaml
