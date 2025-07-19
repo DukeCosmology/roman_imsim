@@ -49,4 +49,4 @@ jobs:
     - name: Run config files
       run: |
         cd SimHackJune2025
-        galsim ../config/was.yaml
+        python -m galsim ../config/was.yaml
