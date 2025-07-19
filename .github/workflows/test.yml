@@ -46,6 +46,9 @@ jobs:
         uv pip install git+https://github.com/LSSTDESC/skyCatalogs@gaia_lsst
         uv pip install .
 
+        cd SimHackJune2025
+        python -m galsim ../config/was.yaml
+
     - name: Run config files
       run: |
         cd SimHackJune2025
