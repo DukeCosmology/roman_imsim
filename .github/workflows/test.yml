@@ -54,6 +54,7 @@ jobs:
       run: |
         pip install --upgrade pip uv
         uv pip install git+https://github.com/LSSTDESC/skyCatalogs@gaia_lsst
+        uv pip install scipy
         uv pip install .
 
         cd SimHackJune2025
