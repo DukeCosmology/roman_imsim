@@ -48,7 +48,7 @@ jobs:
     - name: Install packages on conda
       run: |
         conda update -n base conda
-        conda install galsim lsstdesc-diffsky
+        conda install -c conda-forge galsim lsstdesc-diffsky
 
     - name: Install package
       run: |
