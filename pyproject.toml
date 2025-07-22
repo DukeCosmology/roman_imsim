@@ -19,7 +19,8 @@ dependencies = [
   "healpy",
   "numpy",
   "matplotlib",
-  "scipy"
+  "scipy",
+  "skycatalogs"
 ]
 
 [project.urls]
