@@ -142,7 +142,7 @@ input:
 output:
 
     nfiles: 1
-    dir: ./
+    dir: RomanTDS_prism/images/truth
     file_name:
         type: FormattedStr
         format: "Roman_TDS_truth_test_%s_%i_%i.fits.gz"
@@ -152,7 +152,7 @@ output:
             - '@image.SCA'
 
     truth:
-        dir: /hpc/group/cosmology/ajk107/code/roman_imsim/prism_outputs
+        dir: RomanTDS_prism/truth
         file_name:
             type: FormattedStr
             format: "Roman_TDS_index_test_%s_%i_%i.txt"
