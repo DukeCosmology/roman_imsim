@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/matroxel/roman_imsim"
+Homepage = "https://github.com/DukeCosmology/roman_imsim"
 
 [tool.setuptools.packages.find]
 where = ["."]
