@@ -20,7 +20,8 @@ dependencies = [
   "numpy",
   "matplotlib",
   "scipy",
-  "skycatalogs"
+  "skycatalogs",
+  "packaging"
 ]
 
 [project.urls]
