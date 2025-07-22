@@ -16,10 +16,10 @@ dependencies = [
   "galsim",
   "fitsio",
   "astropy",
-  "healpy",
   "numpy",
-  "matplotlib",
-  "scipy"
+  "skycatalogs",
+  "packaging",
+  "setuptools",
 ]
 
 [project.urls]
