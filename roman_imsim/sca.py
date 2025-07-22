@@ -123,6 +123,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_ysize = base["image_ysize"]
         wcs = base["wcs"]
 
+        full_array = galsim.PhotonArray(0)
         full_image = Image(full_xsize, full_ysize, dtype=float)
         full_image.setOrigin(base["image_origin"])
         full_image.wcs = wcs
@@ -177,28 +178,31 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 # This is our signal that the object was skipped.
                 if stamps[k] is None:
                     continue
-                bounds = stamps[k].bounds & full_image.bounds
+                if type(stamps[k]) != type(galsim.PhotonArray(0)):
+                    continue
+                bounds = full_image.bounds # stamps[k].bounds &
                 if not bounds.isDefined():  # pragma: no cover
                     # These noramlly show up as stamp==None, but technically it is possible
                     # to get a stamp that is off the main image, so check for that here to
                     # avoid an error.  But this isn't covered in the imsim test suite.
                     continue
 
-                logger.debug("image %d: full bounds = %s", image_num, str(full_image.bounds))
-                logger.debug(
-                    "image %d: stamp %d bounds = %s",
-                    image_num,
-                    k + start_obj_num,
-                    str(stamps[k].bounds),
-                )
-                logger.debug("image %d: Overlap = %s", image_num, str(bounds))
-                full_image[bounds] += stamps[k][bounds]
+                # logger.debug("image %d: full bounds = %s", image_num, str(full_image.bounds))
+                # logger.debug(
+                #     "image %d: stamp %d bounds = %s",
+                #     image_num,
+                #     k + start_obj_num,
+                #     str(stamps[k].bounds),
+                # )
+                # logger.debug("image %d: Overlap = %s", image_num, str(bounds))
+                # full_image[bounds] += stamps[k][bounds]
+                full_array = galsim.PhotonArray.concatenate([stamps[k],full_array])
             stamps = None
 
         # # Bring the image so far up to a flat noise variance
         # current_var = FlattenNoiseVariance(
         #         base, full_image, stamps, current_vars, logger)
-
+        full_array.addTo(full_image)
         return full_image, None
 
     def addNoise(self, image, config, base, image_num, obj_num, current_var, logger):

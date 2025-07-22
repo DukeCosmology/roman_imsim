@@ -48,11 +48,12 @@ class Roman_stamp(StampBuilder):
 
         #Define the exp time for use in adjusting flux/photon for any dt 
         # slice and exposure time based on previously defined values
+        
         if "exptime" in config:
             self.exptime = galsim.config.ParseValue(config, "exptime", base, float)[0]
         else:
             self.exptime = roman.exptime
-
+        dt = self.exptime/20
         gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
         if gal is None:
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
@@ -62,11 +63,11 @@ class Roman_stamp(StampBuilder):
             # In this case, the object flux has not been precomputed
             # or cached by the skyCatalogs code.
             gal.flux = gal.calculateFlux(bandpass)
-        self.flux = gal.flux /(dt/self.exptime)#need to check if we change flux here or elsewhere before its passed to stamps
+        self.flux = gal.flux *(dt/self.exptime)#need to check if we change flux here or elsewhere before its passed to stamps
 
         # Cap (star) flux at 30M photons/(dt/exptime) to avoid gross artifacts when trying
         # to draw the Roman PSF in finite time and memory
-        flux_cap = 3e7/(dt/self.exptime)
+        flux_cap = 3e7*(dt/self.exptime)
         if self.flux > flux_cap:
             if (
                 hasattr(gal, "original")
@@ -92,7 +93,7 @@ class Roman_stamp(StampBuilder):
             raise galsim.config.SkipThisObject("realized flux=0")
 
         # Otherwise figure out the stamp size
-        if self.flux < 10/(dt/self.exptime):
+        if self.flux < 10*(dt/self.exptime):
             # For really faint things, don't try too hard.  Just use 32x32.
             image_size = 32
             self.pupil_bin = "achromatic"
@@ -101,10 +102,10 @@ class Roman_stamp(StampBuilder):
             gal_achrom = gal.evaluateAtWavelength(bandpass.effective_wavelength)
             if hasattr(gal_achrom, "original") and isinstance(gal_achrom.original, galsim.DeltaFunction):
                 # For bright stars, set the following stamp size limits
-                if self.flux < 1e6/(dt/self.exptime):
+                if self.flux < 1e6*(dt/self.exptime):
                     image_size = 500
                     self.pupil_bin = 8
-                elif self.flux < 6e6/(dt/self.exptime):
+                elif self.flux < 6e6*(dt/self.exptime):
                     image_size = 1000
                     self.pupil_bin = 4
                 else:
@@ -265,8 +266,8 @@ class Roman_stamp(StampBuilder):
         # print('stamp draw',process.memory_info().rss)
 
         gal, *psfs = prof.obj_list if hasattr(prof, "obj_list") else [prof]
-
-        faint = self.flux < 40/(dt/self.exptime)
+        dt = self.exptime/20
+        faint = self.flux < 40*(dt/self.exptime)
         bandpass = base["bandpass"]
         if faint:
             logger.info("Flux = %.0f  Using trivial sed", self.flux)
@@ -277,7 +278,7 @@ class Roman_stamp(StampBuilder):
 
         # Set limit on the size of photons batches to consider when
         # calling gsobject.drawImage.
-        maxN = int(1e6/(dt/self.exptime))
+        maxN = int(1e6*(dt/self.exptime))
         if "maxN" in config:
             maxN = galsim.config.ParseValue(config, "maxN", base, int)[0]
         # print('stamp draw2',process.memory_info().rss)
@@ -351,19 +352,18 @@ class Roman_stamp(StampBuilder):
             # print('stamp draw3a',process.memory_info().rss)
             #may want to just use makePhot() in the future
 
-            #TODO: calculate appropriate n_photons value, for now using self.flux
             _, photons = gal.drawPhot(
                 image, 
                 gain=1.0, 
                 add_to_image=False, 
-                n_photons=self.flux, 
+                n_photons=int(galsim.PoissonDeviate(mean = self.flux)()), 
                 rng=self.rng, 
                 max_extra_noise=0.0, 
                 poisson_flux=None, 
                 sensor=None, 
                 photon_ops=(), 
                 maxN=maxN, 
-                orig_center=galsim.PositionI(x=0, y=0), 
+                orig_center=offset, 
                 local_wcs=None, 
                 surface_ops=None)
             # gal.drawImage(
