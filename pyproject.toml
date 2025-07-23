@@ -18,10 +18,9 @@ dependencies = [
   "astropy",
   "healpy",
   "numpy",
-  "matplotlib",
-  "scipy",
   "skycatalogs",
-  "packaging"
+  "packaging",
+  "setuptools",
 ]
 
 [project.urls]
