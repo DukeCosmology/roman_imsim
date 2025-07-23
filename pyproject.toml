@@ -16,7 +16,6 @@ dependencies = [
   "galsim",
   "fitsio",
   "astropy",
-  "healpy",
   "numpy",
   "skycatalogs",
   "packaging",
