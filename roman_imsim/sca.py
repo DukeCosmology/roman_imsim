@@ -178,8 +178,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 # This is our signal that the object was skipped.
                 if stamps[k] is None:
                     continue
-                if type(stamps[k]) != type(galsim.PhotonArray(0)):
-                    continue
                 bounds = full_image.bounds # stamps[k].bounds &
                 if not bounds.isDefined():  # pragma: no cover
                     # These noramlly show up as stamp==None, but technically it is possible
@@ -196,6 +194,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 # )
                 # logger.debug("image %d: Overlap = %s", image_num, str(bounds))
                 # full_image[bounds] += stamps[k][bounds]
+                #logger.warning(stamps[k])
                 full_array = galsim.PhotonArray.concatenate([stamps[k],full_array])
             stamps = None
 

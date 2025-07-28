@@ -259,7 +259,7 @@ class Roman_stamp(StampBuilder):
         if prof is None:
             # If was decide to do any rejection steps, this could be set to None, in which case,
             # don't draw anything.
-            return image
+            return galsim.PhotonArray(0)
 
         # Prof is normally a convolution here with obj_list being [gal, psf1, psf2,...]
         # for some number of component PSFs.
@@ -327,6 +327,9 @@ class Roman_stamp(StampBuilder):
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
             photons = galsim.photonArray.makeFromImage(image, max_flux=1.0, rng=None)
+
+            photons.x+= image.center.x
+            photons.y+= image.center.y
         else:
             # We already calculated realized_flux above.  Use that now and tell GalSim not
             # recalculate the Poisson realization of the flux. TODO: This shouldn't be necessary with the photon approach.
@@ -352,36 +355,41 @@ class Roman_stamp(StampBuilder):
             # print('stamp draw3a',process.memory_info().rss)
             #may want to just use makePhot() in the future
 
-            _, photons = gal.drawPhot(
-                image, 
-                gain=1.0, 
-                add_to_image=False, 
-                n_photons=int(galsim.PoissonDeviate(mean = self.flux)()), 
-                rng=self.rng, 
-                max_extra_noise=0.0, 
-                poisson_flux=None, 
-                sensor=None, 
-                photon_ops=(), 
-                maxN=maxN, 
-                orig_center=offset, 
-                local_wcs=None, 
-                surface_ops=None)
-            # gal.drawImage(
-            #     bandpass,
-            #     method="phot",
-            #     offset=offset,
-            #     rng=self.rng,
-            #     maxN=maxN,
-            #     n_photons=self.realized_flux,
-            #     image=image,
-            #     photon_ops=photon_ops,
-            #     sensor=None,
-            #     add_to_image=True,
-            #     poisson_flux=False,
-            # )
-
+            # _, photons = gal.drawPhot(
+            #     image, 
+            #     gain=1.0, 
+            #     add_to_image=False, 
+            #     n_photons=int(galsim.PoissonDeviate(mean = self.flux)()), 
+            #     rng=self.rng, 
+            #     max_extra_noise=0.0, 
+            #     poisson_flux=None, 
+            #     sensor=None, 
+            #     photon_ops=(), 
+            #     maxN=maxN, 
+            #     orig_center=offset, 
+            #     local_wcs=None, 
+            #     surface_ops=None)
+            n_phots = int(galsim.PoissonDeviate(mean = self.flux)())
+            if n_phots != 0:
+                im = gal.drawImage(
+                    bandpass,
+                    method="phot",
+                    offset=offset,
+                    rng=self.rng,
+                    n_photons=n_phots,
+                    image=image,
+                    photon_ops=(),
+                    sensor=None,
+                    add_to_image=False,
+                    poisson_flux=False,
+                    save_photons=True,
+                )
+                photons = im.photons
+                photons.x+= im.center.x
+                photons.y+= im.center.y
+            else:
+                photons = galsim.PhotonArray(0)
         # print('stamp draw3',process.memory_info().rss)
-
         return photons
 
 
