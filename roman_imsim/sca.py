@@ -54,26 +54,23 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         ]
         req = {"SCA": int, "filter": str, "mjd": float, "exptime": float}
         opt = {
-            'draw_method' : str,
-            'stray_light' : bool,
-            'thermal_background' : bool,
-            'reciprocity_failure' : bool,
-            'dark_current' : bool,
-            'ipc' : bool,
-            'read_noise' : bool,
-            'sky_subtract' : bool,
-            'ignore_noise' : bool,
-            'sca_filepath' : str,
-            'dither_from_file': str,
-            'save_diff': bool,
-
-            'quantum_efficiency': str,
-            # 'brighter_fatter': str,
-            # 'nonlinearity' : str,
-            'brighter_fatter': bool,
-            'nonlinearity' : bool,
-            'add_effects' : dict,
+            "draw_method": str,
+            # "stray_light": bool,
+            # "thermal_background": bool,
+            # "reciprocity_failure": bool,
+            # "dark_current": bool,
+            # "nonlinearity": bool,
+            # "ipc": bool,
+            # "read_noise": bool,
+            "add_effects": dict,
+            "sca_filepath": str,
+            "sky_subtract": bool,
+            "ignore_noise": bool,
+            "save_diff": bool,
         }
+
+        logger.warning("opt dict = %s" % (str(opt)))
+
         params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
         self.sca = params["SCA"]
@@ -113,9 +110,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # config['wcs'] = wcs
 
         self.rng = galsim.config.GetRNG(config, base)
-        self.visit = int(base['input']['obseq_data']['visit'])
+        self.visit = int(base["input"]["obseq_data"]["visit"])
 
-        self.sca_filepath = params.get('sca_filepath', None)
+        self.sca_filepath = params.get("sca_filepath", None)
 
         # If user hasn't overridden the bandpass to use, get the standard one.
         if "bandpass" not in config:
@@ -245,19 +242,18 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         if self.ignore_noise:
             return
 
-        base['current_noise_image'] = base['current_image']
+        base["current_noise_image"] = base["current_image"]
         # rng = galsim.config.GetRNG(config, base)
-        logger.info('image %d: Start RomanSCA detector effects', base.get('image_num', 0))
+        logger.info("image %d: Start RomanSCA detector effects", base.get("image_num", 0))
 
         # create padded image
-        bound_pad = galsim.BoundsI(xmin=1, ymin=1,
-                                   xmax=4096, ymax=4096)
+        bound_pad = galsim.BoundsI(xmin=1, ymin=1, xmax=4096, ymax=4096)
         im_pad = galsim.Image(bound_pad)
         im_pad.array[4:-4, 4:-4] = image.array[:, :]
 
-        effects_list = self.base['image']['add_effects'].keys()
+        effects_list = self.base["image"]["add_effects"].keys()
         for effect_name in effects_list:
-            args = (self.base['image']['add_effects'][effect_name], self.base, self.logger, self.rng)
+            args = (self.base["image"]["add_effects"][effect_name], self.base, self.logger, self.rng)
             effect = getattr(roman_effects, effect_name)(*args)
             im_pad = effect.apply(image=im_pad)
 
@@ -270,7 +266,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             sky = roman_effects.setup_sky(self.base, self.logger, self.rng)
             sky_image = sky.get_sky_image()
             image -= sky_image
-            sky.save_sky_img(outdir=self.base['output']['dir'])
+            sky.save_sky_img(outdir=self.base["output"]["dir"])
 
 
 # Register this as a valid type
