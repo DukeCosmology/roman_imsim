@@ -9,10 +9,12 @@ class vtpe(roman_effects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params['model'])
+        self.model = getattr(self, self.params["model"])
         if self.model is None:
-            self.logger.warning("%s hasn't been implemented yet, the simple model will be applied for %s"%(
-                str(self.params['model']), str(self.__class__.__name__)))
+            self.logger.warning(
+                "%s hasn't been implemented yet, the simple model will be applied for %s"
+                % (str(self.params["model"]), str(self.__class__.__name__))
+            )
             self.model = self.simple_model
 
     def simple_model(self, image):
@@ -43,17 +45,17 @@ class vtpe(roman_effects):
         # expand 512x512 arrays to 4096x4096
         t = np.zeros((4096, 512))
         for row in range(t.shape[0]):
-            t[row, row//8] = 1
-        a_vtpe = t.dot(self.df['VTPE'][0, :, :][0]).dot(t.T)
+            t[row, row // 8] = 1
+        a_vtpe = t.dot(self.df["VTPE"][0, :, :][0]).dot(t.T)
         # NaN check
         if np.isnan(a_vtpe).any():
             self.logger.warning("vtpe skipped due to NaN in file")
             return image
-        b_vtpe = t.dot(self.df['VTPE'][1, :, :][0]).dot(t.T)
-        dQ0 = t.dot(self.df['VTPE'][2, :, :][0]).dot(t.T)
+        b_vtpe = t.dot(self.df["VTPE"][1, :, :][0]).dot(t.T)
+        dQ0 = t.dot(self.df["VTPE"][2, :, :][0]).dot(t.T)
 
         dQ = image.array - np.roll(image.array, 1, axis=0)
         dQ[0, :] *= 0
 
-        image.array[:, :] += dQ * (a_vtpe + b_vtpe * np.log(1. + np.abs(dQ)/dQ0))
+        image.array[:, :] += dQ * (a_vtpe + b_vtpe * np.log(1.0 + np.abs(dQ) / dQ0))
         return image

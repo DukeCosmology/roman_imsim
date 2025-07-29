@@ -8,10 +8,12 @@ class read_noise(roman_effects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params['model'])
+        self.model = getattr(self, self.params["model"])
         if self.model is None:
-            self.logger.warning("%s hasn't been implemented yet, the simple model will be applied for %s"%(
-                str(self.params['model']), str(self.__class__.__name__)))
+            self.logger.warning(
+                "%s hasn't been implemented yet, the simple model will be applied for %s"
+                % (str(self.params["model"]), str(self.__class__.__name__))
+            )
             self.model = self.simple_model
 
     def simple_model(self, image):
@@ -29,7 +31,7 @@ class read_noise(roman_effects):
         self.df = fio.FITS(os.path.join(self.sca_filepath, sca_number_to_file[self.sca]))
 
         self.logger.warning("Lab measured model will be applied for read noise.")
-        rdn = self.df['READ'][2, :, :].flatten()  # flattened 4096x4096 array
-        self.im_read = self.rng_np.normal(loc=0., scale=rdn).reshape(image.array.shape).astype(image.dtype)
+        rdn = self.df["READ"][2, :, :].flatten()  # flattened 4096x4096 array
+        self.im_read = self.rng_np.normal(loc=0.0, scale=rdn).reshape(image.array.shape).astype(image.dtype)
         image.array[:, :] += self.im_read
         return image
