@@ -9,10 +9,12 @@ class brighter_fatter(roman_effects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params['model'])
+        self.model = getattr(self, self.params["model"])
         if self.model is None:
-            self.logger.warning("%s hasn't been implemented yet, the simple model will be applied for %s"%(
-                str(self.params['model']), str(self.__class__.__name__)))
+            self.logger.warning(
+                "%s hasn't been implemented yet, the simple model will be applied for %s"
+                % (str(self.params["model"]), str(self.__class__.__name__))
+            )
             self.model = self.simple_model
 
     def simple_model(self, image):
@@ -50,14 +52,14 @@ class brighter_fatter(roman_effects):
         n_max = 32
         m_max = 32
         num_grids = 4
-        n_sub = n_max//num_grids
-        m_sub = m_max//num_grids
+        n_sub = n_max // num_grids
+        m_sub = m_max // num_grids
 
         # =======================================================================
         # solve boundary shfit kernel aX components
         # =======================================================================
-        a_area = self.df['BFE'][:, :, :, :]  # 5x5x32x32
-        a_components = np.zeros((4, 2*nbfe+1, 2*nbfe+1, n_max, m_max))  # 4x5x5x32x32
+        a_area = self.df["BFE"][:, :, :, :]  # 5x5x32x32
+        a_components = np.zeros((4, 2 * nbfe + 1, 2 * nbfe + 1, n_max, m_max))  # 4x5x5x32x32
 
         # solve aR aT aL aB for each a
         for n in range(n_max):  # m_max and n_max = 32 (binned in 128x128)
@@ -65,34 +67,45 @@ class brighter_fatter(roman_effects):
                 a = a_area[:, :, n, m]  # a in (2 x nbfe+1)*(2 x nbfe+1)
 
                 # assume two parity symmetries
-                a = (a + np.fliplr(a) + np.flipud(a) + np.flip(a))/4.
+                a = (a + np.fliplr(a) + np.flipud(a) + np.flip(a)) / 4.0
 
-                r = 0.5 * (3.25/4.25)**(1.5) / 1.5  # source-boundary projection
-                B = (a[2, 2], a[3, 2], a[2, 3], a[3, 3],
-                     a[4, 2], a[2, 4], a[3, 4], a[4, 4])
+                r = 0.5 * (3.25 / 4.25) ** (1.5) / 1.5  # source-boundary projection
+                B = (a[2, 2], a[3, 2], a[2, 3], a[3, 3], a[4, 2], a[2, 4], a[3, 4], a[4, 4])
 
-                A = np.array([[-2 , -2 , 0 , 0 , 0 , 0 , 0],
-                              [0 , 1 , 0 , -1 , -2 , 0 , 0],
-                              [1 , 0 , -1 , 0 , -2 , 0 , 0],
-                              [0 , 0 , 0 , 0 , 2 , -2 , 0],
-                              [0 , 0 , 0 , 1 , 0 , -2*r, 0],
-                              [0 , 0 , 1 , 0 , 0 , -2*r, 0],
-                              [0 , 0 , 0 , 0 , 0 , 1+r, -1],
-                              [0 , 0 , 0 , 0 , 0 , 0 , 2]])
+                A = np.array(
+                    [
+                        [-2, -2, 0, 0, 0, 0, 0],
+                        [0, 1, 0, -1, -2, 0, 0],
+                        [1, 0, -1, 0, -2, 0, 0],
+                        [0, 0, 0, 0, 2, -2, 0],
+                        [0, 0, 0, 1, 0, -2 * r, 0],
+                        [0, 0, 1, 0, 0, -2 * r, 0],
+                        [0, 0, 0, 0, 0, 1 + r, -1],
+                        [0, 0, 0, 0, 0, 0, 2],
+                    ]
+                )
 
                 s1, s2, s3, s4, s5, s6, s7 = np.linalg.lstsq(A, B, rcond=None)[0]
 
-                aR = np.array([[0.   , -s7  , -r*s6 , r*s6 , s7],
-                               [0.   , -s6  , -s5  , s5  , s6],
-                               [0.   , -s3  , -s1  , s1  , s3],
-                               [0.   , -s6  , -s5  , s5  , s6],
-                               [0.   , -s7  , -r*s6 , r*s6 , s7],])
+                aR = np.array(
+                    [
+                        [0.0, -s7, -r * s6, r * s6, s7],
+                        [0.0, -s6, -s5, s5, s6],
+                        [0.0, -s3, -s1, s1, s3],
+                        [0.0, -s6, -s5, s5, s6],
+                        [0.0, -s7, -r * s6, r * s6, s7],
+                    ]
+                )
 
-                aT = np.array([[0.  , 0. , 0.  , 0. , 0.],
-                               [-s7  , -s6 , -s4  , -s6  , -s7],
-                               [-r*s6 , -s5 , -s2  , -s5  , -r*s6],
-                               [r*s6 , s5 , s2  , s5  , r*s6],
-                               [s7  , s6 , s4  , s6  , s7],])
+                aT = np.array(
+                    [
+                        [0.0, 0.0, 0.0, 0.0, 0.0],
+                        [-s7, -s6, -s4, -s6, -s7],
+                        [-r * s6, -s5, -s2, -s5, -r * s6],
+                        [r * s6, s5, s2, s5, r * s6],
+                        [s7, s6, s4, s6, s7],
+                    ]
+                )
 
                 aL = aR[::-1, ::-1]
                 aB = aT[::-1, ::-1]
@@ -115,58 +128,96 @@ class brighter_fatter(roman_effects):
         # where_sat = np.where(array_pad > saturation_array)
         # array_pad[ where_sat ] = saturation_array[ where_sat ]
         # array_pad = array_pad[4:-4,4:-4]
-        saturate = self.cross_refer('saturate')
+        saturate = self.cross_refer("saturate")
         array_pad = saturate.apply(image=image.copy()).array[4:-4, 4:-4]  # img of interest 4088x4088
-        array_pad = np.pad(array_pad, [(4+nbfe, 4+nbfe), (4+nbfe, 4+nbfe)],
-                           mode='symmetric')  # 4100x4100 array
+        array_pad = np.pad(
+            array_pad, [(4 + nbfe, 4 + nbfe), (4 + nbfe, 4 + nbfe)], mode="symmetric"
+        )  # 4100x4100 array
 
         # (4, 4096, 4096) in order of [aR, aT, aL, aB]
-        dQ_components = np.zeros((4, bin_size*n_max, bin_size*m_max))
+        dQ_components = np.zeros((4, bin_size * n_max, bin_size * m_max))
 
         # run in sub grids to reduce memory
 
         # pad and expand kernels
-        t = np.zeros((bin_size*n_sub, n_sub))
+        t = np.zeros((bin_size * n_sub, n_sub))
         for row in range(t.shape[0]):
-            t[row, row//(bin_size)] = 1
+            t[row, row // (bin_size)] = 1
 
         for gj in range(num_grids):
             for gi in range(num_grids):
 
                 # (4,5,5,sub_grid,sub_grid)
-                a_components_pad = np.zeros((4, 2*nbfe+1, 2*nbfe+1, bin_size
-                                            * n_sub+2*nbfe, bin_size*m_sub+2*nbfe))
+                a_components_pad = np.zeros(
+                    (4, 2 * nbfe + 1, 2 * nbfe + 1, bin_size * n_sub + 2 * nbfe, bin_size * m_sub + 2 * nbfe)
+                )
 
                 for comp in range(4):
-                    for j in range(2*nbfe+1):
-                        for i in range(2*nbfe+1):
+                    for j in range(2 * nbfe + 1):
+                        for i in range(2 * nbfe + 1):
                             # sub_grid*sub_grid
-                            tmp = (t.dot(a_components[comp, j, i, gj*n_sub:(gj+1)
-                                   * n_sub, gi*m_sub:(gi+1)*m_sub])).dot(t.T)
+                            tmp = (
+                                t.dot(
+                                    a_components[
+                                        comp,
+                                        j,
+                                        i,
+                                        gj * n_sub : (gj + 1) * n_sub,
+                                        gi * m_sub : (gi + 1) * m_sub,
+                                    ]
+                                )
+                            ).dot(t.T)
                             a_components_pad[comp, j, i, :, :] = np.pad(
-                                tmp, [(nbfe, nbfe), (nbfe, nbfe)], mode='symmetric')
+                                tmp, [(nbfe, nbfe), (nbfe, nbfe)], mode="symmetric"
+                            )
 
                 # convolve aX_ij with Q_ij
                 for comp in range(4):
-                    for dy in range(-nbfe, nbfe+1):
-                        for dx in range(-nbfe, nbfe+1):
-                            dQ_components[comp, gj*bin_size*n_sub : (gj+1)*bin_size*n_sub,
-                                          gi*bin_size*m_sub : (gi+1)*bin_size*m_sub]\
-                                += a_components_pad[comp, nbfe+dy, nbfe+dx, nbfe-dy:nbfe-dy+bin_size*n_sub,
-                                                    nbfe-dx:nbfe-dx+bin_size*m_sub]\
-                                * array_pad[-dy + nbfe + gj*bin_size*n_sub : -dy + nbfe
-                                            + (gj+1)*bin_size*n_sub, -dx + nbfe + gi*bin_size*m_sub : -dx
-                                            + nbfe + (gi+1)*bin_size*m_sub]
+                    for dy in range(-nbfe, nbfe + 1):
+                        for dx in range(-nbfe, nbfe + 1):
+                            dQ_components[
+                                comp,
+                                gj * bin_size * n_sub : (gj + 1) * bin_size * n_sub,
+                                gi * bin_size * m_sub : (gi + 1) * bin_size * m_sub,
+                            ] += (
+                                a_components_pad[
+                                    comp,
+                                    nbfe + dy,
+                                    nbfe + dx,
+                                    nbfe - dy : nbfe - dy + bin_size * n_sub,
+                                    nbfe - dx : nbfe - dx + bin_size * m_sub,
+                                ]
+                                * array_pad[
+                                    -dy
+                                    + nbfe
+                                    + gj * bin_size * n_sub : -dy
+                                    + nbfe
+                                    + (gj + 1) * bin_size * n_sub,
+                                    -dx
+                                    + nbfe
+                                    + gi * bin_size * m_sub : -dx
+                                    + nbfe
+                                    + (gi + 1) * bin_size * m_sub,
+                                ]
+                            )
 
-                    dj = int(np.sin(comp*np.pi/2))
-                    di = int(np.cos(comp*np.pi/2))
+                    dj = int(np.sin(comp * np.pi / 2))
+                    di = int(np.cos(comp * np.pi / 2))
 
-                    dQ_components[comp, gj*bin_size*n_sub : (gj+1)*bin_size*n_sub ,
-                                  gi*bin_size*m_sub : (gi+1)*bin_size*m_sub]\
-                        *= 0.5*(array_pad[nbfe + gj*bin_size*n_sub : nbfe + (gj+1)*bin_size*n_sub,
-                                          nbfe + gi*bin_size*m_sub : nbfe + (gi+1)*bin_size*m_sub]
-                                + array_pad[dj+nbfe + gj*bin_size*n_sub : dj+nbfe + (gj+1)*bin_size*n_sub
-                                            , di+nbfe + gi*bin_size*m_sub : di+nbfe + (gi+1)*bin_size*m_sub])
+                    dQ_components[
+                        comp,
+                        gj * bin_size * n_sub : (gj + 1) * bin_size * n_sub,
+                        gi * bin_size * m_sub : (gi + 1) * bin_size * m_sub,
+                    ] *= 0.5 * (
+                        array_pad[
+                            nbfe + gj * bin_size * n_sub : nbfe + (gj + 1) * bin_size * n_sub,
+                            nbfe + gi * bin_size * m_sub : nbfe + (gi + 1) * bin_size * m_sub,
+                        ]
+                        + array_pad[
+                            dj + nbfe + gj * bin_size * n_sub : dj + nbfe + (gj + 1) * bin_size * n_sub,
+                            di + nbfe + gi * bin_size * m_sub : di + nbfe + (gi + 1) * bin_size * m_sub,
+                        ]
+                    )
 
         image.array[:, :] -= dQ_components.sum(axis=0)
         image.array[:, 1:] += dQ_components[0][:, :-1]

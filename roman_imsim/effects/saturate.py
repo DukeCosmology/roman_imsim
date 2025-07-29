@@ -9,14 +9,17 @@ class saturate(roman_effects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params['model'])
+        self.model = getattr(self, self.params["model"])
         if self.model is None:
-            self.logger.warning("%s hasn't been implemented yet, the simple model will be applied for %s"%(
-                str(self.params['model']), str(self.__class__.__name__)))
+            self.logger.warning(
+                "%s hasn't been implemented yet, the simple model will be applied for %s"
+                % (str(self.params["model"]), str(self.__class__.__name__))
+            )
             self.model = self.simple_model
 
-        self.saturation_level = self.params['saturation_level'] \
-            if 'saturation_level' in self.params else 100000
+        self.saturation_level = (
+            self.params["saturation_level"] if "saturation_level" in self.params else 100000
+        )
 
     def simple_model(self, image):
         self.logger.warning("Simple model will be applied for saturation.")
@@ -33,7 +36,7 @@ class saturate(roman_effects):
         self.logger.warning("Lab measured model will be applied for saturation effect.")
         self.df = fio.FITS(os.path.join(self.sca_filepath, sca_number_to_file[self.sca]))
 
-        saturation_array = self.df['SATURATE'][:, :]  # 4096x4096 array
+        saturation_array = self.df["SATURATE"][:, :]  # 4096x4096 array
         where_sat = np.where(image.array > saturation_array)
         image.array[where_sat] = saturation_array[where_sat]
         return image

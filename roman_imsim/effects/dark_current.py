@@ -10,10 +10,12 @@ class dark_current(roman_effects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params['model'])
+        self.model = getattr(self, self.params["model"])
         if self.model is None:
-            self.logger.warning("%s hasn't been implemented yet, the simple model will be applied for %s"%(
-                str(self.params['model']), str(self.__class__.__name__)))
+            self.logger.warning(
+                "%s hasn't been implemented yet, the simple model will be applied for %s"
+                % (str(self.params["model"]), str(self.__class__.__name__))
+            )
             self.model = self.simple_model
 
     def simple_model(self, image):
@@ -35,7 +37,7 @@ class dark_current(roman_effects):
 
         exptime = self.pointing.exptime
         self.logger.warning("Lab measured model will be applied for dark current.")
-        self.dark_current_ = roman.dark_current * exptime + self.df['DARK'][:, :].flatten() * exptime
+        self.dark_current_ = roman.dark_current * exptime + self.df["DARK"][:, :].flatten() * exptime
         dark_current_ = self.dark_current_.clip(0)
         # opt for numpy random geneator instead for speed
         self.im_dark = self.rng_np.poisson(dark_current_).reshape(image.array.shape).astype(image.dtype)
