@@ -1,4 +1,4 @@
-![Build](https://github.com/matroxel/roman_imsim/actions/workflows/build.yml/badge.svg)
+![Build](https://github.com/DukeCosmology/roman_imsim/actions/workflows/build.yml/badge.svg)
 
 # roman_imsim
 
