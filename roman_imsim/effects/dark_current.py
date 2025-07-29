@@ -1,21 +1,21 @@
 import os
-import numpy as np
 import fitsio as fio
 import galsim
 import galsim.roman as roman
 from roman_imsim.effects import roman_effects
-import roman_imsim.effects as effects
-from .utils import sca_number_to_file, get_pointing
+from .utils import sca_number_to_file
+
 
 class dark_current(roman_effects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
-        
+
         self.model = getattr(self, self.params['model'])
         if self.model is None:
-            self.logger.warning("%s hasn't been implemented yet, the simple model will be applied for %s"%(str(self.params['model']), str(self.__class__.__name__)))
+            self.logger.warning("%s hasn't been implemented yet, the simple model will be applied for %s"%(
+                str(self.params['model']), str(self.__class__.__name__)))
             self.model = self.simple_model
-            
+
     def simple_model(self, image):
         self.logger.warning("Simple model will be applied for dark current.")
         exptime = self.pointing.exptime
@@ -26,18 +26,18 @@ class dark_current(roman_effects):
         image.addNoise(dark_noise)
         self.im_dark = image - self.im_dark
         return image
-    
+
     def lab_model(self, image):
         if self.sca_filepath is None:
             self.logger.warning("No dark current file provided; no dark current will be applied.")
             return image
         self.df = fio.FITS(os.path.join(self.sca_filepath, sca_number_to_file[self.sca]))
-        
+
         exptime = self.pointing.exptime
         self.logger.warning("Lab measured model will be applied for dark current.")
         self.dark_current_ = roman.dark_current * exptime + self.df['DARK'][:, :].flatten() * exptime
         dark_current_ = self.dark_current_.clip(0)
         # opt for numpy random geneator instead for speed
         self.im_dark = self.rng_np.poisson(dark_current_).reshape(image.array.shape).astype(image.dtype)
-        image.array[:,:] += self.im_dark
+        image.array[:, :] += self.im_dark
         return image
