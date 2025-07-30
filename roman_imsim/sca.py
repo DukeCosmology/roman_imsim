@@ -82,18 +82,18 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.ignore_noise = params.get("ignore_noise", False)
 
         # self.exptime = params.get('exptime', roman.exptime)  # Default is roman standard exposure time.
-        self.stray_light = params.get('stray_light', False)
-        self.thermal_background = params.get('thermal_background', False)
-        self.reciprocity_failure = params.get('reciprocity_failure', False)
-        self.dark_current = params.get('dark_current', False)
-        self.ipc = params.get('ipc', False)
-        self.read_noise = params.get('read_noise', False)
-        self.sky_subtract = params.get('sky_subtract', False)
+        self.stray_light = params.get("stray_light", False)
+        self.thermal_background = params.get("thermal_background", False)
+        self.reciprocity_failure = params.get("reciprocity_failure", False)
+        self.dark_current = params.get("dark_current", False)
+        self.ipc = params.get("ipc", False)
+        self.read_noise = params.get("read_noise", False)
+        self.sky_subtract = params.get("sky_subtract", False)
 
         # [TODO]TEST
-        self.qe = params.get('quantum_efficiency', None)
-        self.bfe = params.get('brighter_fatter', False)
-        self.nonlinearity = params.get('nonlinearity', False)
+        self.qe = params.get("quantum_efficiency", None)
+        self.bfe = params.get("brighter_fatter", False)
+        self.nonlinearity = params.get("nonlinearity", False)
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
         self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "auto"))
