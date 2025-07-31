@@ -33,6 +33,7 @@ jobs:
       run: |
         git lfs install
         git clone https://github.com/DukeCosmology/SimHackJune2025
+        git checkout reference
 
     - name: Snoop
       run: |
