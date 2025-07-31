@@ -6,7 +6,15 @@ from astropy.time import Time
 from galsim.config import RegisterImageType
 from galsim.config.image_scattered import ScatteredImageBuilder
 from galsim.image import Image
-
+import asdf
+from astropy import wcs as fits_wcs
+from astropy.io.fits import Header
+from astropy.modeling.models import (
+    Shift, Polynomial2D, Pix2Sky_TAN, RotateNative2Celestial, Mapping)
+from gwcs import coordinate_frames as cf
+import astropy.units as u
+import astropy.coordinates
+import gwcs
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
 
@@ -27,6 +35,8 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         Returns:
             xsize, ysize
         """
+
+
         # import os, psutil
         # process = psutil.Process()
         # print('sca setup 1',process.memory_info().rss)
@@ -106,6 +116,154 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
     #         self.all_roman_bp = roman.getBandpasses()
     #     return self.all_roman_bp[filter_name]
 
+    
+    
+    def wcs_from_fits_header(self, header):
+        """Convert a FITS WCS to a GWCS.
+
+        This function reads SIP coefficients from a FITS WCS and implements
+        the corresponding gWCS WCS.
+        Copied from romanisim/wcs.py
+
+        Parameters
+        ----------
+        header : astropy.io.fits.header.Header
+            FITS header
+
+        Returns
+        -------
+        wcs : gwcs.wcs.WCS
+            gwcs WCS corresponding to header
+        """
+
+        # NOTE: this function ignores table distortions
+
+        def coeffs_to_poly(mat, degree):
+            pol = Polynomial2D(degree=degree)
+            for i in range(mat.shape[0]):
+                for j in range(mat.shape[1]):
+                    if 0 < i + j <= degree:
+                        setattr(pol, f'c{i}_{j}', mat[i, j])
+            return pol
+
+
+        w = fits_wcs.WCS(header)
+        ny, nx = header['NAXIS2'] + 1, header['NAXIS1'] + 1
+        x0, y0 = w.wcs.crpix
+
+        cd = w.wcs.piximg_matrix
+
+        cfx, cfy = np.dot(cd, [w.sip.a.ravel(), w.sip.b.ravel()])
+        a = np.reshape(cfx, w.sip.a.shape)
+        b = np.reshape(cfy, w.sip.b.shape)
+        a[1, 0] = cd[0, 0]
+        a[0, 1] = cd[0, 1]
+        b[1, 0] = cd[1, 0]
+        b[0, 1] = cd[1, 1]
+
+        polx = coeffs_to_poly(a, w.sip.a_order)
+        poly = coeffs_to_poly(b, w.sip.b_order)
+
+        # construct GWCS:
+        det2sky = (
+            (Shift(-x0) & Shift(-y0)) | Mapping((0, 1, 0, 1)) | (polx & poly)
+            | Pix2Sky_TAN() | RotateNative2Celestial(*w.wcs.crval, header['LONPOLE'])
+        )
+
+        detector_frame = cf.Frame2D(name="detector", axes_names=("x", "y"),
+                                    unit=(u.pix, u.pix))
+        sky_frame = cf.CelestialFrame(
+            reference_frame=getattr(astropy.coordinates, w.wcs.radesys).__call__(),
+            name=w.wcs.radesys,
+            unit=(u.deg, u.deg)
+        )
+        pipeline = [(detector_frame, det2sky), (sky_frame, None)]
+        gw = gwcs.WCS(pipeline)
+        gw.bounding_box = ((-0.5, nx - 0.5), (-0.5, ny - 0.5))
+
+        return gw
+
+
+
+    def writeASDF(self, config, base, image, path, include_raw_header=False):
+        """
+        Method to write the file to disk
+
+        Parameters:
+        -----------
+        path (str): Output path and filename
+        include_raw_header (bool): If `True` include a copy of the raw FITS header
+           as a dictionary in the ASDF file.
+        """
+    
+        print("self attrs:", [a for a in dir(self) if not a.startswith("_")])
+        print("config keys:", list(config.keys()))
+        print("base keys:  ", list(base.keys()))
+        
+        for key, val in image.header.items():
+            print(f"{key} = {val}")
+        print("Image array shape:", image.array.shape)
+        print(image.array)
+        
+        tree = {}
+        
+        # Fill out the data, err, dq blocks
+        tree['data'] = image.array
+        # modify_image (inside detector_physics) is not implemented as a class yet 
+        # no err and dq exist currently so set them to None
+        tree['err'] = None   
+        tree['dq'] = None  
+        
+
+        # Fill out the wcs block - this is very hard since we need to change from wcs to gwcs object stored in asdf
+        # The config wcs is the configuration for building the wcs above
+        # The base is galsim.GSFitsWCS constructed from config wcs using wcs.py, and copied to image.wcs
+        
+        #turn the Galsim header to a fits header for the wcs_from_fits_header function
+        galsim_wcs_header = image.wcs.header           
+        d = dict(galsim_wcs_header)                     
+        wcs_header = Header(d)
+        #lack the two qualities for the wcs_from_fits_header function: number of pixel in each coordinate of the image
+        ny, nx = image.array.shape
+        wcs_header['NAXIS1'] = nx
+        wcs_header['NAXIS2'] = ny
+        tree['wcs'] = self.wcs_from_fits_header(wcs_header)
+
+        # check for catalogs
+        #tree['catalogs'] = self.catalogs   # what is this? can't find this property anywhere
+
+        # Populate metadata
+        # The properties in self/base/image are the same and I choose to use image/self when possible. The config properties are parameters for execution, not final results - so don't use them.
+        tree['meta'] = {}
+        if include_raw_header:
+            tree['meta']['raw_header'] = image.header
+        tree['meta']['telescope'] = 'ROMAN'
+        tree['meta']['instrument'] = 'WFI'
+        tree['meta']['optical_element'] = self.filter
+        # use image/base ra/dec - they are ra/dec per sca
+        # the ra/dec of config is the global ra/dec that the telescope point to (which has 18 sca for roman and each have a offset)
+        tree['meta']['ra_pointing'] = image.wcs.center.ra.rad
+        tree['meta']['dec_pointing'] = image.wcs.center.dec.rad
+        tree['meta']['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
+        tree['meta']['pa_fpa'] = True 
+        tree['meta']['obs_date'] = Time(self.mjd, format="mjd").datetime.isoformat() 
+        tree['meta']['mjd_obs'] = self.mjd
+        tree['meta']['exp_time'] = self.exptime
+        tree['meta']['nreads'] = 1
+        # Constant gain = 1 (Troxel private comm.)
+        tree['meta']['gain'] = 1.0
+        
+        # Here are something inside detector_physics.py that seems not implemented inside yaml yet
+        #tree['meta']['detector'] = f'SCA{self.fitsheader["SCA_NUM"]:02d}' #detector is not implemented in yaml yet
+        #tree['meta']['sky_mean'] = self.fitsheader['SKY_MEAN']  #detector is not implemented in yaml yet
+
+        
+        af = asdf.AsdfFile({'roman': tree})
+        af.write_to(path)
+        
+        return None
+
+
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
 
@@ -119,6 +277,8 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         Returns:
             the final image and the current noise variance in the image as a tuple
         """
+        
+        
         full_xsize = base["image_xsize"]
         full_ysize = base["image_ysize"]
         wcs = base["wcs"]
@@ -127,7 +287,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image.setOrigin(base["image_origin"])
         full_image.wcs = wcs
         full_image.setZero()
-
+        
         full_image.header = galsim.FitsHeader()
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
@@ -156,8 +316,11 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
         nbatch = self.nobjects // 1000 + 1
         for batch in range(nbatch):
+            #start id of objects in this batch
             start_obj_num = self.nobjects * batch // nbatch
+            #end id of objects in this batch
             end_obj_num = self.nobjects * (batch + 1) // nbatch
+            #no of obj in batch
             nobj_batch = end_obj_num - start_obj_num
             if nbatch > 1:
                 logger.warning(
@@ -192,6 +355,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                     str(stamps[k].bounds),
                 )
                 logger.debug("image %d: Overlap = %s", image_num, str(bounds))
+                #imprint the stemp of each object in this loop
                 full_image[bounds] += stamps[k][bounds]
             stamps = None
 
@@ -199,6 +363,11 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # current_var = FlattenNoiseVariance(
         #         base, full_image, stamps, current_vars, logger)
 
+        #manage return
+        self.full_image = full_image
+        if self.writeASDF:
+            self.writeASDF(config, base, full_image, 'one_image.asdf', include_raw_header=False)
+        
         return full_image, None
 
     def addNoise(self, image, config, base, image_num, obj_num, current_var, logger):
@@ -305,6 +474,19 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             sky_image /= roman.gain
             sky_image.quantize()
             image -= sky_image
+
+def fitsheader_to_dict(self):
+        """
+        Method to convert the FITS header to a plain dictionary
+        """
+        if self.full_image.header is not None:
+            hdr_out = {}
+            for key, value in self.full_image.header.items(): #not sure if .items() is a valid method here
+                hdr_out[key] = value
+            return hdr_out
+        else:
+            raise ValueError('self.fitsheader is empty, \
+                             please load the header first')
 
 
 # Register this as a valid type
