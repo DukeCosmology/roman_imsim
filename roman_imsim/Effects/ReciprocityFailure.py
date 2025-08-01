@@ -1,15 +1,15 @@
-from roman_imsim.effects import roman_effects
+from . import RomanEffects
 import galsim.roman as roman
 
 
-class recip_failure(roman_effects):
+class ReciprocityFailure(RomanEffects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
         self.alpha = self.params["alpha"] if "alpha" in self.params else roman.reciprocity_alpha
         self.base_flux = self.params["base_flux"] if "base_flux" in self.params else 1.0
 
-        self.model = getattr(self, self.params["model"])
+        self.model = getattr(self, self.params["model"], None)
         if self.model is None:
             self.logger.warning(
                 "%s hasn't been implemented yet, the simple model will be applied for %s"

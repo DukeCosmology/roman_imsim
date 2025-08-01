@@ -2,15 +2,15 @@ import os
 import fitsio as fio
 import galsim
 import galsim.roman as roman
-from roman_imsim.effects import roman_effects
+from . import RomanEffects
 from .utils import sca_number_to_file
 
 
-class dark_current(roman_effects):
+class DarkCurrent(RomanEffects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params["model"])
+        self.model = getattr(self, self.params["model"], None)
         if self.model is None:
             self.logger.warning(
                 "%s hasn't been implemented yet, the simple model will be applied for %s"

@@ -1,15 +1,15 @@
 import os
 import numpy as np
 import fitsio as fio
-from roman_imsim.effects import roman_effects
+from . import RomanEffects
 from .utils import sca_number_to_file
 
 
-class brighter_fatter(roman_effects):
+class BrighterFatter(RomanEffects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params["model"])
+        self.model = getattr(self, self.params["model"], None)
         if self.model is None:
             self.logger.warning(
                 "%s hasn't been implemented yet, the simple model will be applied for %s"
@@ -128,7 +128,7 @@ class brighter_fatter(roman_effects):
         # where_sat = np.where(array_pad > saturation_array)
         # array_pad[ where_sat ] = saturation_array[ where_sat ]
         # array_pad = array_pad[4:-4,4:-4]
-        saturate = self.cross_refer("saturate")
+        saturate = self.cross_refer("Saturation")
         array_pad = saturate.apply(image=image.copy()).array[4:-4, 4:-4]  # img of interest 4088x4088
         array_pad = np.pad(
             array_pad, [(4 + nbfe, 4 + nbfe), (4 + nbfe, 4 + nbfe)], mode="symmetric"

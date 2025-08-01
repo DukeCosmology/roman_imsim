@@ -2,15 +2,15 @@ import os
 import numpy as np
 import fitsio as fio
 import galsim
-from roman_imsim.effects import roman_effects
+from . import RomanEffects
 from .utils import sca_number_to_file, get_pointing
 
 
-class persistence(roman_effects):
+class Persistence(RomanEffects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params["model"])
+        self.model = getattr(self, self.params["model"], None)
         if self.model is None:
             self.logger.warning(
                 "%s hasn't been implemented yet, the simple model will be applied for %s"
@@ -43,7 +43,7 @@ class persistence(roman_effects):
             x = galsim.Image(bound_pad)
             x.array[4:-4, 4:-4] = galsim.Image(fio.FITS(fn)[0].read()).array[:, :]
 
-            recip_failure = self.cross_refer("recip_failure")
+            recip_failure = self.cross_refer("ReciprocityFailure")
             x = recip_failure.apply(image=x)
 
             x.array.clip(0)  # remove negative stimulus
@@ -96,7 +96,7 @@ class persistence(roman_effects):
             x.array[4:-4, 4:-4] = galsim.Image(fio.FITS(fn)[0].read()).array[:, :]
             # x = self.qe(x).array[:,:]
 
-            qe = self.cross_refer("quantum_efficiency")
+            qe = self.cross_refer("QuantumEfficiency")
             x = qe.apply(image=x).array[:, :]
 
             x = x.clip(0.1)  # remove negative and zero stimulus
