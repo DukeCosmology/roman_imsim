@@ -89,39 +89,38 @@ image:
     # sky_subtract: False
 
     add_effects:
-        background:
+        Background:
             model: simple_model
             thermal_background: True
             stray_light: True
-        quantum_efficiency: 
+        QuantumEfficiency: 
             model: lab_model
-        brighter_fatter: 
+        BrighterFatter: 
             model: lab_model
-        persistence:
+        Persistence:
             model: lab_model
-        # reciprocity_failure:
+        # ReciprocityFailure:
         #     model: simple_model
-        dark_current: 
+        DarkCurrent: 
             model: lab_model
-        saturate:
+        Saturation:
             model: lab_model
-        nonlinearity: 
+        Nonlinearity: 
             model: lab_model
-        interpix_cap:
+        IPC:
             model: lab_model
-        dead_pix:
+        DeadPixel:
             model: lab_model
-        vtpe:
+        VTPE:
             model: lab_model
-        read_noise: 
+        ReadNoise: 
             model: lab_model
-        gain:
+        Gain:
             model: lab_model
-        bias:
+        Bias:
             model: lab_model
     sky_subtract: False
 
-    # dither_from_file: /hpc/home/yf194/Work/final_sims_2023/Roman_WAS_obseq_11_1_23_ditherlist.txt
     sca_filepath: /hpc/group/cosmology/phy-lsst/roman_sensors
     save_diff: False
 
@@ -151,7 +150,6 @@ gal:
 
 input:
     obseq_data:
-        # file_name: /lus/grand/projects/RomanDESC/final_roman_runfiles/was/Roman_WAS_obseq_11_1_23.fits
         file_name: /hpc/group/cosmology/OpenUniverse2024/RomanWAS/Roman_WAS_obseq_11_1_23.fits
         visit: 4906
         SCA: '@image.SCA'
@@ -159,9 +157,7 @@ input:
         SCA: '@image.SCA'
         n_waves: 5
     sky_catalog:
-        # file_name: /lus/grand/projects/RomanDESC/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
-        # file_name: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
-        file_name: /hpc/home/yf194/Work/projects/roman_imsim/config/skyCatalog.yaml
+        file_name: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }

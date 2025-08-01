@@ -8,7 +8,7 @@ from galsim.config.image_scattered import ScatteredImageBuilder
 from galsim.image import Image
 
 
-import roman_imsim.effects as roman_effects
+import roman_imsim.Effects as RomanEffects
 
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
@@ -55,13 +55,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         req = {"SCA": int, "filter": str, "mjd": float, "exptime": float}
         opt = {
             "draw_method": str,
-            # "stray_light": bool,
-            # "thermal_background": bool,
-            # "reciprocity_failure": bool,
-            # "dark_current": bool,
-            # "nonlinearity": bool,
-            # "ipc": bool,
-            # "read_noise": bool,
             "add_effects": dict,
             "sca_filepath": str,
             "sky_subtract": bool,
@@ -80,20 +73,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.exptime = params["exptime"]
 
         self.ignore_noise = params.get("ignore_noise", False)
-
-        # self.exptime = params.get('exptime', roman.exptime)  # Default is roman standard exposure time.
-        self.stray_light = params.get("stray_light", False)
-        self.thermal_background = params.get("thermal_background", False)
-        self.reciprocity_failure = params.get("reciprocity_failure", False)
-        self.dark_current = params.get("dark_current", False)
-        self.ipc = params.get("ipc", False)
-        self.read_noise = params.get("read_noise", False)
         self.sky_subtract = params.get("sky_subtract", False)
-
-        # [TODO]TEST
-        self.qe = params.get("quantum_efficiency", None)
-        self.bfe = params.get("brighter_fatter", False)
-        self.nonlinearity = params.get("nonlinearity", False)
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
         self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "auto"))
@@ -217,9 +197,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 full_image[bounds] += stamps[k][bounds]
             stamps = None
 
-            # # [TODO]
-            # break
-
         # # Bring the image so far up to a flat noise variance
         # current_var = FlattenNoiseVariance(
         #         base, full_image, stamps, current_vars, logger)
@@ -254,7 +231,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         effects_list = self.base["image"]["add_effects"].keys()
         for effect_name in effects_list:
             args = (self.base["image"]["add_effects"][effect_name], self.base, self.logger, self.rng)
-            effect = getattr(roman_effects, effect_name)(*args)
+            effect = getattr(RomanEffects, effect_name)(*args)
             im_pad = effect.apply(image=im_pad)
 
         im_pad.quantize()
@@ -263,7 +240,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
         if self.sky_subtract:
             logger.debug("Subtracting sky image")
-            sky = roman_effects.setup_sky(self.base, self.logger, self.rng)
+            sky = RomanEffects.setup_sky(self.base, self.logger, self.rng)
             sky_image = sky.get_sky_image()
             image -= sky_image
             sky.save_sky_img(outdir=self.base["output"]["dir"])

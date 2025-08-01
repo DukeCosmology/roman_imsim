@@ -1,10 +1,10 @@
 import os
 import galsim
-from roman_imsim.effects import roman_effects
+from . import RomanEffects
 import galsim.roman as roman
 
 
-class background(roman_effects):
+class Background(RomanEffects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
         self.thermal_background = (
@@ -12,7 +12,7 @@ class background(roman_effects):
         )
         self.stray_light = self.params["stray_light"] if "stray_light" in self.params else False
 
-        self.model = getattr(self, self.params["model"])
+        self.model = getattr(self, self.params["model"], None)
         if self.model is None:
             self.logger.warning(
                 "%s hasn't been implemented yet, the simple model will be applied for %s"
