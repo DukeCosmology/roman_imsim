@@ -8,13 +8,7 @@ class QuantumEfficiency(RomanEffects):
     def __init__(self, params, base, logger, rng, rng_iter=None):
         super().__init__(params, base, logger, rng, rng_iter)
 
-        self.model = getattr(self, self.params["model"], None)
-        if self.model is None:
-            self.logger.warning(
-                "%s hasn't been implemented yet, the simple model will be applied for %s"
-                % (str(self.params["model"]), str(self.__class__.__name__))
-            )
-            self.model = self.simple_model
+        self.is_model_valid()
 
     def lab_model(self, image):
         if self.sca_filepath is None:

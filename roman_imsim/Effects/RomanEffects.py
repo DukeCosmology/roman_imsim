@@ -38,6 +38,15 @@ class RomanEffects(object):
             else:
                 self.diff_dir = self.base["output"]["dir"]
 
+    def is_model_valid(self):
+        self.model = getattr(self, self.params["model"], None)
+        if self.model is None:
+            self.logger.warning(
+                "%s hasn't been implemented yet, the simple model will be applied for %s"
+                % (str(self.params["model"]), str(self.__class__.__name__))
+            )
+            self.model = self.simple_model
+
     def simple_model(self, image):
         self.logger.info("Applying the default model...")
         return image

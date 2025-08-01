@@ -12,13 +12,7 @@ class Background(RomanEffects):
         )
         self.stray_light = self.params["stray_light"] if "stray_light" in self.params else False
 
-        self.model = getattr(self, self.params["model"], None)
-        if self.model is None:
-            self.logger.warning(
-                "%s hasn't been implemented yet, the simple model will be applied for %s"
-                % (str(self.params["model"]), str(self.__class__.__name__))
-            )
-            self.model = self.simple_model
+        self.is_model_valid()
 
     def simple_model(self, image):
         if self.save_diff:
