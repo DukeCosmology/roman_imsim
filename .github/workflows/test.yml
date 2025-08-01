@@ -59,6 +59,7 @@ jobs:
         pip install --upgrade pip uv
         uv pip install git+https://github.com/LSSTDESC/skyCatalogs@gaia_lsst
         uv pip install .
+        uv pip install pytest pytest-xdist pytest-cov
 
     - name: Run config files
       run: |
