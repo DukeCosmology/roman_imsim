@@ -195,13 +195,16 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 # logger.debug("image %d: Overlap = %s", image_num, str(bounds))
                 # full_image[bounds] += stamps[k][bounds]
                 #logger.warning(stamps[k])
-                full_array = galsim.PhotonArray.concatenate([stamps[k],full_array])
+            full_array = galsim.PhotonArray.concatenate([*stamps,full_array])
+
             stamps = None
 
         # # Bring the image so far up to a flat noise variance
         # current_var = FlattenNoiseVariance(
         #         base, full_image, stamps, current_vars, logger)
+
         full_array.addTo(full_image)
+        full_image.write("phot_image.fits")
         return full_image, None
 
     def addNoise(self, image, config, base, image_num, obj_num, current_var, logger):

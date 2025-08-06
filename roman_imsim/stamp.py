@@ -387,6 +387,7 @@ class Roman_stamp(StampBuilder):
                 photons = im.photons
                 photons.x+= im.center.x
                 photons.y+= im.center.y
+                photons.flux=1
             else:
                 photons = galsim.PhotonArray(0)
         # print('stamp draw3',process.memory_info().rss)
