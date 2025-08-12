@@ -1,10 +1,9 @@
-"""
-Interface to obtain objects from skyCatalogs.
-"""
+"""Interface to obtain objects from skyCatalogs."""
 
 import galsim
 import galsim.roman as roman
 import numpy as np
+
 from galsim.config import (
     InputLoader,
     RegisterInputType,
@@ -17,7 +16,9 @@ class SkyCatalogInterface:
     """Interface to skyCatalogs package."""
 
     _trivial_sed = galsim.SED(
-        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"), wave_type="nm", flux_type="fphotons"
+        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"),
+        wave_type="nm",
+        flux_type="fphotons",
     )
 
     def __init__(
@@ -34,8 +35,7 @@ class SkyCatalogInterface:
         max_flux=None,
         logger=None,
     ):
-        """
-        Parameters
+        """Parameters
         ----------
         file_name : str
             Name of skyCatalogs yaml config file.
@@ -57,6 +57,7 @@ class SkyCatalogInterface:
             to consider objects.
         logger : logging.Logger [None]
             Logger object.
+
         """
         self.file_name = file_name
         self.wcs = wcs
@@ -87,13 +88,6 @@ class SkyCatalogInterface:
     @property
     def objects(self):
         from skycatalogs import skyCatalogs
-        from skycatalogs import __version__ as skycatalogs_version
-        from packaging.version import Version
-
-        if Version(skycatalogs_version) < Version("2.0"):
-            PolygonalRegion = skyCatalogs.PolygonalRegion
-        else:
-            from skycatalogs.utils import PolygonalRegion
 
         if self._objects is None:
             # import os, psutil
@@ -109,8 +103,13 @@ class SkyCatalogInterface:
             vertices = []
             for x, y in corners:
                 sky_coord = self.wcs.toWorld(galsim.PositionD(x, y))
-                vertices.append((sky_coord.ra / galsim.degrees, sky_coord.dec / galsim.degrees))
-            region = PolygonalRegion(vertices)
+                vertices.append(
+                    (
+                        sky_coord.ra / galsim.degrees,
+                        sky_coord.dec / galsim.degrees,
+                    )
+                )
+            region = skyCatalogs.PolygonalRegion(vertices)
             sky_cat = skyCatalogs.open_catalog(self.file_name)
             self._objects = sky_cat.get_objects_by_region(region, obj_type_set=self.obj_types, mjd=self.mjd)
             if not self._objects:
@@ -121,27 +120,21 @@ class SkyCatalogInterface:
         return self._objects
 
     def get_sca_center(self):
-        """
-        Return the SCA center.
-        """
+        """Return the SCA center."""
         return self.sca_center
 
     def getNObjects(self):
-        """
-        Return the number of GSObjects to render
-        """
+        """Return the number of GSObjects to render"""
         return len(self.objects)
 
     def getApproxNObjects(self):
-        """
-        Return the approximate number of GSObjects to render, as set in
+        """Return the approximate number of GSObjects to render, as set in
         the class initializer.
         """
         return self.getNObjects()
 
     def getWorldPos(self, index):
-        """
-        Return the sky coordinates of the skyCatalog object
+        """Return the sky coordinates of the skyCatalog object
         corresponding to the specified index.
 
         Parameters
@@ -152,14 +145,14 @@ class SkyCatalogInterface:
         Returns
         -------
         galsim.CelestialCoord
+
         """
         skycat_obj = self.objects[index]
         ra, dec = skycat_obj.ra, skycat_obj.dec
         return galsim.CelestialCoord(ra * galsim.degrees, dec * galsim.degrees)
 
     def getObj(self, index, gsparams=None, rng=None, exptime=30):
-        """
-        Return the galsim object for the skyCatalog object
+        """Return the galsim object for the skyCatalog object
         corresponding to the specified index.  If the skyCatalog
         object is a galaxy, the returned galsim object will be
         a galsim.Sum.
@@ -172,6 +165,7 @@ class SkyCatalogInterface:
         Returns
         -------
         galsim.GSObject
+
         """
         if not self.objects:
             raise RuntimeError("Trying to get an object from an empty sky catalog")
@@ -228,8 +222,34 @@ class SkyCatalogInterface:
         gs_object.withFlux(gs_object.flux, self.bandpass)
 
         # Get the object type
+        gs_object.redshift_total = 0.0
+        gs_object.redshiftHubble = 0.0
+        gs_object.peculiarVelocity = 0.0
+        gs_object.shear1 = 0.0
+        gs_object.shear2 = 0.0
+        gs_object.convergence = 0.0
+        gs_object.spheroidHalfLightRadiusArcsec = 0.0
+        gs_object.diskHalfLightRadiusArcsec = 0.0
+        gs_object.diskEllipticity1 = 0.0
+        gs_object.diskEllipticity2 = 0.0
+        gs_object.spheroidEllipticity1 = 0.0
+        gs_object.spheroidEllipticity2 = 0.0
         if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
             gs_object.object_type = "galaxy"
+            gs_object.redshift_total = skycat_obj.get_native_attribute("redshift")
+            gs_object.redshiftHubble = skycat_obj.get_native_attribute("redshiftHubble")
+            gs_object.peculiarVelocity = skycat_obj.get_native_attribute("peculiarVelocity")
+            gs_object.shear1 = skycat_obj.get_native_attribute("shear1")
+            gs_object.shear2 = skycat_obj.get_native_attribute("shear2")
+            gs_object.convergence = skycat_obj.get_native_attribute("convergence")
+            gs_object.spheroidHalfLightRadiusArcsec = skycat_obj.get_native_attribute(
+                "spheroidHalfLightRadiusArcsec"
+            )
+            gs_object.diskHalfLightRadiusArcsec = skycat_obj.get_native_attribute("diskHalfLightRadiusArcsec")
+            gs_object.diskEllipticity1 = skycat_obj.get_native_attribute("diskEllipticity1")
+            gs_object.diskEllipticity2 = skycat_obj.get_native_attribute("diskEllipticity2")
+            gs_object.spheroidEllipticity1 = skycat_obj.get_native_attribute("spheroidEllipticity1")
+            gs_object.spheroidEllipticity2 = skycat_obj.get_native_attribute("spheroidEllipticity2")
         if skycat_obj.object_type == "star":
             gs_object.object_type = "star"
         if skycat_obj.object_type == "snana":
@@ -239,9 +259,7 @@ class SkyCatalogInterface:
 
 
 class SkyCatalogLoader(InputLoader):
-    """
-    Class to load SkyCatalogInterface object.
-    """
+    """Class to load SkyCatalogInterface object."""
 
     def getKwargs(self, config, base, logger):
         req = {"file_name": str, "exptime": float}
@@ -255,10 +273,16 @@ class SkyCatalogLoader(InputLoader):
 
         kwargs["wcs"] = wcs
         kwargs["logger"] = logger
+        kwargs["wcs"] = wcs
+        kwargs["logger"] = logger
 
         if "bandpass" not in config:
             base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)[0]
 
+        kwargs["bandpass"] = base["bandpass"]
+        if base["image"]["type"] == "roman_coadd":
+            kwargs["xsize"] = base["image"]["xsize"]
+            kwargs["ysize"] = base["image"]["ysize"]
         kwargs["bandpass"] = base["bandpass"]
         if base["image"]["type"] == "roman_coadd":
             kwargs["xsize"] = base["image"]["xsize"]
@@ -270,9 +294,7 @@ class SkyCatalogLoader(InputLoader):
 
 
 def SkyCatObj(config, base, ignore, gsparams, logger):
-    """
-    Build an object according to info in the sky catalog.
-    """
+    """Build an object according to info in the sky catalog."""
     skycat = galsim.config.GetInputObj("sky_catalog", config, base, "SkyCatObj")
 
     # Ensure that this sky catalog matches the CCD being simulated by
@@ -285,11 +307,11 @@ def SkyCatObj(config, base, ignore, gsparams, logger):
         message = (
             "skyCatalogs selection and SCA center do not agree: \n"
             "skycat.sca_center: "
-            f"{sca_center.ra/galsim.degrees:.5f}, "
-            f"{sca_center.dec/galsim.degrees:.5f}\n"
+            f"{sca_center.ra / galsim.degrees:.5f}, "
+            f"{sca_center.dec / galsim.degrees:.5f}\n"
             "world_center: "
-            f"{world_center.ra/galsim.degrees:.5f}, "
-            f"{world_center.dec/galsim.degrees:.5f} \n"
+            f"{world_center.ra / galsim.degrees:.5f}, "
+            f"{world_center.dec / galsim.degrees:.5f} \n"
             f"Separation: {sep:.2e} arcsec"
         )
         raise RuntimeError(message)
@@ -334,7 +356,12 @@ def SkyCatWorldPos(config, base, value_type):
 
 RegisterInputType("sky_catalog", SkyCatalogLoader(SkyCatalogInterface, has_nobj=True))
 RegisterObjectType("SkyCatObj", SkyCatObj, input_type="sky_catalog")
-RegisterValueType("SkyCatWorldPos", SkyCatWorldPos, [galsim.CelestialCoord], input_type="sky_catalog")
+RegisterValueType(
+    "SkyCatWorldPos",
+    SkyCatWorldPos,
+    [galsim.CelestialCoord],
+    input_type="sky_catalog",
+)
 
 # This class was modified from https://github.com/LSSTDESC/imSim/. License info follows:
 

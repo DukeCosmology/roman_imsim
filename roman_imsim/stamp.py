@@ -1,8 +1,11 @@
 import galsim
 import galsim.config
+import galsim.config
 import galsim.roman as roman
 import numpy as np
+
 from galsim.config import RegisterStampType, StampBuilder
+
 
 # import os, psutil
 # process = psutil.Process()
@@ -16,12 +19,13 @@ class Roman_stamp(StampBuilder):
     """
 
     _trivial_sed = galsim.SED(
-        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"), wave_type="nm", flux_type="fphotons"
+        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"),
+        wave_type="nm",
+        flux_type="fphotons",
     )
 
     def setup(self, config, base, xsize, ysize, ignore, logger):
-        """
-        Do the initialization and setup for building a postage stamp.
+        """Do the initialization and setup for building a postage stamp.
 
         In the base class, we check for and parse the appropriate size and position values in
         config (aka base['stamp'] or base['image'].
@@ -30,7 +34,8 @@ class Roman_stamp(StampBuilder):
         would be confusing, so probably shouldn't do that, but there might be a use case where it
         would make sense).
 
-        Parameters:
+        Parameters
+        ----------
             config:     The configuration dict for the stamp field.
             base:       The base configuration dict.
             xsize:      The xsize of the image to build (if known).
@@ -39,11 +44,14 @@ class Roman_stamp(StampBuilder):
                         ignore here. i.e. it won't be an error if these parameters are present.
             logger:     A logger object to log progress.
 
-        Returns:
+        Returns
+        -------
             xsize, ysize, image_pos, world_pos
+
         """
         # print('stamp setup',process.memory_info().rss)
 
+        gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
         gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
         if gal is None:
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
@@ -76,6 +84,34 @@ class Roman_stamp(StampBuilder):
                 gal.flux = flux_cap
         base["flux"] = gal.flux
         base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
+
+        # logger.warning(str(dir(gal)))
+        if gal.object_type == "galaxy":
+            base["redshift"] = gal.redshift_total
+            base["redshiftHubble"] = gal.redshiftHubble
+            base["peculiarVelocity"] = gal.peculiarVelocity
+            base["shear1"] = gal.shear1
+            base["shear2"] = gal.shear2
+            base["convergence"] = gal.convergence
+            base["spheroidHalfLightRadiusArcsec"] = gal.spheroidHalfLightRadiusArcsec
+            base["diskHalfLightRadiusArcsec"] = gal.diskHalfLightRadiusArcsec
+            base["diskEllipticity1"] = gal.diskEllipticity1
+            base["diskEllipticity2"] = gal.diskEllipticity2
+            base["spheroidEllipticity1"] = gal.spheroidEllipticity1
+            base["spheroidEllipticity2"] = gal.spheroidEllipticity2
+        else:
+            base["redshift"] = 0.0
+            base["redshiftHubble"] = 0.0
+            base["peculiarVelocity"] = 0.0
+            base["shear1"] = 0.0
+            base["shear2"] = 0.0
+            base["convergence"] = 0.0
+            base["spheroidHalfLightRadiusArcsec"] = 0.0
+            base["diskHalfLightRadiusArcsec"] = 0.0
+            base["diskEllipticity1"] = 0.0
+            base["diskEllipticity2"] = 0.0
+            base["spheroidEllipticity1"] = 0.0
+            base["spheroidEllipticity2"] = 0.0
         # print('stamp setup2',process.memory_info().rss)
 
         # Compute or retrieve the realized flux.
@@ -119,7 +155,11 @@ class Roman_stamp(StampBuilder):
         # print('stamp setup3',process.memory_info().rss)
         base["pupil_bin"] = self.pupil_bin
         logger.info("Object flux is %d", self.flux)
-        logger.info("Object %d will use stamp size = %s", base.get("obj_num", 0), image_size)
+        logger.info(
+            "Object %d will use stamp size = %s",
+            base.get("obj_num", 0),
+            image_size,
+        )
 
         # Determine where this object is going to go:
         # This is the same as what the base StampBuilder does:
@@ -141,15 +181,18 @@ class Roman_stamp(StampBuilder):
         For the Basic stamp type, this builds a PSF from the base['psf'] dict, if present,
         else returns None.
 
-        Parameters:
+        Parameters
+        ----------
             config:     The configuration dict for the stamp field.
             base:       The base configuration dict.
             gsparams:   A dict of kwargs to use for a GSParams.  More may be added to this
                         list by the galaxy object.
             logger:     A logger object to log progress.
 
-        Returns:
+        Returns
+        -------
             the PSF
+
         """
         if base.get("psf", {}).get("type", "roman_psf") != "roman_psf":
             return galsim.config.BuildGSObject(base, "psf", gsparams=gsparams, logger=logger)[0]
@@ -168,21 +211,31 @@ class Roman_stamp(StampBuilder):
         @returns method
         """
         method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
+        method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
         if method not in galsim.config.valid_draw_methods:
             raise galsim.GalSimConfigValueError(
-                "Invalid draw_method.", method, galsim.config.valid_draw_methods
+                "Invalid draw_method.",
+                method,
+                galsim.config.valid_draw_methods,
             )
         if method == "auto":
             if self.pupil_bin in [4, 2]:
                 logger.info("Auto -> Use FFT drawing for object %d.", base["obj_num"])
                 return "fft"
             else:
-                logger.info("Auto -> Use photon shooting for object %d.", base["obj_num"])
+                logger.info(
+                    "Auto -> Use photon shooting for object %d.",
+                    base["obj_num"],
+                )
                 return "phot"
         else:
             # If user sets something specific for the method, rather than auto,
             # then respect their wishes.
-            logger.info("Use specified method=%s for object %d.", method, base["obj_num"])
+            logger.info(
+                "Use specified method=%s for object %d.",
+                method,
+                base["obj_num"],
+            )
             return method
 
     @classmethod
@@ -223,6 +276,7 @@ class Roman_stamp(StampBuilder):
             not isinstance(prof._flux_ratio._spec, galsim.LookupTable)
             or prof._flux_ratio._spec.interpolant != "linear"
         ):
+            original = prof._original
             sed = prof._flux_ratio
             wave_list, _, _ = galsim.utilities.combine_wave_list(sed, bandpass)
             f = np.broadcast_to(sed(wave_list), wave_list.shape)
@@ -241,7 +295,8 @@ class Roman_stamp(StampBuilder):
     def draw(self, prof, image, method, offset, config, base, logger):
         """Draw the profile on the postage stamp image.
 
-        Parameters:
+        Parameters
+        ----------
             prof:       The profile to draw.
             image:      The image onto which to draw the profile (which may be None).
             method:     The method to use in drawImage.
@@ -250,8 +305,10 @@ class Roman_stamp(StampBuilder):
             base:       The base configuration dict.
             logger:     A logger object to log progress.
 
-        Returns:
+        Returns
+        -------
             the resulting image
+
         """
         if prof is None:
             # If was decide to do any rejection steps, this could be set to None, in which case,
