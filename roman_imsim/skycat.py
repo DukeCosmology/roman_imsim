@@ -273,16 +273,10 @@ class SkyCatalogLoader(InputLoader):
 
         kwargs["wcs"] = wcs
         kwargs["logger"] = logger
-        kwargs["wcs"] = wcs
-        kwargs["logger"] = logger
 
         if "bandpass" not in config:
             base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)[0]
 
-        kwargs["bandpass"] = base["bandpass"]
-        if base["image"]["type"] == "roman_coadd":
-            kwargs["xsize"] = base["image"]["xsize"]
-            kwargs["ysize"] = base["image"]["ysize"]
         kwargs["bandpass"] = base["bandpass"]
         if base["image"]["type"] == "roman_coadd":
             kwargs["xsize"] = base["image"]["xsize"]

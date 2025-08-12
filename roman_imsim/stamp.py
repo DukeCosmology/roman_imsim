@@ -52,7 +52,6 @@ class Roman_stamp(StampBuilder):
         # print('stamp setup',process.memory_info().rss)
 
         gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
-        gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
         if gal is None:
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
         base["object_type"] = gal.object_type
@@ -210,7 +209,6 @@ class Roman_stamp(StampBuilder):
 
         @returns method
         """
-        method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
         method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
         if method not in galsim.config.valid_draw_methods:
             raise galsim.GalSimConfigValueError(
