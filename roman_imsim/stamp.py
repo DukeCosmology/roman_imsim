@@ -163,11 +163,9 @@ class Roman_stamp(StampBuilder):
         """
         method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
         # Here we add the the custom "fft_poisson" method to the list of valid methods.
-        valid_methods = galsim.config.valid_draw_methods + ('fft_poisson',)
+        valid_methods = galsim.config.valid_draw_methods + ("fft_poisson",)
         if method not in valid_methods:
-            raise galsim.GalSimConfigValueError(
-                "Invalid draw_method.", method, valid_methods
-            )
+            raise galsim.GalSimConfigValueError("Invalid draw_method.", method, valid_methods)
         if method == "auto":
             if self.pupil_bin in [4, 2]:
                 logger.info("Auto -> Use FFT drawing for object %d.", base["obj_num"])
