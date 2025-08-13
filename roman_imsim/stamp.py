@@ -49,7 +49,7 @@ class Roman_stamp(StampBuilder):
         gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
         if gal is None:
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
-        base["object_type"] = gal.object_type
+        base["object_type"] = getattr(gal, "object_type", "")
         bandpass = base["bandpass"]
         if not hasattr(gal, "flux"):
             # In this case, the object flux has not been precomputed
