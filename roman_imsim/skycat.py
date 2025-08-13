@@ -251,6 +251,8 @@ class SkyCatalogLoader(InputLoader):
             "edge_pix": float,
             "obj_types": list,
             "mjd": float,
+            "xsize": int,
+            "ysize": int,
         }
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt)
         wcs = galsim.config.BuildWCS(base["image"], "wcs", base, logger=logger)
