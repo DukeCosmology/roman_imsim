@@ -162,14 +162,16 @@ class Roman_stamp(StampBuilder):
         @returns method
         """
         method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
-        if method not in galsim.config.valid_draw_methods:
+        # Here we add the the custom "fft_poisson" method to the list of valid methods.
+        valid_methods = galsim.config.valid_draw_methods + ('fft_poisson',)
+        if method not in valid_methods:
             raise galsim.GalSimConfigValueError(
-                "Invalid draw_method.", method, galsim.config.valid_draw_methods
+                "Invalid draw_method.", method, valid_methods
             )
         if method == "auto":
             if self.pupil_bin in [4, 2]:
                 logger.info("Auto -> Use FFT drawing for object %d.", base["obj_num"])
-                return "fft"
+                return "fft_poisson"
             else:
                 logger.info("Auto -> Use photon shooting for object %d.", base["obj_num"])
                 return "phot"
@@ -274,7 +276,7 @@ class Roman_stamp(StampBuilder):
             maxN = galsim.config.ParseValue(config, "maxN", base, int)[0]
         # print('stamp draw2',process.memory_info().rss)
 
-        if method == "fft":
+        if method == "fft" or method == "fft_poisson":
             fft_image = image.copy()
             fft_offset = offset
             kwargs = dict(
@@ -311,9 +313,10 @@ class Roman_stamp(StampBuilder):
                 logger.info("offset = %r", offset)
                 logger.info("wcs = %r", image.wcs)
                 raise
-            # Some pixels can end up negative from FFT numerics.  Just set them to 0.
-            fft_image.array[fft_image.array < 0] = 0.0
-            fft_image.addNoise(galsim.PoissonNoise(rng=self.rng))
+            if method == "fft_poisson":
+                # Some pixels can end up negative from FFT numerics.  Just set them to 0.
+                fft_image.array[fft_image.array < 0] = 0.0
+                fft_image.addNoise(galsim.PoissonNoise(rng=self.rng))
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
 
