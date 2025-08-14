@@ -9,41 +9,12 @@ class RomanPSF(object):
 
     def __init__(
         self,
-        SCA=None,
-        WCS=None,
         n_waves=None,
-        bpass=None,
         extra_aberrations=None,
-        logger=None,
     ):
 
-        logger = galsim.config.LoggerWrapper(logger)
-
-        if n_waves == -1:
-            if bpass.name == "W146":
-                n_waves = 10
-            else:
-                n_waves = 5
-
-        corners = [
-            galsim.PositionD(1, 1),
-            galsim.PositionD(1, roman.n_pix),
-            galsim.PositionD(roman.n_pix, 1),
-            galsim.PositionD(roman.n_pix, roman.n_pix),
-        ]
-        cc = galsim.PositionD(roman.n_pix / 2, roman.n_pix / 2)
-        tags = ["ll", "lu", "ul", "uu"]
-        self.PSF = {}
-        pupil_bin = 8
-        self.PSF[pupil_bin] = {}
-        for tag, SCA_pos in tuple(zip(tags, corners)):
-            self.PSF[pupil_bin][tag] = self._psf_call(
-                SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations
-            )
-        for pupil_bin in [4, 2, "achromatic"]:
-            self.PSF[pupil_bin] = self._psf_call(
-                SCA, bpass, cc, WCS, pupil_bin, n_waves, logger, extra_aberrations
-            )
+        self._n_waves = n_waves
+        self._extra_aberrations = extra_aberrations
 
     def _parse_pupil_bin(self, pupil_bin):
         if pupil_bin == "achromatic":
@@ -88,6 +59,54 @@ class RomanPSF(object):
         else:
             return psf.withGSParams(maximum_fft_size=16384)
 
+    def initPSF(
+        self,
+        SCA=None,
+        WCS=None,
+        bandpass=None,
+        image_xsize=None,
+        image_ysize=None,
+        logger=None,
+    ):
+
+        logger = galsim.config.LoggerWrapper(logger)
+
+        self.SCA = SCA
+
+        n_waves = self._n_waves
+        if n_waves == -1:
+            if bandpass.name == "W146":
+                n_waves = 10
+            else:
+                n_waves = 5
+
+        self._image_xsize = image_xsize
+        if self._image_xsize is None:
+            self._image_xsize = roman.n_pix
+        self._image_ysize = image_ysize
+        if self._image_ysize is None:
+            self._image_ysize = roman.n_pix
+
+        corners = [
+            galsim.PositionD(1, 1),
+            galsim.PositionD(1, self._image_ysize),
+            galsim.PositionD(self._image_xsize, 1),
+            galsim.PositionD(self._image_xsize, self._image_ysize),
+        ]
+        cc = galsim.PositionD(self._image_xsize / 2, self._image_ysize / 2)
+        tags = ["ll", "lu", "ul", "uu"]
+        self.PSF = {}
+        pupil_bin = 8
+        self.PSF[pupil_bin] = {}
+        for tag, SCA_pos in tuple(zip(tags, corners)):
+            self.PSF[pupil_bin][tag] = self._psf_call(
+                SCA, bandpass, SCA_pos, WCS, pupil_bin, n_waves, logger, self._extra_aberrations
+            )
+        for pupil_bin in [4, 2, "achromatic"]:
+            self.PSF[pupil_bin] = self._psf_call(
+                SCA, bandpass, cc, WCS, pupil_bin, n_waves, logger, self._extra_aberrations
+            )
+
     def getPSF(self, pupil_bin, pos):
         """
         Return a PSF to be convolved with sources.
@@ -111,12 +130,12 @@ class RomanPSF(object):
         if pupil_bin != 8:
             return psf
 
-        wll = (roman.n_pix - pos.x) * (roman.n_pix - pos.y)
-        wlu = (roman.n_pix - pos.x) * (pos.y - 1)
-        wul = (pos.x - 1) * (roman.n_pix - pos.y)
+        wll = (self._image_xsize - pos.x) * (self._image_ysize - pos.y)
+        wlu = (self._image_xsize - pos.x) * (pos.y - 1)
+        wul = (pos.x - 1) * (self._image_ysize - pos.y)
         wuu = (pos.x - 1) * (pos.y - 1)
         return (wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]) / (
-            (roman.n_pix - 1) * (roman.n_pix - 1)
+            (self._image_xsize - 1) * (self._image_ysize - 1)
         )
 
 
@@ -136,28 +155,27 @@ class PSFLoader(InputLoader):
         }
         ignore = ["extra_aberrations"]
 
-        # If SCA is in base, then don't require it in the config file.
-        # (Presumably because using Roman image type, which sets it there for convenience.)
-        if "SCA" in base:
-            opt["SCA"] = int
-        else:
-            req["SCA"] = int
-
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore)
-
-        # If not given in kwargs, then it must have been in base, so this is ok.
-        if "SCA" not in kwargs:
-            kwargs["SCA"] = base["SCA"]
 
         kwargs["extra_aberrations"] = galsim.config.ParseAberrations(
             "extra_aberrations", config, base, "RomanPSF"
         )
-        kwargs["WCS"] = galsim.config.BuildWCS(base["image"], "wcs", base, logger=logger)
-        kwargs["bpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger)[0]
 
-        logger.debug("kwargs = %s", kwargs)
+        return kwargs, safe
 
-        return kwargs, False
+    def setupImage(self, input_obj, config, base, logger):
+        """ """
+
+        bandpass = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger)[0]
+
+        input_obj.initPSF(
+            SCA=base["SCA"],
+            WCS=base["wcs"],
+            bandpass=bandpass,
+            image_xsize=base["image_xsize"],
+            image_ysize=base["image_ysize"],
+            logger=logger,
+        )
 
 
 # Register this as a valid type
