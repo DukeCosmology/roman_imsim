@@ -5,6 +5,19 @@ RomanPSF is registered as a new GSObject that can be used within the `psf` secti
 It can be used in a few different ways depending if you want to draw the PSF at each locations from scratch or
 if you want to use interpolation to speed things up.
 
+The config file would look something like this:
+```yaml
+psf:
+    type: RomanPSF
+    interpolator:
+        type: RomanPSFInterpolator
+
+input:
+    RomanPSFInterpolator:
+        kind: corners
+        n_waves: 5
+```
+
 Here is how the PSF Builder works:
 ----------------------------------
 
@@ -25,7 +38,7 @@ Here is how the PSF Builder works:
                                     |----- Interpolation kind ---- For the `RomanPSFInterpolator` in the input
                                                                    you need to specify which `kind` of
                                                                    interpolation to use. At the moment only
-                                                                   `corners` is availalbe.
+                                                                   `corners` is available.
 
 Adding a new interpolation kind:
 --------------------------------
