@@ -73,7 +73,7 @@ class get_pointing(object):
         self.visit = obseq_data.ob["visit"]
         self.date = obseq_data.ob["date"]
         self.exptime = obseq_data.ob["exptime"]
-        self.bpass = roman.getBandpasses()[self.filter_]
+        self.bpass = roman.getBandpass(self.filter_)
         self.WCS = roman.getWCS(
             world_pos=galsim.CelestialCoord(ra=obseq_data.ob["ra"], dec=obseq_data.ob["dec"]),
             PA=obseq_data.ob["pa"],
