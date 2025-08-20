@@ -44,10 +44,8 @@ class ObSeqDataLoader(object):
         self.ob['pa']      = ob['pa'] *galsim.degrees
         self.ob['date']    = Time(ob['date'],format='mjd').datetime 
         self.ob['mjd']     = ob['date']
-        if ob['filter'] == "H158":
-            self.ob['filter'] = "SNPrism"
-        else:
-            self.ob['filter']  = ob['filter']
+        self.ob['filter'] = "SNPrism"
+        #self.ob['filter']  = ob['filter']
         self.ob['exptime'] = ob['exptime']
 
     def get(self, field, default=None):
