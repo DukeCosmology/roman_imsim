@@ -73,7 +73,7 @@ class get_pointing(object):
         self.visit = obseq_data.ob["visit"]
         self.date = obseq_data.ob["date"]
         self.exptime = obseq_data.ob["exptime"]
-        self.bpass = roman.getBandpasses()[self.filter_]
+        self.bpass = roman.getBandpasses(include_all_bands=True)[self.filter_]
         self.WCS = roman.getWCS(
             world_pos=galsim.CelestialCoord(ra=obseq_data.ob["ra"], dec=obseq_data.ob["dec"]),
             PA=obseq_data.ob["pa"],
@@ -768,7 +768,7 @@ class modify_image(object):
 
         # This image is in units of e-/pix. Finally we add the expected thermal backgrounds in this
         # band. These are provided in e-/pix/s, so we have to multiply by the exposure time.
-        self.sky += roman.thermal_backgrounds[pointing.filter] * roman.exptime
+        self.sky += roman.thermal_backgrounds[pointing.filter_] * roman.exptime
 
         # Median of dark current is used here instead of mean since hot pixels contribute significantly to
         # the mean. Stastistics of dark current for the current test detector file: (mean, std, median, max)
@@ -972,7 +972,7 @@ class modify_image(object):
                 dt = (
                     pointing.date - p.date
                 ).total_seconds() - roman.exptime / 2  # avg time since end of exposures
-                self.params["output"]["file_name"]["items"] = [p.filter, p.visit, p.sca]
+                self.params["output"]["file_name"]["items"] = [p.filter_, p.visit, p.sca]
                 imfilename = ParseValue(self.params["output"], "file_name", self.params, str)[0]
                 fn = os.path.join(self.params["output"]["dir"], imfilename)
 
@@ -1007,7 +1007,7 @@ class modify_image(object):
                 fac_dt = (
                     roman.exptime / 2.0
                 ) / dt  # linear time dependence (approximate until we get t1 and Delat t of the data)
-                self.params["output"]["file_name"]["items"] = [p.filter, p.visit, p.sca]
+                self.params["output"]["file_name"]["items"] = [p.filter_, p.visit, p.sca]
                 imfilename = ParseValue(self.params["output"], "file_name", self.params, str)[0]
                 fn = os.path.join(self.params["output"]["dir"], imfilename)
 
