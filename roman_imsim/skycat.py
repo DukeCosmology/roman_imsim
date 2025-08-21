@@ -225,14 +225,22 @@ class SkyCatalogInterface:
         else:
             gs_object = galsim.Add(gs_obj_list)
 
+        # This should catch both "star" and "gaia_star" objects
+        if "star" in skycat_obj.object_type:
+            # Cap (star) flux at 30M photons to avoid gross artifacts when trying
+            # to draw the Roman PSF in finite time and memory
+            flux_cap = 3e7
+            if flux > flux_cap:
+                flux = flux_cap
+
         # Give the object the right flux
+        gs_object = gs_object.withFlux(flux, self.bandpass)
         gs_object.flux = flux
-        gs_object.withFlux(gs_object.flux, self.bandpass)
 
         # Get the object type
         if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
             gs_object.object_type = "galaxy"
-        if skycat_obj.object_type == "star":
+        if (skycat_obj.object_type == "star") | (skycat_obj.object_type == "gaia_star"):
             gs_object.object_type = "star"
         if skycat_obj.object_type == "snana":
             gs_object.object_type = "transient"
