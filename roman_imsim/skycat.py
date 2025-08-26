@@ -208,14 +208,10 @@ class SkyCatalogInterface:
         for component in gsobjs:
             if faint:
                 gsobjs[component] = gsobjs[component].evaluateAtWavelength(self.bandpass)
-                gs_obj_list.append(
-                    gsobjs[component] * self._trivial_sed * self.exptime * roman.collecting_area
-                )
+                gs_obj_list.append(gsobjs[component] * self._trivial_sed)
             else:
                 if component in seds:
-                    gs_obj_list.append(
-                        gsobjs[component] * seds[component] * self.exptime * roman.collecting_area
-                    )
+                    gs_obj_list.append(gsobjs[component] * seds[component])
 
         if not gs_obj_list:
             return None
