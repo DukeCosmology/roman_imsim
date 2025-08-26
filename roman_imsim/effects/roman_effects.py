@@ -1,7 +1,7 @@
 import galsim as galsim
 import numpy as np
 from .utils import get_pointing
-import roman_imsim.Effects as Effects
+import roman_imsim.effects as Effects
 
 
 class RomanEffects(object):
