@@ -8,7 +8,7 @@ from galsim.config.image_scattered import ScatteredImageBuilder
 from galsim.image import Image
 
 
-import roman_imsim.Effects as RomanEffects
+import roman_imsim.effects as RomanEffects
 
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
