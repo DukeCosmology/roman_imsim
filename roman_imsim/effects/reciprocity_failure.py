@@ -1,0 +1,19 @@
+from . import RomanEffects
+import galsim.roman as roman
+
+
+class ReciprocityFailure(RomanEffects):
+    def __init__(self, params, base, logger, rng, rng_iter=None):
+        super().__init__(params, base, logger, rng, rng_iter)
+
+        self.alpha = self.params["alpha"] if "alpha" in self.params else roman.reciprocity_alpha
+        self.base_flux = self.params["base_flux"] if "base_flux" in self.params else 1.0
+
+        self.is_model_valid()
+
+    def simple_model(self, image):
+        # Add reciprocity effect
+        self.logger.warning("Simple model will be applied for reciprocity failure effect.")
+        exptime = self.pointing.exptime
+        image.addReciprocityFailure(exp_time=exptime, alpha=self.alpha, base_flux=self.base_flux)
+        return image

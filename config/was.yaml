@@ -88,15 +88,41 @@ image:
     # read_noise: False
     # sky_subtract: False
 
-    ignore_noise: False
-    stray_light: True
-    thermal_background: True
-    reciprocity_failure: True
-    dark_current: True
-    nonlinearity: True
-    ipc: True
-    read_noise: True
+    add_effects:
+        Background:
+            model: simple_model
+            thermal_background: True
+            stray_light: True
+        QuantumEfficiency: 
+            model: lab_model
+        BrighterFatter: 
+            model: lab_model
+        Persistence:
+            model: lab_model
+        # ReciprocityFailure:
+        #     model: simple_model
+        DarkCurrent: 
+            model: lab_model
+        Saturation:
+            model: lab_model
+        Nonlinearity: 
+            model: lab_model
+        IPC:
+            model: lab_model
+        DeadPixel:
+            model: lab_model
+        VTPE:
+            model: lab_model
+        ReadNoise: 
+            model: lab_model
+        Gain:
+            model: lab_model
+        Bias:
+            model: lab_model
     sky_subtract: False
+
+    sca_filepath: /hpc/group/cosmology/phy-lsst/roman_sensors
+    save_diff: False
 
     # nobjects: 500
 
@@ -124,17 +150,14 @@ gal:
 
 input:
     obseq_data:
-        # file_name: /lus/grand/projects/RomanDESC/final_roman_runfiles/was/Roman_WAS_obseq_11_1_23.fits
         file_name: /hpc/group/cosmology/OpenUniverse2024/RomanWAS/Roman_WAS_obseq_11_1_23.fits
-        visit: 1
+        visit: 4906
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
         n_waves: 5
     sky_catalog:
-        # file_name: /lus/grand/projects/RomanDESC/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
-        # file_name: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
-        file_name: /hpc/home/yf194/Work/projects/roman_imsim/config/skyCatalog.yaml
+        file_name: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }

@@ -83,15 +83,6 @@ class get_pointing(object):
         )[self.sca]
         self.radec = self.WCS.toWorld(galsim.PositionI(int(roman.n_pix / 2), int(roman.n_pix / 2)))
 
-        self.WCS = roman.getWCS(
-            world_pos=galsim.CelestialCoord(ra=obseq_data.ob["ra"], dec=obseq_data.ob["dec"]),
-            PA=obseq_data.ob["pa"],
-            date=self.date,
-            SCAs=self.sca,
-            PA_is_FPA=True,
-        )[self.sca]
-        self.radec = self.WCS.toWorld(galsim.PositionI(int(roman.n_pix / 2), int(roman.n_pix / 2)))
-
 
 class modify_image(object):
     """
@@ -121,8 +112,6 @@ class modify_image(object):
         if sca_filepath is not None:
             self.df = fio.FITS(sca_filepath + "/" + sca_number_to_file[self.pointing.sca])
             print("------- Using SCA files --------")
-            self.df = fio.FITS(sca_filepath + "/" + sca_number_to_file[self.pointing.sca])
-            print("------- Using SCA files --------")
         else:
             self.df = None
             print("------- Using simple detector model --------")
@@ -130,16 +119,6 @@ class modify_image(object):
         self.params["output"]["file_name"]["items"] = [self.pointing.filter, visit, sca]
         imfilename = ParseValue(self.params["output"], "file_name", self.params, str)[0]
 
-        old_filename = os.path.join(self.params["output"]["dir"], imfilename)
-        if not os.path.exists(
-            self.params["output"]["dir"].replace("truth", self.get_path_name(use_galsim=use_galsim))
-        ):
-            os.mkdir(self.params["output"]["dir"].replace("truth", self.get_path_name(use_galsim=use_galsim)))
-        new_filename = os.path.join(self.params["output"]["dir"], imfilename).replace(
-            "truth", self.get_path_name(use_galsim=use_galsim)
-        )
-
-        b = galsim.BoundsI(xmin=1, ymin=1, xmax=roman.n_pix, ymax=roman.n_pix)
         old_filename = os.path.join(self.params["output"]["dir"], imfilename)
         if not os.path.exists(
             self.params["output"]["dir"].replace("truth", self.get_path_name(use_galsim=use_galsim))
@@ -161,7 +140,6 @@ class modify_image(object):
         self.setup_sky(im, self.pointing, rng, visit * sca, force_cvz=force_cvz)
 
         img, err, dq, sky_mean, sky_noise = self.add_effects(im, None, self.pointing, use_galsim=use_galsim)
-        img, err, dq, sky_mean, sky_noise = self.add_effects(im, None, self.pointing, use_galsim=use_galsim)
 
         write_fits(
             old_filename,
@@ -172,7 +150,6 @@ class modify_image(object):
             self.pointing.sca,
             sky_mean=sky_mean,
         )
-        write_fits(old_filename, new_filename, img, sky_noise, dq, self.pointing.sca, sky_mean=sky_mean)
 
     def get_path_name(self, use_galsim=False):
 
@@ -566,10 +543,6 @@ class modify_image(object):
         array_pad = np.pad(
             array_pad, [(4 + nbfe, 4 + nbfe), (4 + nbfe, 4 + nbfe)], mode="symmetric"
         )  # 4100x4100 array
-        array_pad = self.saturate(im.copy()).array[4:-4, 4:-4]  # img of interest 4088x4088
-        array_pad = np.pad(
-            array_pad, [(4 + nbfe, 4 + nbfe), (4 + nbfe, 4 + nbfe)], mode="symmetric"
-        )  # 4100x4100 array
 
         dQ_components = np.zeros(
             (4, bin_size * n_max, bin_size * m_max)
@@ -699,8 +672,6 @@ class modify_image(object):
 
         sky_level = roman.getSkyLevel(pointing.bpass, world_pos=radec, date=pointing.date)
         sky_level *= (1.0 + roman.stray_light_fraction) * roman.pixel_scale**2
-        sky_level = roman.getSkyLevel(pointing.bpass, world_pos=radec, date=pointing.date)
-        sky_level *= (1.0 + roman.stray_light_fraction) * roman.pixel_scale**2
 
         return sky_level
 
@@ -739,9 +710,6 @@ class modify_image(object):
             self.dark_current_ = (
                 roman.dark_current * roman.exptime + self.df["DARK"][:, :].flatten() * roman.exptime
             )
-            self.dark_current_ = (
-                roman.dark_current * roman.exptime + self.df["DARK"][:, :].flatten() * roman.exptime
-            )
         if self.df is None:
             self.gain = roman.gain
         else:
@@ -753,8 +721,6 @@ class modify_image(object):
             radec = self.translate_cvz(pointing.radec)
         else:
             radec = pointing.radec
-        sky_level = roman.getSkyLevel(pointing.bpass, world_pos=radec, date=pointing.date)
-        sky_level *= 1.0 + roman.stray_light_fraction
         sky_level = roman.getSkyLevel(pointing.bpass, world_pos=radec, date=pointing.date)
         sky_level *= 1.0 + roman.stray_light_fraction
         # Make a image of the sky that takes into account the spatially variable pixel scale. Note
@@ -864,8 +830,6 @@ class modify_image(object):
             # opt for numpy random geneator instead for speed
             self.im_dark = self.rng_np.poisson(dark_current_).reshape(im.array.shape).astype(im.dtype)
             im.array[:, :] += self.im_dark
-            self.im_dark = self.rng_np.poisson(dark_current_).reshape(im.array.shape).astype(im.dtype)
-            im.array[:, :] += self.im_dark
 
         # NOTE: Sky level and dark current might appear like a constant background that can be
         # simply subtracted. However, these contribute to the shot noise and matter for the
@@ -960,11 +924,6 @@ class modify_image(object):
         p_list = np.array([get_pointing(self.params, i, pointing.sca) for i in dither_list_selected])
         dt_list = np.array([(pointing.date - p.date).total_seconds() for p in p_list])
         p_pers = p_list[np.where((dt_list > 0) & (dt_list < roman.exptime * 10))]
-        dither_list_selected = dither_sca_array[dither_sca_array[:, 1] == pointing.sca, 0]
-        dither_list_selected = dither_list_selected[np.abs(dither_list_selected - pointing.visit) < 10]
-        p_list = np.array([get_pointing(self.params, i, pointing.sca) for i in dither_list_selected])
-        dt_list = np.array([(pointing.date - p.date).total_seconds() for p in p_list])
-        p_pers = p_list[np.where((dt_list > 0) & (dt_list < roman.exptime * 10))]
 
         if self.df is None:
             # iterate over previous exposures
@@ -985,7 +944,6 @@ class modify_image(object):
 
                 x = x.clip(0)  # remove negative stimulus
 
-                im.array[:, :] += galsim.roman.roman_detectors.fermi_linear(x.array, dt) * roman.exptime
                 im.array[:, :] += galsim.roman.roman_detectors.fermi_linear(x.array, dt) * roman.exptime
 
         else:
@@ -1108,8 +1066,6 @@ class modify_image(object):
 
             array_pad = im.array[4:-4, 4:-4]  # it's an array instead of img
             array_pad = np.pad(array_pad, [(5, 5), (5, 5)], mode="symmetric")  # 4098x4098 array
-            array_pad = im.array[4:-4, 4:-4]  # it's an array instead of img
-            array_pad = np.pad(array_pad, [(5, 5), (5, 5)], mode="symmetric")  # 4098x4098 array
 
             K = self.df["IPC"][:, :, :, :]  # 3,3,512, 512
 
@@ -1125,8 +1081,6 @@ class modify_image(object):
 
                     for j in range(3):
                         for i in range(3):
-                            tmp = (t.dot(K[j, i, :, :])).dot(t.T)  # grid_sizexgrid_size
-                            K_pad[j, i, :, :] = np.pad(tmp, [(1, 1), (1, 1)], mode="symmetric")
                             tmp = (t.dot(K[j, i, :, :])).dot(t.T)  # grid_sizexgrid_size
                             K_pad[j, i, :, :] = np.pad(tmp, [(1, 1), (1, 1)], mode="symmetric")
 
@@ -1172,11 +1126,6 @@ class modify_image(object):
             # self.sky.addNoise(self.read_noise)
         else:
             # use numpy random generator to draw 2-d noise map
-            read_noise = self.df["READ"][2, :, :].flatten()  # flattened 4096x4096 array
-            self.im_read = (
-                self.rng_np.normal(loc=0.0, scale=read_noise).reshape(im.array.shape).astype(im.dtype)
-            )
-            im.array[:, :] += self.im_read
             read_noise = self.df["READ"][2, :, :].flatten()  # flattened 4096x4096 array
             self.im_read = (
                 self.rng_np.normal(loc=0.0, scale=read_noise).reshape(im.array.shape).astype(im.dtype)
