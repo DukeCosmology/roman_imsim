@@ -8,8 +8,8 @@ from galsim.config import RegisterStampType, StampBuilder
 # process = psutil.Process()
 
 
-class Roman_stamp(StampBuilder):
-    """This performs the tasks necessary for building the stamp for a single object.
+class Roman_stamp_CMOS(StampBuilder):
+    """This performs the tasks necessary for building the stamp for a single object per dt.
 
     It uses the regular Basic functions for most things.
     It specializes the quickSkip, buildProfile, and draw methods.
@@ -53,7 +53,7 @@ class Roman_stamp(StampBuilder):
             self.exptime = galsim.config.ParseValue(config, "exptime", base, float)[0]
         else:
             self.exptime = roman.exptime
-        dt = self.exptime/20
+        dt = galsim.config.ParseValue(config, "dt", base, float)[0]
         gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
         if gal is None:
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
@@ -402,4 +402,4 @@ else:
 
 
 # Register this as a valid type
-RegisterStampType("Roman_stamp", Roman_stamp())
+RegisterStampType("Roman_stamp_CMOS", Roman_stamp_CMOS())

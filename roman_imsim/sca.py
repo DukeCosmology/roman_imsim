@@ -123,7 +123,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_ysize = base["image_ysize"]
         wcs = base["wcs"]
 
-        full_array = galsim.PhotonArray(0)
+        
         full_image = Image(full_xsize, full_ysize, dtype=float)
         full_image.setOrigin(base["image_origin"])
         full_image.wcs = wcs
@@ -155,7 +155,8 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 "y": {"type": "Random", "min": ymin, "max": ymax},
             }
 
-        nbatch = self.nobjects // 1000 + 1
+        nbatch = self.nobjects // 1000 + 1 
+        full_array = galsim.PhotonArray(0)
         for batch in range(nbatch):
             start_obj_num = self.nobjects * batch // nbatch
             end_obj_num = self.nobjects * (batch + 1) // nbatch
@@ -204,6 +205,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #         base, full_image, stamps, current_vars, logger)
 
         full_array.addTo(full_image)
+        full_array.write("photonarray.fits")
         full_image.write("phot_image.fits")
         return full_image, None
 
