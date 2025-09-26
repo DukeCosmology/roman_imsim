@@ -52,6 +52,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         req = {"SCA": int, "filter": str, "mjd": float, "exptime": float}
         opt = {
             "draw_method": str,
+            "use_fft_bright": bool,
             "stray_light": bool,
             "thermal_background": bool,
             "reciprocity_failure": bool,
@@ -82,7 +83,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.sky_subtract = params.get("sky_subtract", False)
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
-        self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "auto"))
+        self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "phot"))
 
         # pointing = CelestialCoord(ra=params['ra'], dec=params['dec'])
         # wcs = roman.getWCS(world_pos        = pointing,
