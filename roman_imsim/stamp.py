@@ -133,29 +133,6 @@ class Roman_stamp(StampBuilder):
 
         return image_size, image_size, image_pos, world_pos
 
-    def buildPSF(self, config, base, gsparams, logger):
-        """Build the PSF object.
-
-        For the Basic stamp type, this builds a PSF from the base['psf'] dict, if present,
-        else returns None.
-
-        Parameters:
-            config:     The configuration dict for the stamp field.
-            base:       The base configuration dict.
-            gsparams:   A dict of kwargs to use for a GSParams.  More may be added to this
-                        list by the galaxy object.
-            logger:     A logger object to log progress.
-
-        Returns:
-            the PSF
-        """
-        if base.get("psf", {}).get("type", "roman_psf") != "roman_psf":
-            return galsim.config.BuildGSObject(base, "psf", gsparams=gsparams, logger=logger)[0]
-
-        roman_psf = galsim.config.GetInputObj("roman_psf", config, base, "buildPSF")
-        psf = roman_psf.getPSF(self.pupil_bin, base["image_pos"])
-        return psf
-
     def getDrawMethod(self, config, base, logger):
         """Determine the draw method to use.
 
