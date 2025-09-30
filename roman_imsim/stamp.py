@@ -272,9 +272,6 @@ class Roman_stamp(StampBuilder):
         # print('stamp draw2',process.memory_info().rss)
 
         if method == "phot":
-            # We already calculated realized_flux above.  Use that now and tell GalSim not
-            # recalculate the Poisson realization of the flux.
-            gal = gal.withFlux(self.realized_flux, bandpass)
             # print('stamp draw3b ',process.memory_info().rss)
 
             if not faint and "photon_ops" in config:
@@ -294,7 +291,7 @@ class Roman_stamp(StampBuilder):
 
             # print('stamp draw3a',process.memory_info().rss)
             gal.drawImage(
-                bandpass,
+                bandpass=bandpass,
                 method="phot",
                 offset=offset,
                 rng=self.rng,
@@ -304,7 +301,7 @@ class Roman_stamp(StampBuilder):
                 photon_ops=photon_ops,
                 sensor=None,
                 add_to_image=True,
-                poisson_flux=False,
+                poisson_flux=True,
             )
         else:
             fft_image = image.copy()
