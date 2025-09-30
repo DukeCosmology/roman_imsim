@@ -69,13 +69,14 @@ image:
     filter: { type: ObSeqData, field: filter }
     exptime: { type: ObSeqData, field: exptime }
 
+    draw_method: 'phot'
     # Photon shooting is way faster for chromatic objects than fft, especially when most of them
     # are fairly faint.  The cross-over point for achromatic objects is generally of order
     # flux=1.e6 or so (depending on the profile).  Most of our objects here are much fainter than
     # that.  The fft rendering for chromatic is a factor of 10 or so slower still, whereas
     # chromatic photon shooting is only slighly slower than achromatic, so the difference
     # is even more pronounced in this case.
-    draw_method: 'auto'
+    use_fft_bright: True
 
     # These are all by default turned on, but you can turn any of them off if desired:
     # ignore_noise: True

@@ -46,6 +46,10 @@ class Roman_stamp(StampBuilder):
         """
         # print('stamp setup',process.memory_info().rss)
 
+        # Handle the "use_fft_bright" parameter as it can be provided in either image or stamp config
+        if "use_fft_bright" in base["image"] and "use_fft_bright" not in config:
+            config["use_fft_bright"] = base["image"]["use_fft_bright"]
+
         gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
         if gal is None:
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
@@ -162,12 +166,17 @@ class Roman_stamp(StampBuilder):
         @returns method
         """
         method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
+        self.use_fft_bright = False
+        if "use_fft_bright" in config:
+            self.use_fft_bright = galsim.config.ParseValue(config, "use_fft_bright", base, bool)[0]
+
         if method not in galsim.config.valid_draw_methods:
             raise galsim.GalSimConfigValueError(
                 "Invalid draw_method.", method, galsim.config.valid_draw_methods
             )
-        if method == "auto":
-            if self.pupil_bin in [4, 2]:
+
+        if method == "phot":
+            if self.pupil_bin in [4, 2] and self.use_fft_bright:
                 logger.info("Auto -> Use FFT drawing for object %d.", base["obj_num"])
                 return "fft"
             else:
@@ -274,50 +283,7 @@ class Roman_stamp(StampBuilder):
             maxN = galsim.config.ParseValue(config, "maxN", base, int)[0]
         # print('stamp draw2',process.memory_info().rss)
 
-        if method == "fft":
-            fft_image = image.copy()
-            fft_offset = offset
-            kwargs = dict(
-                method="fft",
-                offset=fft_offset,
-                image=fft_image,
-            )
-            if not faint and config.get("fft_photon_ops"):
-                kwargs.update(
-                    {
-                        "photon_ops": galsim.config.BuildPhotonOps(config, "fft_photon_ops", base, logger),
-                        "maxN": maxN,
-                        "rng": self.rng,
-                        "n_subsample": 1,
-                    }
-                )
-
-            # Go back to a combined convolution for fft drawing.
-            gal = gal.withFlux(self.flux, bandpass)
-            prof = galsim.Convolve([gal] + psfs)
-            try:
-                prof.drawImage(bandpass, **kwargs)
-            except galsim.errors.GalSimFFTSizeError as e:
-                # I think this shouldn't happen with the updates I made to how the image size
-                # is calculated, even for extremely bright things.  So it should be ok to
-                # just report what happened, give some extra information to diagonose the problem
-                # and raise the error.
-                logger.error("Caught error trying to draw using FFT:")
-                logger.error("%s", e)
-                logger.error("You may need to add a gsparams field with maximum_fft_size to")
-                logger.error("either the psf or gal field to allow larger FFTs.")
-                logger.info("prof = %r", prof)
-                logger.info("fft_image = %s", fft_image)
-                logger.info("offset = %r", offset)
-                logger.info("wcs = %r", image.wcs)
-                raise
-            # Some pixels can end up negative from FFT numerics.  Just set them to 0.
-            fft_image.array[fft_image.array < 0] = 0.0
-            fft_image.addNoise(galsim.PoissonNoise(rng=self.rng))
-            # In case we had to make a bigger image, just copy the part we need.
-            image += fft_image[image.bounds]
-
-        else:
+        if method == "phot":
             # We already calculated realized_flux above.  Use that now and tell GalSim not
             # recalculate the Poisson realization of the flux.
             gal = gal.withFlux(self.realized_flux, bandpass)
@@ -352,9 +318,56 @@ class Roman_stamp(StampBuilder):
                 add_to_image=True,
                 poisson_flux=False,
             )
+        else:
+            fft_image = image.copy()
+            fft_offset = offset
+            kwargs = dict(
+                method=method,
+                offset=fft_offset,
+                image=fft_image,
+            )
+            if not faint and config.get("fft_photon_ops"):
+                kwargs.update(
+                    {
+                        "photon_ops": galsim.config.BuildPhotonOps(config, "fft_photon_ops", base, logger),
+                        "maxN": maxN,
+                        "rng": self.rng,
+                        "n_subsample": 1,
+                    }
+                )
+
+            # Go back to a combined convolution for fft drawing.
+            gal = gal.withFlux(self.flux, bandpass)
+            prof = galsim.Convolve([gal] + psfs)
+            try:
+                prof.drawImage(bandpass, **kwargs)
+            except galsim.errors.GalSimFFTSizeError as e:
+                # I think this shouldn't happen with the updates I made to how the image size
+                # is calculated, even for extremely bright things.  So it should be ok to
+                # just report what happened, give some extra information to diagonose the problem
+                # and raise the error.
+                logger.error("Caught error trying to draw using FFT:")
+                logger.error("%s", e)
+                logger.error("You may need to add a gsparams field with maximum_fft_size to")
+                logger.error("either the psf or gal field to allow larger FFTs.")
+                logger.info("prof = %r", prof)
+                logger.info("fft_image = %s", fft_image)
+                logger.info("offset = %r", offset)
+                logger.info("wcs = %r", image.wcs)
+                raise
+            # Check if we need to add photon noise for bright objects drawn
+            # with FFT because we switched from phot to fft above.
+            if self.use_fft_bright:
+                self.add_poisson_noise(fft_image)
+            # In case we had to make a bigger image, just copy the part we need.
+            image += fft_image[image.bounds]
         # print('stamp draw3',process.memory_info().rss)
 
         return image
+
+    def add_poisson_noise(self, fft_image):
+        fft_image.array[fft_image.array < 0] = 0.0
+        fft_image.addNoise(galsim.PoissonNoise(rng=self.rng))
 
 
 # Pick the right function to be _fix_seds.
