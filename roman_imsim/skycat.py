@@ -236,7 +236,7 @@ class SkyCatalogInterface:
         # Get the object type
         if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
             gs_object.object_type = "galaxy"
-        if (skycat_obj.object_type == "star") | (skycat_obj.object_type == "gaia_star"):
+        if skycat_obj.object_type in {"star", "gaia_star"}:
             gs_object.object_type = "star"
         if skycat_obj.object_type == "snana":
             gs_object.object_type = "transient"
