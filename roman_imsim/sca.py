@@ -217,8 +217,8 @@ class RomanSCAImageBuilderCMOS(ScatteredImageBuilder):
             del full_array
             gc.collect()
             # Decide what to do with readout based on resultant strategy
-            if (np.array([item for sub in strategy for item in sub]) == dt).any():
-                if (np.array(strategy[resultant_i]) == dt).any():
+            if (np.array([item for sub in strategy for item in sub]) == dt).any(): #does this dt exist in strategy
+                if (np.array(strategy[resultant_i]) == dt).any(): #is it in our current resultant
                     readout_im = full_image.copy()
                     readout_im = self.addNoiseToImage(readout_im, config, base, logger) 
                     resultant_buffer.extend([readout_im])
@@ -228,7 +228,7 @@ class RomanSCAImageBuilderCMOS(ScatteredImageBuilder):
                         del resultant_buffer[-1]
                         gc.collect()
    
-                if np.array(strategy[resultant_i][-1]) == dt:
+                if np.array(strategy[resultant_i][-1]) == dt: #is thisdt the last in our current resultant
                     divisor = len(np.array(strategy[resultant_i]))
                     #divide summed images by the length of resultant to get the average and apply headers to the image array
                     #TODO:apply header to the image array

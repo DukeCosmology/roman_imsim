@@ -385,7 +385,7 @@ class Roman_stamp_CMOS(StampBuilder):
                     save_photons=True,
                 )
                 photons = im.photons
-                photons.x+= im.center.x
+                photons.x+= im.center.x#may be a better way 
                 photons.y+= im.center.y
                 photons.flux=1
             else:
