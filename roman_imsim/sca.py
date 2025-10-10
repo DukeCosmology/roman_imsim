@@ -6,9 +6,10 @@ from astropy.time import Time
 from galsim.config import RegisterImageType
 from galsim.config.image_scattered import ScatteredImageBuilder
 from galsim.image import Image
+import gc
 
 
-class RomanSCAImageBuilder(ScatteredImageBuilder):
+class RomanSCAImageBuilderCMOS(ScatteredImageBuilder):
 
     def setup(self, config, base, image_num, obj_num, ignore, logger):
         """Do the initialization and setup for building the image.
@@ -122,8 +123,8 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_xsize = base["image_xsize"]
         full_ysize = base["image_ysize"]
         wcs = base["wcs"]
-
-        
+        rdata = galsim.config.GetInputObj("resultant_data", config, base, "ResultantDataLoader")
+        strategy = rdata.get("strategy")    
         full_image = Image(full_xsize, full_ysize, dtype=float)
         full_image.setOrigin(base["image_origin"])
         full_image.wcs = wcs
@@ -154,62 +155,97 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 "x": {"type": "Random", "min": xmin, "max": xmax},
                 "y": {"type": "Random", "min": ymin, "max": ymax},
             }
+        #Create index and lists for resultant management
+        max_dt = strategy[-1][-1]
+        resultant_i = 0
+        resultant_buffer= []
+        #Iterate through all dt
+        for dt in np.arange(1,max_dt+1):
 
-        nbatch = self.nobjects // 1000 + 1 
-        full_array = galsim.PhotonArray(0)
-        for batch in range(nbatch):
-            start_obj_num = self.nobjects * batch // nbatch
-            end_obj_num = self.nobjects * (batch + 1) // nbatch
-            nobj_batch = end_obj_num - start_obj_num
-            if nbatch > 1:
-                logger.warning(
-                    "Start batch %d/%d with %d objects [%d, %d)",
-                    batch + 1,
-                    nbatch,
-                    nobj_batch,
-                    start_obj_num,
-                    end_obj_num,
+            nbatch = self.nobjects // 1000 + 1 
+            full_array = galsim.PhotonArray(0)
+            for batch in range(nbatch):
+                start_obj_num = self.nobjects * batch // nbatch
+                end_obj_num = self.nobjects * (batch + 1) // nbatch
+                nobj_batch = end_obj_num - start_obj_num
+                if nbatch > 1:
+                    logger.warning(
+                        "Start batch %d/%d with %d objects [%d, %d)",
+                        batch + 1,
+                        nbatch,
+                        nobj_batch,
+                        start_obj_num,
+                        end_obj_num,
+                    )
+                stamps, current_vars = galsim.config.BuildStamps(
+                    nobj_batch, base, logger=logger, obj_num=start_obj_num, do_noise=False
                 )
-            stamps, current_vars = galsim.config.BuildStamps(
-                nobj_batch, base, logger=logger, obj_num=start_obj_num, do_noise=False
-            )
-            base["index_key"] = "image_num"
+                base["index_key"] = "image_num"
 
-            for k in range(nobj_batch):
-                # This is our signal that the object was skipped.
-                if stamps[k] is None:
-                    continue
-                bounds = full_image.bounds # stamps[k].bounds &
-                if not bounds.isDefined():  # pragma: no cover
-                    # These noramlly show up as stamp==None, but technically it is possible
-                    # to get a stamp that is off the main image, so check for that here to
-                    # avoid an error.  But this isn't covered in the imsim test suite.
-                    continue
+                for k in range(nobj_batch):
+                    # This is our signal that the object was skipped.
+                    if stamps[k] is None:
+                        continue
+                    bounds = full_image.bounds # stamps[k].bounds &
+                    if not bounds.isDefined():  # pragma: no cover
+                        # These noramlly show up as stamp==None, but technically it is possible
+                        # to get a stamp that is off the main image, so check for that here to
+                        # avoid an error.  But this isn't covered in the imsim test suite.
+                        continue
 
-                # logger.debug("image %d: full bounds = %s", image_num, str(full_image.bounds))
-                # logger.debug(
-                #     "image %d: stamp %d bounds = %s",
-                #     image_num,
-                #     k + start_obj_num,
-                #     str(stamps[k].bounds),
-                # )
-                # logger.debug("image %d: Overlap = %s", image_num, str(bounds))
-                # full_image[bounds] += stamps[k][bounds]
-                #logger.warning(stamps[k])
-            full_array = galsim.PhotonArray.concatenate([*stamps,full_array])
+                    # logger.debug("image %d: full bounds = %s", image_num, str(full_image.bounds))
+                    # logger.debug(
+                    #     "image %d: stamp %d bounds = %s",
+                    #     image_num,
+                    #     k + start_obj_num,
+                    #     str(stamps[k].bounds),
+                    # )
+                    # logger.debug("image %d: Overlap = %s", image_num, str(bounds))
+                    # full_image[bounds] += stamps[k][bounds]
+                    #logger.warning(stamps[k])
+                full_array = galsim.PhotonArray.concatenate([*stamps,full_array])
+                
+                stamps = None
 
-            stamps = None
+            # # Bring the image so far up to a flat noise variance
+            # current_var = FlattenNoiseVariance(
+            #         base, full_image, stamps, current_vars, logger)
+            #TODO : Apply BFE photon operation (uses current pre-read image and next photon array)
 
-        # # Bring the image so far up to a flat noise variance
-        # current_var = FlattenNoiseVariance(
-        #         base, full_image, stamps, current_vars, logger)
+            # Turn full_image into running pre-read image
+            full_array.addTo(full_image)
+            del full_array
+            gc.collect()
+            # Decide what to do with readout based on resultant strategy
+            if (np.array([item for sub in strategy for item in sub]) == dt).any():
+                if (np.array(strategy[resultant_i]) == dt).any():
+                    readout_im = full_image.copy()
+                    readout_im = self.addNoiseToImage(readout_im, config, base, logger) 
+                    resultant_buffer.extend([readout_im])
+                    if len(resultant_buffer)>1:
+                        #combine readout images
+                        resultant_buffer[0].array = resultant_buffer[0].array + resultant_buffer[1].array
+                        del resultant_buffer[-1]
+                        gc.collect()
+   
+                if np.array(strategy[resultant_i][-1]) == dt:
+                    divisor = len(np.array(strategy[resultant_i]))
+                    #divide summed images by the length of resultant to get the average and apply headers to the image array
+                    #TODO:apply header to the image array
+                    resultant_buffer[0].array = resultant_buffer[0].array/divisor
+                    resultant_buffer[0].write('resultant_{0}.fits'.format(resultant_i))
+                    resultant_i+=1
+                    resultant_buffer = []
+                    logger.warning('resultant{0} done'.format(resultant_i))
 
-        full_array.addTo(full_image)
-        full_array.write("photonarray.fits")
-        full_image.write("phot_image.fits")
+                    
+
+        # full_array.write("photonarray.fits")
+        # full_image.write("phot_image.fits")
+
         return full_image, None
 
-    def addNoise(self, image, config, base, image_num, obj_num, current_var, logger):
+    def addNoiseToImage(self, image, config, base, logger):
         """Add the final noise to a Scattered image
 
         Parameters:
@@ -223,7 +259,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         """
         # check ignore noise
         if self.ignore_noise:
-            return
+            return image
 
         base["current_noise_image"] = base["current_image"]
         wcs = base["wcs"]
@@ -313,7 +349,11 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             sky_image /= roman.gain
             sky_image.quantize()
             image -= sky_image
+        return image
+    
+    def addNoise(self, image, config, base, image_num, obj_num, current_var, logger):
+        pass
 
 
 # Register this as a valid type
-RegisterImageType("roman_sca", RomanSCAImageBuilder())
+RegisterImageType("roman_sca_cmos", RomanSCAImageBuilderCMOS())

@@ -1,4 +1,4 @@
-import fitsio as fio
+import yaml
 import galsim
 import galsim.config
 from galsim.config import InputLoader, RegisterInputType, RegisterValueType, RegisterObjectType
@@ -7,12 +7,13 @@ import galsim.roman as roman
 class ResultantDataLoader(object):
     """Read the resultant information from the resultant strategy."""
 
-    _req_params = {"file_name": str, "strategy": str,}
+    _req_params = {"file_name": str, "strategy_name": str,}
 
-    def __init__(self, file_name, strategy, logger=None):
+    def __init__(self, file_name, strategy_name, logger=None):
         self.logger = galsim.config.LoggerWrapper(logger)
         self.file_name = file_name
-        self.strategy = strategy
+        self.strategy_name = strategy_name
+        self.data = {}
 
 
         # try:
@@ -22,31 +23,43 @@ class ResultantDataLoader(object):
         #     self.logger.warning('Reading visit info from config file.')
 
     def read_resultants(self):
-        """Read resultant info from the resultants file."""
-        if self.file_name is None:
-            raise ValueError("No resultants filename provided, trying to build from config information.")
-        if self.strategy is None:
-            raise ValueError("The strategy must be set when reading resultant strategy info from a resultants file.")
+        """Load the YAML file and get the requested strategy."""
+        self.logger.info("Reading resultants from YAML file: %s", self.file_name)
+        try:
+            with open(self.file_name, "r") as f:
+                all_strategies = yaml.safe_load(f)
+        except Exception as e:
+            raise IOError(f"Could not read YAML file '{self.file_name}': {e}")
 
-        self.logger.warning("Reading info from resultants file %s for strategy %s", self.file_name, self.strategy)
+        if self.strategy_name not in all_strategies:
+            raise ValueError(f"Strategy '{self.strategy_name}' not found in YAML file.")
 
-        data = fio.FITS(self.file_name)[-1][self.strategy]
+        strategy = all_strategies[self.strategy_name]
+        if not isinstance(strategy, list):
+            raise ValueError(f"Invalid strategy format for '{self.strategy_name}': must be a list of lists.")
 
-        self.data = {}
-        self.data["strategy"] = data["strategy"]
-        self.data["dt"] = self.resultants_to_dt()
+        self.data["strategy"] = strategy
 
-    def resultants_to_dt(self,config,base):
+    def resultants_to_dt(self, config, base):
+        """Compute dt from list-of-lists."""
+        strategy = self.data["strategy"]
+        if len(strategy) < 2:
+            raise ValueError("Need at least two resultants to compute dt.")
+
+        avg_last = sum(strategy[-1]) / len(strategy[-1])
+        avg_second = sum(strategy[0]) / len(strategy[0])
+
         if "exptime" in config:
             exptime = galsim.config.ParseValue(config, "exptime", base, float)[0]
         else:
             exptime = roman.exptime
-        dt = exptime/((sum(self.strategy[-1])/len(self.strategy[-1]))-(sum(self.strategy[1])/len(self.strategy[1])))
+
+        dt = exptime / (avg_last - avg_second)
         return dt
-    
+
     def get(self, field, default=None):
         if field not in self.data and default is None:
-            raise KeyError("ResultantData field %s not present in data" % field)
+            raise KeyError(f"Field '{field}' not found in data.")
         return self.data.get(field, default)
     
 def ResultantData(config, base, value_type):
@@ -56,10 +69,14 @@ def ResultantData(config, base, value_type):
     kwargs, safe = galsim.config.GetAllParams(config, base, req=req)
     field = kwargs["field"]
 
-    val = value_type(rdata.get(field))
-    return val, safe
+    if field == "dt":
+        val = rdata.resultants_to_dt(config, base)
+    else:
+        val = rdata.get(field)
+
+    return value_type(val), safe
 
 
 RegisterInputType("resultant_data", InputLoader(ResultantDataLoader, file_scope=True, takes_logger=True))
-RegisterValueType("ResultantData", ResultantData, [float,list], input_type="resultant_data")
+RegisterValueType("ResultantData", ResultantData, [float, list], input_type="resultant_data")
 
