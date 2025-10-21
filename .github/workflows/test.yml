@@ -10,7 +10,8 @@ on:
 jobs:
   build:
     name: Set up
-    runs-on: ubuntu-latest
+    runs-on:
+      group: ubuntu-runners
     defaults:
         run:
             # cf. https://github.com/conda-incubator/setup-miniconda#important
