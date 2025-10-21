@@ -60,18 +60,6 @@ class Roman_stamp(StampBuilder):
             # or cached by the skyCatalogs code.
             gal.flux = gal.calculateFlux(bandpass)
         self.flux = gal.flux
-        # Cap (star) flux at 30M photons to avoid gross artifacts when trying
-        # to draw the Roman PSF in finite time and memory
-        flux_cap = 3e7
-        if self.flux > flux_cap:
-            if (
-                hasattr(gal, "original")
-                and hasattr(gal.original, "original")
-                and isinstance(gal.original.original, galsim.DeltaFunction)
-            ) or (isinstance(gal, galsim.DeltaFunction)):
-                gal = gal.withFlux(flux_cap, bandpass)
-                self.flux = flux_cap
-                gal.flux = flux_cap
         base["flux"] = gal.flux
         base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
         # print('stamp setup2',process.memory_info().rss)
@@ -284,9 +272,6 @@ class Roman_stamp(StampBuilder):
         # print('stamp draw2',process.memory_info().rss)
 
         if method == "phot":
-            # We already calculated realized_flux above.  Use that now and tell GalSim not
-            # recalculate the Poisson realization of the flux.
-            gal = gal.withFlux(self.realized_flux, bandpass)
             # print('stamp draw3b ',process.memory_info().rss)
 
             if not faint and "photon_ops" in config:
@@ -306,7 +291,7 @@ class Roman_stamp(StampBuilder):
 
             # print('stamp draw3a',process.memory_info().rss)
             gal.drawImage(
-                bandpass,
+                bandpass=bandpass,
                 method="phot",
                 offset=offset,
                 rng=self.rng,
@@ -316,7 +301,7 @@ class Roman_stamp(StampBuilder):
                 photon_ops=photon_ops,
                 sensor=None,
                 add_to_image=True,
-                poisson_flux=False,
+                poisson_flux=True,
             )
         else:
             fft_image = image.copy()
@@ -337,10 +322,9 @@ class Roman_stamp(StampBuilder):
                 )
 
             # Go back to a combined convolution for fft drawing.
-            gal = gal.withFlux(self.flux, bandpass)
             prof = galsim.Convolve([gal] + psfs)
             try:
-                prof.drawImage(bandpass, **kwargs)
+                prof.drawImage(bandpass=bandpass, **kwargs)
             except galsim.errors.GalSimFFTSizeError as e:
                 # I think this shouldn't happen with the updates I made to how the image size
                 # is calculated, even for extremely bright things.  So it should be ok to
