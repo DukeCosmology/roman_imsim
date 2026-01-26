@@ -8,11 +8,11 @@ modules:
     # Including galsim.roman in the list of modules to import will add a number of Roman-specific
     # functions and classes that we will use here.
     - roman_imsim
-    - galsim.roman
 
     # We need this for one of our Eval items.  GalSim does not by default import datetime into
     # the globals dict it uses when evaluating Eval items, so we can tell it to import it here.
     - datetime
+    - galsim.roman
 
 # Define some other information about the images
 image:
@@ -103,8 +103,11 @@ stamp:
     flux_cap: 1000000
 
     photon_ops:
-        -
-            type: SlitlessSpec
+        - 
+            type: GrismV       
+
+# GrismNV calls the non-vector version of the code while GrismV calls the vector version
+            
         #-
            # type: ChargeDiff
 
@@ -137,25 +140,25 @@ input:
         mjd: { type: Sum_float, items: [ { type: ObSeqData_float, field: mjd }, 170 ] }
 
         exptime: { type: ObSeqData, field: exptime }          
-        obj_types: ["snana"]  # diffsky_galaxy, star
+        obj_types: ["snana"]  # diffsky_galaxy,snana, star
 
 output:
 
     nfiles: 1
-    dir: ./
+    dir: ./output
     file_name:
         type: FormattedStr
-        format: "Roman_TDS_truth_test_%s_%i_%i.fits.gz"
+        format: "Roman_Grism_truth_%s_%i_%i.fits.gz"
         items:
             - { type: ObSeqData, field: filter }
             - { type: ObSeqData, field: visit }
             - '@image.SCA'
 
     truth:
-        dir: /hpc/home/jr542/code/roman_imsim_outputs
+        dir: ./output
         file_name:
             type: FormattedStr
-            format: "Roman_TDS_index_test_%s_%i_%i.txt"
+            format: "Roman_Grism_index_test_%s_%i_%i.txt"
             items:
                 - { type: ObSeqData, field: filter }
                 - { type: ObSeqData, field: visit }
