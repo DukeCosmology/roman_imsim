@@ -355,10 +355,10 @@ class Roman_stamp(StampBuilder):
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
         # print('stamp draw3',process.memory_info().rss)
-        galsim.fits.write(image, f"/hpc/home/jr542/SN_OU_stamps/{base['object_id']}.fits")
+        galsim.fits.write(image, f"/hpc/group/cosmology/cem132/roman_imsim/SN_OU_stamps/{base['object_id']}.fits")
         SED_wavelengths = gal.SED.wave_list               # Wavelengths in nm
         SED_vals = [gal.SED(w) for w in SED_wavelengths]
-        np.savetxt(f"/hpc/home/jr542/SN_OU_stamps/{base['object_id']}.txt", np.array([SED_wavelengths, SED_vals]))
+        np.savetxt(f"/hpc/group/cosmology/cem132/roman_imsim/SN_OU_stamps/{base['object_id']}.txt", np.array([SED_wavelengths, SED_vals]))
         return image
 
     def add_poisson_noise(self, fft_image):
