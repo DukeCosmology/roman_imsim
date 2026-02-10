@@ -181,9 +181,18 @@ class GrismNV(PhotonOp):
     # _req_params = {"base_wavelength": float, "barycenter": list}
     # _opt_params = {"resolution": list}
 
+<<<<<<< HEAD:roman_imsim/photonOps/_charge_diffusion.py
 
     def __init__(self):
         self.config = 'Roman_grism_OpticalModel_v0.8.yaml'
+=======
+
+    def __init__(self, config=None):
+        if config is None:
+            self.config = 'Roman_grism_OpticalModel_v0.8.yaml'
+        else:
+            self.config = config
+>>>>>>> 4ec1fc4d (Allow config to be provided to the Grism classes):roman_imsim/photonOps.py
         self.order = '1'
         self.sca = 16
         # self.base_wavelength = base_wavelength
@@ -353,8 +362,11 @@ class GrismV(PhotonOp):
     _single_params = []
     _takes_rng = False
 
-    def __init__(self):
-        self.config = "Roman_grism_OpticalModel_v0.8.yaml"
+    def __init__(self, config=None, order=None, sca=None):
+        if config is None:
+            self.config = "Roman_grism_OpticalModel_v0.8.yaml"
+        else:
+            self.config = config
         self.order = '1'
         self.sca = 16
         # self.base_wavelength = base_wavelength
