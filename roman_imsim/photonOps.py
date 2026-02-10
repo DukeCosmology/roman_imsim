@@ -214,24 +214,7 @@ class GrismNV(PhotonOp):
         )
 
     
-    def applyTo(self, photon_array, local_wcs=None, rng=None):
-        """Apply the grism dispersion to the photos
-    
-        Parameters:
-            photon_array:   A `PhotonArray` to apply the operator to.
-            local_wcs:      A `LocalWCS` instance defining the local WCS for the current photon
-                            bundle in case the operator needs this information.  [default: None]
-            rng:            A random number generator is not used.
-        """
-        #photon array has .x, .y, .wavelength, .coord, .time, ...
-        if not photon_array.hasAllocatedWavelengths():
-            raise GalSimError("Grism requires that wavelengths be set")
-        
-        # wavelength is in nm. Roman slitless thinks in microns.
-        # http://galsim-developers.github.io/GalSim/_build/html/photon_array.html#galsim.PhotonArray
-        wavelength = photon_array.wavelength/1000.
-
-
+    def _disperse(self, x0, y0, lam, sca, order='1'):
         # convert to FPA degrees
         xfpa_deg, yfpa_deg = self.detector_coords.convert_sca_to_fpa(
             photon_array.x, photon_array.y, sca=self.sca
@@ -309,9 +292,30 @@ class GrismNV(PhotonOp):
             # go back to pixels
 
             x_pix, y_pix = self.detector_coords.convert_mpa_to_sca(xmpa=xmpa_mm, ympa=ympa_mm, sca=self.sca)
-            # add to the photon array's positions
-            photon_array.x = x_pix
-            photon_array.y = y_pix
+            
+            return x_pix, y_pix
+    
+    def applyTo(self, photon_array, local_wcs=None, rng=None):
+        """Apply the grism dispersion to the photos
+    
+        Parameters:
+            photon_array:   A `PhotonArray` to apply the operator to.
+            local_wcs:      A `LocalWCS` instance defining the local WCS for the current photon
+                            bundle in case the operator needs this information.  [default: None]
+            rng:            A random number generator is not used.
+        """
+        #photon array has .x, .y, .wavelength, .coord, .time, ...
+        if not photon_array.hasAllocatedWavelengths():
+            raise GalSimError("Grism requires that wavelengths be set")
+        
+        # wavelength is in nm. Roman slitless thinks in microns.
+        # http://galsim-developers.github.io/GalSim/_build/html/photon_array.html#galsim.PhotonArray
+        wavelength = photon_array.wavelength/1000.
+
+
+        # add to the photon array's positions
+        photon_array.x = x_pix
+        photon_array.y = y_pix
 
     
     def __repr__(self):
@@ -386,26 +390,9 @@ class GrismV(PhotonOp):
             xy_centers=data['detector_model'].get('xy_centers', {})  # Dictionary of SCA centers
         )
 
-    
-    def applyTo(self, photon_array, local_wcs=None, rng=None):
-        """Apply the grism dispersion to the photos
-    
-        Parameters:
-            photon_array:   A `PhotonArray` to apply the operator to.
-            local_wcs:      A `LocalWCS` instance defining the local WCS for the current photon
-                            bundle in case the operator needs this information.  [default: None]
-            rng:            A random number generator is not used.
-        """
-        #photon array has .x, .y, .wavelength, .coord, .time, ...
-        if not photon_array.hasAllocatedWavelengths():
-            raise GalSimError("Grism requires that wavelengths be set")
-        
-        # wavelength is in nm. Roman slitless thinks in microns.
-        # http://galsim-developers.github.io/GalSim/_build/html/photon_array.html#galsim.PhotonArray
-        w = photon_array.wavelength/1000.
-
+    def _disperse(self, x0, y0, lam, sca, order='1'):
         # get the coords in degrees to match the matrices
-        xfpa_deg, yfpa_deg = self.detector_coords.convert_sca_to_fpa(photon_array.x, photon_array.y, sca = self.sca)
+        xfpa_deg, yfpa_deg = self.detector_coords.convert_sca_to_fpa(x0, y0, sca = self.sca)
 
         # we start by calculating the intial offset
         xfpa_deg = np.atleast_1d(xfpa_deg)
@@ -420,7 +407,7 @@ class GrismV(PhotonOp):
         
         # now we get the y displacement (dispersion by wavelength)
 
-        wavelength = np.atleast_1d(w)
+        wavelength = np.atleast_1d(lam)
         # create power matrices, note that we still need x and y in fpa degrees 
         wl_powers = wavelength[:, np.newaxis] ** np.arange(6)  
         ref_powers = self.wl_ref ** np.arange(6) 
@@ -442,6 +429,26 @@ class GrismV(PhotonOp):
 
         x_pix, y_pix = self.detector_coords.convert_mpa_to_sca(xmpa=xmpa_mm, ympa=ympa_mm, sca=self.sca)
 
+        return x_pix, y_pix
+        
+    def applyTo(self, photon_array, local_wcs=None, rng=None):
+        """Apply the grism dispersion to the photos
+    
+        Parameters:
+            photon_array:   A `PhotonArray` to apply the operator to.
+            local_wcs:      A `LocalWCS` instance defining the local WCS for the current photon
+                            bundle in case the operator needs this information.  [default: None]
+            rng:            A random number generator is not used.
+        """
+        #photon array has .x, .y, .wavelength, .coord, .time, ...
+        if not photon_array.hasAllocatedWavelengths():
+            raise GalSimError("Grism requires that wavelengths be set")
+        
+        # wavelength is in nm. Roman slitless thinks in microns.
+        # http://galsim-developers.github.io/GalSim/_build/html/photon_array.html#galsim.PhotonArray
+        w = photon_array.wavelength/1000.
+
+        x_pix, y_pix = self._disperse(photon_array.x, photon_array.y, w, self.sca, self.order)
         
         photon_array.x = x_pix
         photon_array.y = y_pix
