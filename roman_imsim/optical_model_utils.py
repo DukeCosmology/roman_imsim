@@ -129,7 +129,7 @@ class RomanDetectorCoordinates:
         else:
             return sca_match[0]
 
-    def convert_sca_to_mpa(self, xsca, ysca, sca):
+    def convert_sca_to_mpa(self, xsca, ysca, sca):  # unused and broken
         """
         Returns MPA position [mm] for reference position in the SCA [pixel]
         Input: xsca, ysca are source position, in px, in detector plane (SCA)
