@@ -1,151 +1,476 @@
 import yaml
-import numpy as np
 
+import matplotlib.pyplot as plt
+import numpy as np
 import numba as nb
 
-__all__ = ['SNPITDisperser']
+"""
+Classes and numba-accelerated functions to implement the optical
+model provided by the SSC (IPAC).
+
+Written by R. Ryan (STScI)
+
+Feb 8, 2026
+"""
+
 
 @nb.njit
-def horner1_scalar(c, x):
-    ''' implement 1d horner method assuming x is a scalar '''
-    n = len(c)
-    y = c[-1]
-    for i in range(n-2,-1, -1):
-        y = y*x+c[i]
-    return y
+def horner1(c, z):
+    """
+    Evaluate a 1D polynomial at z using Horner's method.
+
+    Parameters
+    ----------
+    c : ndarray, shape (n,)
+        Polynomial coefficients ordered from lowest to highest degree.
+    z : float or ndarray
+        Evaluation point(s).
+
+    Returns
+    -------
+    p : float or ndarray
+        Polynomial value at z.
+    """
+    nz = c.shape[0]
+    p = c[-1]
+    for i in range(nz-2, -1, -1):
+        p *= z
+        p += c[i]
+    return p
+
 
 @nb.njit
-def horner2_scalar(c, x, y):
-    ''' implement 2d horner method assuming x,y are scalars '''
-    n, m = c.shape
-    z = horner1_scalar(c[:,-1], x)
-    for j in range(m-2, -1, -1):
-        z = z*y + horner1_scalar(c[:, j], x)
-    return z
+def horner2(c, y, z):
+    """
+    Evaluate a 2D polynomial at (y, z) using nested Horner's method.
+
+    Parameters
+    ----------
+    c : ndarray, shape (ny, nz)
+        Polynomial coefficients, where c[i, j] corresponds to y^i z^j.
+    y, z : float or ndarray
+        Evaluation point(s).
+
+    Returns
+    -------
+    p : float or ndarray
+        Polynomial value at (y, z).
+    """
+    ny = c.shape[0]
+    p = horner1(c[-1], z)
+    for i in range(ny-2, -1, -1):
+        p *= y
+        p += horner1(c[i], z)
+    return p
+
 
 @nb.njit
-def horner1_vector(c, x):
-    ''' implement 1d horner method assuming x is a np.ndarray '''
-    n = len(c)
-    y = np.full_like(x, c[-1])
-    for i in range(n-2,-1, -1):
-        y = y*x+c[i]
-    return y
+def horner3(c, x, y, z):
+    """
+    Evaluate a 3D polynomial at (x, y, z) using nested Horner's method.
 
-@nb.njit
-def horner2_vector(c, x, y):
-    ''' implement 2d horner method assuming x, y are np.ndarray '''
-    n, m = c.shape
-    z = horner1_vector(c[:,-1], x)
-    for j in range(m-2, -1, -1):
-        z = z*y + horner1_vector(c[:, j], x)
-    return z
+    Parameters
+    ----------
+    c : ndarray, shape (nx, ny, nz)
+        Polynomial coefficients, where c[i, j, k] corresponds to x^i y^j z^k.
+    x, y, z : float or ndarray
+        Evaluation point(s).
 
-@nb.njit
-def horner3(c, x, y, dl):
-    ''' implement 3d horner method assuming x, y are scalar but dl is
-    a np.ndarray '''
+    Returns
+    -------
+    p : float or ndarray
+        Polynomial value at (x, y, z).
+    """
+    nx = c.shape[0]
+    p = horner2(c[-1], y, z)
+    for i in range(nx-2, -1, -1):
+        p *= x
+        p += horner2(c[i], y, z)
+    return p
 
-    nl = len(dl)
-    n = c.shape[0]
-    
-    f = np.full(nl, horner2_scalar(c[-1, :, :], x, y))
-    for i in range(n-2, -1, -1):
-        f = f*dl + horner2_scalar(c[i, :, :], x, y)
 
-    return f
-    
+@nb.njit(parallel=True)
+def numba_disperse_pairwise(Xij, Yij, Cijk, Dijk, x, y, w):
+    """
+    Compute dispersed coordinates for pairwise inputs using Numba.
 
-@nb.njit(parallel=False)
-def relative_trace(Cijk, Dijk, x0, y0, wtran):
-    ''' compute the position along the trace.
+    This version assumes x, y, and w have identical shapes and computes
+    one output coordinate pair per input triplet.
 
-    I believe this is equivalent to xarr and yarr in VM's code
-    '''
-    
-    npix = len(x0)
-    nlam = len(wtran)
+    Parameters
+    ----------
+    Xij, Yij : ndarray, shape (nx, ny)
+        Polynomial coefficients mapping undispersed coordinates to
+        Focal Plane Assembly (FPA) space.
+    Cijk, Dijk : ndarray, shape (nw, nx, ny)
+        Polynomial coefficients for dispersion in FPA space.
+    x, y : ndarray
+        Undispersed FPA coordinates.
+    w : ndarray
+        Transformed wavelength coordinate.
 
-    dx = np.empty((npix, nlam), dtype=float)
-    dy = np.empty((npix, nlam), dtype=float)
-    
-    for i in range(npix):
-        xx0 = x0[i]
-        yy0 = y0[i]
+    Returns
+    -------
+    xt, yt : ndarray
+        Dispersed FPA coordinates.
+    """
+    xt = np.empty_like(x)
+    yt = np.empty_like(x)
 
-        # Vihang calls these "yarr" and "xarr"
-        dely = horner3(Cijk, xx0, yy0, wtran)
-        delx = horner3(Dijk, xx0, yy0, dely)
+    for idx in nb.prange(x.size):
+        xx = x.flat[idx]
+        yy = y.flat[idx]
+        ww = w.flat[idx]
+
+        dy = horner3(Cijk, ww, xx, yy)
+        dx = horner3(Dijk, dy, xx, yy)
+
+        xmpa = horner2(Xij, xx, yy)
+        ympa = horner2(Yij, xx, yy)
+
+        xt.flat[idx] = xmpa + dx
+        yt.flat[idx] = ympa + dy
         
-        # save results
-        dy[i] = dely
-        dx[i] = delx
+    return xt, yt
 
-    return dx, dy
 
-@nb.njit
-def dispersion(dCijk, Cijk, dDijk, x0, y0, wtran):
-    npix = len(x0)
-    nlam = len(wtran)
+@nb.njit(parallel=True)
+def numba_disperse(Xij, Yij, Cijk, Dijk, x, y, w):
+    """
+    Compute dispersed coordinates on a grid using Numba.
 
-    dwdr = np.empty((npix, nlam), dtype=float)
+    This version assumes x and y are 1D arrays of positions, and w is a
+    1D array of wavelengths. Outputs are 2D arrays indexed by
+    (pixel_index, wavelength_index).
 
-    for i in range(npix):
-        xx0 = x0[i]
-        yy0 = y0[i]
+    Parameters
+    ----------
+    Xij, Yij : ndarray, shape (nx, ny)
+        Polynomial coefficients mapping undispersed coordinates to
+        Focal Plane Assembly (FPA) space.
+    Cijk, Dijk : ndarray, shape (nw, nx, ny)
+        Polynomial coefficients for dispersion in FPA space.
+    x, y : ndarray, shape (npix,)
+        Undispersed FPA coordinates.
+    w : ndarray, shape (nlam,)
+        Transformed wavelength coordinate.
 
-        # compute the position
-        dely = horner3(Cijk, xx0, yy0, wtran)
+    Returns
+    -------
+    xt, yt : ndarray, shape (npix, nlam)
+        Dispersed FPA coordinates.
+    """
+    npix = x.size
+    nlam = w.size
+
+    dim = (npix, nlam)
+    xt = np.empty(dim, dtype=float)
+    yt = np.empty(dim, dtype=float)
+
+    for idx in nb.prange(npix):
+        xx = x.flat[idx]
+        yy = y.flat[idx]
+
+        xmpa = horner2(Xij, xx, yy)
+        ympa = horner2(Yij, xx, yy)
+
+        for jdx in nb.prange(nlam):
+            ww = w.flat[jdx]
+
+            dy = horner3(Cijk, ww, xx, yy)
+            dx = horner3(Dijk, dy, xx, yy)
+
+            xt[idx, jdx] = xmpa + dx
+            yt[idx, jdx] = ympa + dy
+    return xt, yt
+
+
+@nb.njit(parallel=True)
+def numba_deriv_pairwise(dCijk, Cijk, dDijk, x, y, w):
+    """
+    Compute derivatives of dispersed coordinates with respect to wavelength
+    for pairwise inputs using Numba.
+
+    Parameters
+    ----------
+    dCijk : ndarray, shape (nw-1, nx, ny)
+        Derivative of Cijk coefficients with respect to the transformed
+        wavelength coordinate.
+    Cijk : ndarray, shape (nw, nx, ny)
+        Original dispersion coefficients.
+    dDijk : ndarray, shape (nw-1, nx, ny)
+        Derivative of Dijk coefficients with respect to the dispersion
+        coordinate.
+    x, y : ndarray
+        Undispersed FPA coordinates.
+    w : ndarray
+        Transformed wavelength coordinate.
+
+    Returns
+    -------
+    dxdw, dydw : ndarray
+        Derivatives of dispersed FPA coordinates with respect to transformed
+        wavelength.
+    """
+    dxdw = np.empty_like(x)
+    dydw = np.empty_like(x)
+    for idx in nb.prange(x.size):
+        xx = x.flat[idx]
+        yy = y.flat[idx]
+        ww = w.flat[idx]
+
+        dy = horner3(Cijk, ww, xx, yy)
+
+        dy_dw = horner3(dCijk, ww, xx, yy)
+        dx_dy = horner3(dDijk, dy, xx, yy)
         
-        # compute the derivatives        
-        dydl = horner3(dCijk, xx0, yy0, wtran)
-        dxdy = horner3(dDijk, xx0, yy0, dely)
-        
-        # use chain rule
-        dwdr[i] = 1/(dydl*np.sqrt(dxdy**2+1))
-        
-    return dwdr
+        dxdw[idx] = dy_dw * dx_dy
+        dydw[idx] = dy_dw
+
+    return dxdw, dydw    
+
+
+@nb.njit(parallel=True)
+def numba_deriv(dCijk, Cijk, dDijk, x, y, w):
+    """
+    Compute derivatives of dispersed coordinates with respect to wavelength
+    on a grid using Numba.
+
+    Parameters
+    ----------
+    dCijk : ndarray, shape (nw-1, nx, ny)
+        Derivative of Cijk coefficients with respect to the transformed
+        wavelength coordinate.
+    Cijk : ndarray, shape (nw, nx, ny)
+        Original dispersion coefficients.
+    dDijk : ndarray, shape (nw-1, nx, ny)
+        Derivative of Dijk coefficients with respect to the dispersion
+        coordinate.
+    x, y : ndarray, shape (npix,)
+        Undispersed FPA coordinates.
+    w : ndarray, shape (nlam,)
+        Transformed wavelength coordinate.
+
+    Returns
+    -------
+    dxdw, dydw : ndarray, shape (npix, nlam)
+        Derivatives of dispersed FPA coordinates with respect to transformed
+        wavelength.
+    """
+    npix = x.size
+    nlam = w.size
+
+    dim = (npix, nlam)
+    dxdw = np.empty(dim, dtype=float)
+    dydw = np.empty(dim, dtype=float)
+
+    for idx in nb.prange(x.size):
+        xx = x.flat[idx]
+        yy = y.flat[idx]
+
+        for jdx in nb.prange(nlam):
+            ww = w.flat[jdx]
+
+            dy = horner3(Cijk, ww, xx, yy)
+            
+            dy_dw = horner3(dCijk, ww, xx, yy)
+            dx_dy = horner3(dDijk, dy, xx, yy)
+            
+            dxdw[idx, jdx] = dy_dw * dx_dy
+            dydw[idx, jdx] = dy_dw
+
+    return dxdw, dydw    
 
 
 class LogTransformer:
-    ln10 = 2.302585092994046
+    """
+    Logarithmic wavelength transformer.
+
+    Transforms physical wavelength values into a log-scaled coordinate
+    relative to a reference wavelength, and provides inverse and derivative
+    mappings.
+    """
+    ln10 = np.log(10.)
 
     def __init__(self, lam0):
+        """
+        Parameters
+        ----------
+        lam0 : float
+            Reference wavelength.
+        """
         self.lam0 = lam0
 
     def evaluate(self, lam):
+        """
+        Transform physical wavelength values into log-scaled coordinates.
+
+        Parameters
+        ----------
+        lam : array_like
+            Physical wavelengths.
+
+        Returns
+        -------
+        w : ndarray
+            Log-scaled wavelength coordinates.
+        """
         return np.log10(lam/self.lam0)
 
     def invert(self, w):
-        return self.lam0 * 10**w
+        """
+        Invert the log-scaled wavelength transformation.
+
+        Parameters
+        ----------
+        w : array_like
+            Log-scaled wavelength coordinates.
+
+        Returns
+        -------
+        lam : ndarray
+            Physical wavelengths.
+        """
+        return self.lam0 * (10.0 ** w)
 
     def deriv(self, lam):
-        return lam*self.ln10
-    
+        """
+        Compute dλ/dw for the log-wavelength transform.
+
+        Parameters
+        ----------
+        lam : array_like
+            Physical wavelengths.
+
+        Returns
+        -------
+        dldw : ndarray
+            Derivative of wavelength with respect to the transformed coordinate.
+        """
+        return lam * self.ln10
+
+
 class LinearTransformer:
-    
+    """
+    Linear wavelength transformer.
+
+    Transforms physical wavelength values into a linear coordinate
+    relative to a reference wavelength, and provides inverse and derivative
+    mappings.
+    """
+
     def __init__(self, lam0):
+        """
+        Parameters
+        ----------
+        lam0 : float
+            Reference wavelength.
+        """
         self.lam0 = lam0
 
     def evaluate(self, lam):
-        return lam-self.lam0
+        """
+        Transform physical wavelength values into linear coordinates.
+
+        Parameters
+        ----------
+        lam : array_like
+            Physical wavelengths.
+
+        Returns
+        -------
+        w : ndarray
+            Linear wavelength coordinates.
+        """
+        return lam - self.lam0
 
     def invert(self, w):
-        return lam+self.lam0
+        """
+        Invert the linear wavelength transformation.
+
+        Parameters
+        ----------
+        w : array_like
+            Linear wavelength coordinates.
+
+        Returns
+        -------
+        lam : ndarray
+            Physical wavelengths.
+        """
+        return w + self.lam0
 
     def deriv(self, lam):
-        return 1.
+        """
+        Compute dλ/dw for the linear wavelength transform.
 
+        Parameters
+        ----------
+        lam : array_like
+            Physical wavelengths.
+
+        Returns
+        -------
+        dldw : float or ndarray
+            Derivative of wavelength with respect to the transformed coordinate.
+        """
+        return 1.
+    
 
 class SNPITDisperser:
+    """
+    Spectral disperser model for the Roman/WFI, optimized to meet the needs
+    of the SN PIT.
+
+    This class loads a configuration file describing detector geometry
+    and optical polynomial models, and provides methods to compute:
+
+    - Dispersed positions on the Focal Plane Assembly (FPA),
+    - Derivatives with respect to wavelength,
+    - Local trace normals,
+    - Local dispersion scales.
+
+    All intermediate optical coordinates are expressed in Focal Plane
+    Assembly (FPA) physical units and mapped to and from Sensor Chip
+    Assembly (SCA) pixel coordinates.
+    """
+
     def __init__(self, conffile):
+        """
+        Initialize the disperser from a configuration file.
+
+        Parameters
+        ----------
+        conffile : str
+            Path to the YAML configuration file.
+        """
         self.load_conffile(conffile)
 
+        # pre-compile the numba functions
+        _, _ = self.disperse(1., 1., 1., 1, pairwise=True)
+        _, _ = self.disperse(1., 1., 1., 1, pairwise=False)
+
+        _, _ = self.deriv(1., 1., 1., 1, pairwise=True)
+        _, _ = self.deriv(1., 1., 1., 1, pairwise=False)
+
+        
     def load_conffile(self, conffile):
+        """
+        Load and parse the disperser configuration file.
+
+        This method reads detector geometry, optical polynomial coefficients,
+        and wavelength transformation settings, and precomputes derivative
+        coefficients for efficient runtime evaluation.
+
+        Parameters
+        ----------
+        conffile : str
+            Path to the YAML configuration file.
+        """
         self.conffile = conffile
 
         with open(self.conffile, 'r') as fp:
-            cfg = yaml.load(fp, Loader=yaml.FullLoader)
+            cfg = yaml.safe_load(fp)
 
         # fetch the meta data
         self.meta = cfg['meta']
@@ -157,31 +482,34 @@ class SNPITDisperser:
         self.detector['pixel_scale'] /= 3600.
         
         # set the optical model
-        self.optical = {}
-        self.optical['wl_min'] = cfg['optical_model']['wl_min']
-        self.optical['wl_max'] = cfg['optical_model']['wl_max']
-        self.optical['wl_reference'] = cfg['optical_model']['wl_reference']
-        self.optical['wl_transform'] = cfg['optical_model']['wl_transform']
+        self.optical = {k: v for k, v in cfg['optical_model'].items()}
+
+        # process each spectral order
         self.optical['orders'] = {}
         for order, data in cfg['optical_model']['orders'].items():
             
-            
+            # extract the parameters
             Xij = np.asarray(data['xmap_ij_coeff'])
             Yij = np.asarray(data['ymap_ij_coeff'])
             Cijk = np.asarray(data['ids_ijk_coeff'])
             Dijk = np.asarray(data['crv_ijk_coeff'])
 
+            # check that the data are valid
             if Xij.all() and Yij.all() and Cijk.all() and Dijk.all():
                 
+                # compute derivatives
+                dCijk = self.deriv_coeffs(Cijk)
+                dDijk = self.deriv_coeffs(Dijk)
+
                 # save the results
                 self.optical['orders'][order] = {'Xij': Xij,
                                                 'Yij': Yij,
                                                 'Cijk': Cijk,
-                                                'dCijk': self.deriv_coeffs(Cijk),
+                                                'dCijk': dCijk,
                                                 'Dijk': Dijk,
-                                                'dDijk': self.deriv_coeffs(Dijk)}
+                                                'dDijk': dDijk}
 
-            
+        # transform the wavelengths            
         transform = self.optical['wl_transform'].lower()
         if transform == 'log':
             self.lam_transformer = LogTransformer(self.optical['wl_reference'])
@@ -190,14 +518,80 @@ class SNPITDisperser:
         else:
             raise NotImplementedError(f'Invalid transform {transform}')
             
+
     @staticmethod
     def deriv_coeffs(M):
+        """
+        Compute derivative polynomial coefficients with respect to the first
+        dimension using Horner-compatible form.
+
+        Parameters
+        ----------
+        M : ndarray, shape (n, ...)
+            Polynomial coefficient tensor where the first axis corresponds
+            to the variable of differentiation.
+
+        Returns
+        -------
+        dM : ndarray, shape (n-1, ...)
+            Derivative coefficient tensor.
+        """
         n = M.shape[0]
         ii = np.arange(1, n, dtype=float)
-        dM = M[1:, :, :]*ii[:, np.newaxis, np.newaxis]
+        shape = (n-1,) + (1,) * (M.ndim - 1)
+        dM = M[1:] * ii.reshape(shape)
+
         return dM
+
+    def validate(self, x, y, l, sca, order='1', pairwise=True):
+        """
+        Validate input array dimensionality for disperser evaluation.
+
+        Parameters
+        ----------
+        x, y : ndarray
+            Undispersed FPA coordinates.
+        l : ndarray
+            Wavelength array.
+        sca : int
+            The SCA number.
+        order : str
+            The spectral order.
+        pairwise : bool
+            If True, require x, y, and l to have identical shapes.
+            If False, require x and y to match and l to be one-dimensional.
+
+        """
+        if order not in self.optical['orders']:
+            raise KeyError("Invalid spectral order")
+
+        if sca not in self.detector['xy_centers']:
+            raise KeyError("Invalid SCA number")
+
+        if pairwise:
+            if (x.shape != y.shape) or (x.shape != l.shape):
+                raise RuntimeError("Invalid x, y, lam shape for pairwise")
+        else:
+            if (x.shape != y.shape) or (l.ndim != 1):
+                raise RuntimeError("Invalid x, y, lam shape")            
                 
     def sca_to_fpa(self, xsca, ysca, sca):
+        """
+        Convert Sensor Chip Assembly (SCA) pixel coordinates to
+        Focal Plane Assembly (FPA) physical coordinates.
+
+        Parameters
+        ----------
+        xsca, ysca : array_like
+            Pixel coordinates on the SCA detector.
+        sca : int or key
+            Identifier for the detector segment.
+
+        Returns
+        -------
+        xfpa, yfpa : ndarray
+            Physical coordinates in the Focal Plane Assembly (FPA) frame.
+        """
         dx = self.detector['crpix1']-xsca # WHY NEGATIVE?
         dy = ysca-self.detector['crpix2']
 
@@ -208,20 +602,25 @@ class SNPITDisperser:
 
         return xfpa, yfpa
 
-    def fpa_to_mpa(self, xfpa, yfpa, order):  # does not match prism exactly
-
-        xmpa = horner2_vector(self.optical['orders'][order]['Xij'], xfpa, yfpa)
-        ympa = horner2_vector(self.optical['orders'][order]['Yij'], xfpa, yfpa)
-        
-        return xmpa, ympa
-
+    
     def mpa_to_sca(self, xmpa, ympa, sca):
-        '''
-        this function will need to be generalized to deal with traces that
-        span multiple SCAs
-        '''
-        
-        xcen, ycen = self.detector['xy_centers'][sca]  # same as get_sca_center
+        """
+        Convert Mosaic Plate Assembly (MPA) physical coordinates back to
+        Sensor Chip Assembly (SCA) pixel coordinates.
+
+        Parameters
+        ----------
+        xmpa, ympa : array_like
+            Physical Mosaic Plate Assembly coordinates.
+        sca : int or key
+            Identifier for the detector segment.
+
+        Returns
+        -------
+        xsca, ysca : ndarray
+            Detector pixel coordinates.
+        """
+        xcen, ycen = self.detector['xy_centers'][sca]
         
         xoff = (xmpa - xcen)*self.detector['plate_scale']
         yoff = (ympa - ycen)*self.detector['plate_scale']
@@ -231,75 +630,202 @@ class SNPITDisperser:
 
         return xsca, ysca
 
+    def disperse(self, x0, y0, lam, sca, order='1', pairwise=False):
+        """
+        Compute dispersed detector coordinates for given source positions
+        and wavelengths.
 
-    def dispersion(self, x0, y0, lam, sca, order='1'):
-        # coordinates will be 1d with N terms
+        Parameters
+        ----------
+        x0, y0 : array_like
+            Undispersed Sensor Chip Assembly (SCA) pixel coordinates.
+        lam : array_like
+            Physical wavelengths.
+        sca : int or key
+            Detector segment identifier.
+        order : str, optional
+            Spectral order identifier (default is '1').
+        pairwise : bool, optional
+            If True, treat x0, y0, and lam as pairwise-aligned arrays.
+            If False, compute a full grid over x0/y0 and lam.
+
+        Returns
+        -------
+        xp, yp : ndarray
+            Dispersed SCA pixel coordinates.
+        """
         x0 = np.atleast_1d(x0)
         y0 = np.atleast_1d(y0)
         lam = np.atleast_1d(lam)
 
+        # check inputs
+        self.validate(x0, y0, lam, sca, order=order, pairwise=pairwise)
+        
         # convert SCA coordinates to FPA coordinates
         xfpa, yfpa = self.sca_to_fpa(x0, y0, sca)
-
-        # transform wavelengths
-        wtran = self.lam_transformer.evaluate(lam)
-        
-        # compute the derivative
-        dwdt = dispersion(self.optical['orders'][order]['dCijk'],
-            self.optical['orders'][order]['Cijk'],
-            self.optical['orders'][order]['dDijk'],
-            xfpa, yfpa, wtran)
-        
-        # the derivative is dwtrans/dtheta.  so gotta transform
-        # wtrans back to lambda and theta to pixel, so compute those Jacobians.
-        dldw = self.lam_transformer.deriv(lam)
-        drdt = self.detector['plate_scale']
-
-        # we only want the positive side of things
-        dldr = np.abs(dwdt)*dldw/drdt
-        
-        return dldr
-
-        
-    def disperse(self, x0, y0, lam, sca, order='1'):
-
-        '''
-        inputs:
-          x0, y0: coordinates in the SCA in pixels.
-          lam: wavelength in microns
-          sca: the SCA numer
-        outputs:
-          x, y: dispersed coordinates in the SCA in pixels
-
-        issues:
-          not sure how this will work for traces that span two SCAs
-        
-        '''
-        x0 = np.atleast_1d(x0)
-        y0 = np.atleast_1d(y0)
-        lam = np.atleast_1d(lam)
-
-        # convert SCA coordinates to FPA coordinates
-        xfpa, yfpa = self.sca_to_fpa(x0, y0, sca)  # same as convert_sca_to_fpa
                 
         # transform wavelengths
         wtran = self.lam_transformer.evaluate(lam)
         
-        #wtran = self.transform_wavelength(lam)
+        if pairwise:
+            xt, yt = numba_disperse_pairwise(
+                self.optical['orders'][order]['Xij'],
+                self.optical['orders'][order]['Yij'],
+                self.optical['orders'][order]['Cijk'],
+                self.optical['orders'][order]['Dijk'],
+                xfpa, yfpa, wtran)
+        else:
+            xt, yt = numba_disperse(
+                self.optical['orders'][order]['Xij'],
+                self.optical['orders'][order]['Yij'],
+                self.optical['orders'][order]['Cijk'],
+                self.optical['orders'][order]['Dijk'],
+                xfpa, yfpa, wtran)
             
-        # compute the relative trace
-        dx, dy = relative_trace(self.optical['orders'][order]['Cijk'],
-            self.optical['orders'][order]['Dijk'], xfpa, yfpa, wtran)
             
-        # apply trace.  But need the MPA coordinates
-        xmpa, ympa = self.fpa_to_mpa(xfpa, yfpa, order)
-        
-        # apply trace in the MPA system
-        xt = xmpa[:, np.newaxis] + dx
-        yt = ympa[:, np.newaxis] + dy
-
         # convert back to SCA coordinates (this method should deal with
         # the traces that span multiple SCAs)
         xp, yp = self.mpa_to_sca(xt, yt, sca)
        
         return xp, yp
+
+    def deriv(self, x0, y0, lam, sca, order='1', pairwise=False):
+        """
+        Compute derivatives of dispersed detector coordinates with respect
+        to wavelength.
+
+        Parameters
+        ----------
+        x0, y0 : array_like
+            Undispersed Sensor Chip Assembly (SCA) pixel coordinates.
+        lam : array_like
+            Physical wavelengths.
+        sca : int or key
+            Detector segment identifier.
+        order : str, optional
+            Spectral order identifier (default is '1').
+        pairwise : bool, optional
+            If True, treat x0, y0, and lam as pairwise-aligned arrays.
+            If False, compute a full grid over x0/y0 and lam.
+
+        Returns
+        -------
+        dxdl, dydl : ndarray
+            Derivatives of dispersed SCA pixel coordinates with respect to
+            wavelength.
+        """
+        x0 = np.atleast_1d(x0)
+        y0 = np.atleast_1d(y0)
+        lam = np.atleast_1d(lam)
+
+        # check inputs
+        self.validate(x0, y0, lam, sca, order=order, pairwise=pairwise)
+                
+        # convert SCA coordinates to FPA coordinates
+        xfpa, yfpa = self.sca_to_fpa(x0, y0, sca)
+                
+        # transform wavelengths
+        wtran = self.lam_transformer.evaluate(lam)
+        dldw = self.lam_transformer.deriv(lam)
+        
+        if pairwise:
+            dxdw, dydw = numba_deriv_pairwise(
+                self.optical['orders'][order]['dCijk'],
+                self.optical['orders'][order]['Cijk'],
+                self.optical['orders'][order]['dDijk'],
+                xfpa, yfpa, wtran)
+
+            dxdl = dxdw/dldw
+            dydl = dydw/dldw
+            
+        else:
+            dxdw, dydw = numba_deriv(
+                self.optical['orders'][order]['dCijk'],
+                self.optical['orders'][order]['Cijk'],
+                self.optical['orders'][order]['dDijk'],
+                xfpa, yfpa, wtran)
+
+            dxdl = dxdw/dldw[np.newaxis, :]
+            dydl = dydw/dldw[np.newaxis, :]
+
+        dxdl *= self.detector['plate_scale']
+        dydl *= self.detector['plate_scale']
+        
+        return dxdl, dydl
+
+    def normal(self, *args, **kwargs):
+        """
+        Compute unit-normal vectors to the spectral trace.
+
+        This returns vectors perpendicular to the dispersion direction
+        at each sampled point.
+
+        Returns
+        -------
+        nx, ny : ndarray
+            Components of the normal vectors.
+        """
+        dxdl, dydl = self.deriv(*args, **kwargs)
+        return dydl, -dxdl
+            
+    def dispersion(self, *args, **kwargs):
+        """
+        Compute the local dispersion scale (dλ/dr) along the spectral trace.
+
+        Returns
+        -------
+        dldr : ndarray
+            Local dispersion (wavelength per pixel).
+        """
+        dxdl, dydl = self.deriv(*args, **kwargs)
+        dldr = 1./np.hypot(dxdl, dydl)
+        return dldr
+
+if __name__ == '__main__':
+
+    # instantiate the disperser
+    disp = SNPITDisperser('Roman_prism_OpticalModel_v0.8.yaml')
+
+    # which SCA are we considering?
+    sca = 1
+
+    # length of test data
+    N = 1000
+    
+    # create some random positions
+    x = np.random.uniform(low=0, high=4088, size=N)
+    y = np.random.uniform(low=0, high=4088, size=N)
+
+    # assume one wavelength (in micron) for each position
+    l = np.random.uniform(low=disp.optical['wl_min'],
+        high=disp.optical['wl_max'], size=N)
+
+    # pair-wise compute the dispersed positions:  here, every (x, y)
+    # has exactly one corresponding wavelength (l), so that this maps the
+    # tuples: (x,y,l) -> (xp, yp).  
+    xp, yp = disp.disperse(x, y, l, sca, order='1', pairwise=True)
+    
+    # can also compute the derivatives, which is the tangent vector
+    # at some point:
+    dxdl, dydl = disp.deriv(x, y, l, sca, order='1', pairwise=True)
+
+    # can compute the dispersion (the rate of change of the wavelength
+    # on a path along the trace:
+    dldr = disp.dispersion(x, y, l, sca, order='1', pairwise=True)
+    
+    # now demo the non-pairwise.  Here if (x,y) are vectors of size
+    # N elements and l is a vector of M elements, now the output data
+    # will be a 2d array of (N, M) elements        
+
+    # create a new wavelength grid 
+    l = np.linspace(disp.optical['wl_min'], disp.optical['wl_max'], 100)
+
+    # new dispersed positions
+    xp, yp = disp.disperse(x, y, l, sca, order='1', pairwise=False)
+
+    # new tangent vectors
+    dxdl, dydl = disp.deriv(x, y, l, sca, order='1', pairwise=False)
+
+    # new dispersion
+    dldr = disp.dispersion(x, y, l, sca, order='1', pairwise=False)
+
