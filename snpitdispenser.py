@@ -3,6 +3,7 @@ import numpy as np
 
 import numba as nb
 
+__all__ = ['SNPITDisperser']
 
 @nb.njit
 def horner1_scalar(c, x):
@@ -134,7 +135,7 @@ class LinearTransformer:
 
     def deriv(self, lam):
         return 1.
-    
+
 
 class SNPITDisperser:
     def __init__(self, conffile):
@@ -207,7 +208,7 @@ class SNPITDisperser:
 
         return xfpa, yfpa
 
-    def fpa_to_mpa(self, xfpa, yfpa, order):
+    def fpa_to_mpa(self, xfpa, yfpa, order):  # does not match prism exactly
 
         xmpa = horner2_vector(self.optical['orders'][order]['Xij'], xfpa, yfpa)
         ympa = horner2_vector(self.optical['orders'][order]['Yij'], xfpa, yfpa)
@@ -220,7 +221,7 @@ class SNPITDisperser:
         span multiple SCAs
         '''
         
-        xcen, ycen = self.detector['xy_centers'][sca]
+        xcen, ycen = self.detector['xy_centers'][sca]  # same as get_sca_center
         
         xoff = (xmpa - xcen)*self.detector['plate_scale']
         yoff = (ympa - ycen)*self.detector['plate_scale']
@@ -279,7 +280,7 @@ class SNPITDisperser:
         lam = np.atleast_1d(lam)
 
         # convert SCA coordinates to FPA coordinates
-        xfpa, yfpa = self.sca_to_fpa(x0, y0, sca)
+        xfpa, yfpa = self.sca_to_fpa(x0, y0, sca)  # same as convert_sca_to_fpa
                 
         # transform wavelengths
         wtran = self.lam_transformer.evaluate(lam)
