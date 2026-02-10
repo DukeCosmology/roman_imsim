@@ -152,7 +152,7 @@ output:
             - '@image.SCA'
 
     truth:
-        dir: /hpc/home/jr542/code/roman_imsim_outputs
+        dir: /hpc/group/cosmology/ajk107/code/roman_imsim/prism_outputs
         file_name:
             type: FormattedStr
             format: "Roman_TDS_index_test_%s_%i_%i.txt"
