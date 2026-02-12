@@ -8,6 +8,8 @@ import pandas as pd
 
 from matplotlib.patches import Rectangle
 
+__all__ = ['RomanDetectorCoordinates']
+
 
 class RomanDetectorCoordinates:
     """

@@ -3,7 +3,7 @@ import numpy as np
 import tempfile
 import yaml
 import os
-import roman_imsim.snpitdispenser
+import roman_imsim.photonOps._wfss_disperser.snpitdispenser
 
 
 class TestSNPITDisperser(unittest.TestCase):
