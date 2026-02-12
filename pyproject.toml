@@ -17,7 +17,7 @@ dependencies = [
   "fitsio",
   "astropy",
   "numpy",
-  "skycatalogs",
+  "skyCatalogs",
   "packaging",
   "setuptools",
 ]
