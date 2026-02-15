@@ -14,8 +14,6 @@ except PackageNotFoundError:
 
 # Register the template on importing
 from ._templates import *
-from .bandpass import *
-from .detector_physics import *
 
 # Import core modules for public use
 from .noise import *

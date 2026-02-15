@@ -100,7 +100,7 @@ stamp:
         type: SkyCatWorldPos
     exptime: { type: ObSeqData, field: exptime }
     min_size: 1024
-    flux_cap: 1000000
+    flux_cap: 10000000
 
     photon_ops:
         - 
@@ -140,7 +140,7 @@ input:
         mjd: { type: Sum_float, items: [ { type: ObSeqData_float, field: mjd }, 170 ] }
 
         exptime: { type: ObSeqData, field: exptime }          
-        obj_types: ["snana"]  # diffsky_galaxy,snana, star
+        obj_types: ["snana", "diffsky_galaxy"] #,snana, star
 
 output:
 
