@@ -60,6 +60,7 @@ class Roman_stamp(StampBuilder):
                 gal = gal.withFlux(flux_cap,bandpass)
                 self.flux = flux_cap
                 gal.flux = flux_cap
+                logger.info("Limiting the flux of object %d to %e", base['obj_num'], flux_cap)
         base['flux'] = gal.flux
         base['mag'] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
         # print('stamp setup2',process.memory_info().rss)
@@ -350,10 +351,8 @@ class Roman_stamp(StampBuilder):
                           add_to_image=True,
                           poisson_flux=False)
         # print('stamp draw3',process.memory_info().rss)
-        galsim.fits.write(image, f"/hpc/home/jr542/SN_OU_stamps/{base['object_id']}.fits")
         SED_wavelengths = gal.SED.wave_list               # Wavelengths in nm
         SED_vals = [gal.SED(w) for w in SED_wavelengths]
-        np.savetxt(f"/hpc/home/jr542/SN_OU_stamps/{base['object_id']}.txt", np.array([SED_wavelengths, SED_vals]))
         return image
 
 # Pick the right function to be _fix_seds.

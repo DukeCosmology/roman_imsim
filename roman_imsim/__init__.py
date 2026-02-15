@@ -12,5 +12,4 @@ from .skycat import *
 from .photonOps import *
 from .bandpass import *
 from .detector_physics import *
-from . import photonOps  # this registers SlitlessSpec
-
+#from . import photonOps  # this registers SlitlessSpec
