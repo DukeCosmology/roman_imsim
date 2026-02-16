@@ -445,7 +445,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             filepath=path,
             data=image.array.astype('float32'),  #For now convert to float32, latter the image.array shall it self be float32
             meta=meta_dict,
-            #wcs = self.wcs_from_fits_header(wcs_header)
+            wcs = self.wcs_from_fits_header(wcs_header)
         )
         
       
