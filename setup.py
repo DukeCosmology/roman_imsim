@@ -9,5 +9,5 @@ setup(
     author_email="michael.troxel@duke.edu",
     url="https://github.com/DukeCosmology/roman_imsim",
     packages=["roman_imsim"],
-    install_requires=["galsim", "fitsio", "astropy", "numpy", "skycatalogs", "packaging", "setuptools"],
+    install_requires=["galsim", "fitsio", "astropy", "numpy", "skycatalogs", "packaging"],
 )
