@@ -53,12 +53,12 @@ class RomanNoiseBuilder(NoiseBuilder):
         nonlinearity = params.get("nonlinearity", False)
         ipc = params.get("ipc", False)
         read_noise = params.get("read_noise", False)
-        sky_subtract = params.get("sky_subtract", False)
+        sky_subtract = params.get("sky_subtract", True)
 
         base["current_noise_image"] = base["current_image"]
         wcs = base["wcs"]
         bp = base["bandpass"]
-        filter = bp.name
+        filter_name = bp.name
         exptime, _ = galsim.config.ParseValue(base["image"], "exptime", base, float)
         logger.info("image %d: Start RomanSCA detector effects", base.get("image_num", 0))
 
@@ -76,9 +76,9 @@ class RomanNoiseBuilder(NoiseBuilder):
         # The other background is the expected thermal backgrounds in this band.
         # These are provided in e-/pix/s, so we have to multiply by the exposure time.
         if thermal_background:
-            tb = roman.thermal_backgrounds[filter] * exptime
+            tb = roman.thermal_backgrounds[filter_name] * exptime
             logger.debug("Adding thermal background: %s", tb)
-            sky_image += roman.thermal_backgrounds[filter] * exptime
+            sky_image += roman.thermal_backgrounds[filter_name] * exptime
 
         # The image up to here is an expectation value.
         # Realize it as an integer number of photons.
