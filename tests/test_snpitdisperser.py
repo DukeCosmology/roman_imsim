@@ -1,8 +1,10 @@
-import unittest
-import numpy as np
-import tempfile
-import yaml
 import os
+import tempfile
+import unittest
+
+import numpy as np
+import yaml
+
 import roman_imsim.photonOps._wfss_disperser.snpitdispenser
 
 

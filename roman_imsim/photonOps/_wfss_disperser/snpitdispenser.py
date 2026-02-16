@@ -1,8 +1,7 @@
-import yaml
-
 import matplotlib.pyplot as plt
-import numpy as np
 import numba as nb
+import numpy as np
+import yaml
 
 """
 Classes and numba-accelerated functions to implement the optical

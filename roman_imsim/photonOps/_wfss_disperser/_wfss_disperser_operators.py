@@ -1,8 +1,8 @@
 import numpy as np
 import yaml
-
 from galsim import PhotonOp
-from galsim.config import PhotonOpBuilder, RegisterPhotonOpType, get_cls_params, GetAllParams, GetRNG
+from galsim.config import GetAllParams, GetRNG, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
+
 from .snpitdispenser import SNPITDisperser
 
 __all__ = ['WFSSSDisperser']

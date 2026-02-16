@@ -3,9 +3,9 @@ Utilities for Roman Optical Model
 """
 
 import warnings
+
 import numpy as np
 import pandas as pd
-
 from matplotlib.patches import Rectangle
 
 __all__ = ['RomanDetectorCoordinates']

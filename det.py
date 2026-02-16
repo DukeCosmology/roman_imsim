@@ -1,5 +1,6 @@
-import roman_imsim
 import sys
+
+import roman_imsim
 
 params = sys.argv[1]
 visit = int(sys.argv[2])

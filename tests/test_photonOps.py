@@ -1,12 +1,13 @@
-import unittest
-import numpy as np
 import os
 import tempfile
-import yaml
+import unittest
 
 # Import galsim and roman_imsim
 import galsim
 import galsim.config
+import numpy as np
+import yaml
+
 from roman_imsim.photonOps import *
 
 

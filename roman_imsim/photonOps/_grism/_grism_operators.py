@@ -1,7 +1,8 @@
-import yaml
 import numpy as np
+import yaml
 from galsim import PhotonOp, UniformDeviate
-from galsim.config import PhotonOpBuilder, RegisterPhotonOpType, get_cls_params, GetAllParams, GetRNG
+from galsim.config import GetAllParams, GetRNG, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
+
 from .optical_model_utils import RomanDetectorCoordinates
 
 __all__ = ['GrismNV', 'GrismV']

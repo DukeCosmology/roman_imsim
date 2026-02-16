@@ -1,5 +1,5 @@
 from galsim import PhotonOp
-from galsim.config import PhotonOpBuilder, RegisterPhotonOpType, get_cls_params, GetAllParams, GetRNG
+from galsim.config import GetAllParams, GetRNG, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
 
 __all__ = ['SlitlessSpec']
 
