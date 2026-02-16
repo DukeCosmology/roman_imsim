@@ -148,4 +148,11 @@ class RomanNoiseBuilder(NoiseBuilder):
         return None
 
 
+class NoNoiseBuilder(NoiseBuilder):
+    
+    def addNoise(self, config, base, image, rng, current_var, draw_method, logger):
+        return None
+
+
 RegisterNoiseType("RomanNoise", RomanNoiseBuilder())
+RegisterNoiseType("NoNoise", NoNoiseBuilder())
