@@ -4,7 +4,6 @@ try:
     disable_implicit_threading()
 except ImportError:
     pass
-
 from .bandpass import *
 from .detector_physics import *
 

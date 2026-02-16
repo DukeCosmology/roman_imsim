@@ -1,12 +1,8 @@
 import numpy as np
 from galsim import GaussianDeviate, PhotonOp, UniformDeviate
-from galsim.config import (
-    GetAllParams,
-    GetRNG,
-    PhotonOpBuilder,
-    RegisterPhotonOpType,
-    get_cls_params,
-)
+from galsim.config import GetAllParams, GetRNG, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
+
+__all__ = ["ChargeDiff"]
 
 _w1 = 0.17519
 _w2 = 0.53146
@@ -18,9 +14,7 @@ _s3 = 1.4329 * _s
 
 
 class ChargeDiff(PhotonOp):
-    """A photon operator that applies the effect of charge diffusion via a
-    probabilistic model limit.
-    """
+    """A photon operator that applies the effect of charge diffusion via a probablistic model limit."""
 
     def __init__(self, rng=None, **kwargs):
 
