@@ -182,8 +182,8 @@ class Roman_stamp(StampBuilder):
         # using spline interpolation, then the codepath is quite slow.
         # Better to fix them before doing WavelengthSampler.
         if isinstance(prof, galsim.ChromaticObject):
-            wave_list, _, _ = galsim.utilities.combine_wave_list(prof.SED, bandpass)
-            sed = prof.SED
+            wave_list, _, _ = galsim.utilities.combine_wave_list(prof.sed, bandpass)
+            sed = prof.sed
             # TODO: This bit should probably be ported back to Galsim.
             #       Something like sed.make_tabulated()
             if not isinstance(sed._spec, galsim.LookupTable) or sed._spec.interpolant != "linear":
@@ -191,7 +191,7 @@ class Roman_stamp(StampBuilder):
                 f = np.broadcast_to(sed(wave_list), wave_list.shape)
                 new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
                 new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
-                prof.SED = new_sed
+                prof.sed = new_sed
 
             # Also recurse onto any components.
             if hasattr(prof, "obj_list"):
