@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.patches import Rectangle
 
-__all__ = ['RomanDetectorCoordinates']
+__all__ = ["RomanDetectorCoordinates"]
 
 
 class RomanDetectorCoordinates:
@@ -43,9 +43,7 @@ class RomanDetectorCoordinates:
                 sorted(list(self.xy_centers.keys())),
                 dtype=int,
             )
-            self.xy_centers_tbl = pd.DataFrame(
-                self.xy_centers, index=["x", "y"]
-            ).T
+            self.xy_centers_tbl = pd.DataFrame(self.xy_centers, index=["x", "y"]).T
         elif isinstance(self.xy_centers, pd.DataFrame):
             self.sca_list = self.xy_centers.index.to_numpy()
             self.xy_centers_tbl = self.xy_centers
@@ -66,9 +64,7 @@ class RomanDetectorCoordinates:
         else:
             return xcen, ycen
 
-    def define_sca_polygons(
-        self, lw=2, facecolor="none", edgecolor="k", alpha=0.9, zorder=10
-    ):
+    def define_sca_polygons(self, lw=2, facecolor="none", edgecolor="k", alpha=0.9, zorder=10):
         """
         Defines the SCA locations on the MPA (in mm) and their sizes (in pix)
         """
@@ -124,9 +120,7 @@ class RomanDetectorCoordinates:
             warnings.warn("No matching SCA; returning closest one.")
             xdist = np.abs(xmpa - self.xy_centers_tbl["x"].to_numpy())
             sca_column = self.sca_list[np.argsort(xdist)[:3]]
-            ydist = np.abs(
-                ympa - self.xy_centers_tbl.loc[sca_column, "y"].to_numpy()
-            )
+            ydist = np.abs(ympa - self.xy_centers_tbl.loc[sca_column, "y"].to_numpy())
             return sca_column[np.argmin(ydist)]
         else:
             return sca_match[0]

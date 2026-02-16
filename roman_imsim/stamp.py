@@ -63,14 +63,18 @@ class Roman_stamp(StampBuilder):
         # Cap (star) flux at 30M photons to avoid gross artifacts when trying to draw the Roman PSF in finite time and memory
         # flux_cap = 3e7
         flux_cap = config.get("flux_cap", 3e7)
-        if self.flux>flux_cap:
-            if (hasattr(gal, "original") and hasattr(gal.original, "original") and isinstance(gal.original.original, galsim.DeltaFunction)) or (isinstance(gal, galsim.DeltaFunction)):
-                gal = gal.withFlux(flux_cap,bandpass)
+        if self.flux > flux_cap:
+            if (
+                hasattr(gal, "original")
+                and hasattr(gal.original, "original")
+                and isinstance(gal.original.original, galsim.DeltaFunction)
+            ) or (isinstance(gal, galsim.DeltaFunction)):
+                gal = gal.withFlux(flux_cap, bandpass)
                 self.flux = flux_cap
                 gal.flux = flux_cap
-                logger.info("Limiting the flux of object %d to %e", base['obj_num'], flux_cap)
-        base['flux'] = gal.flux
-        base['mag'] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
+                logger.info("Limiting the flux of object %d to %e", base["obj_num"], flux_cap)
+        base["flux"] = gal.flux
+        base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
         # print('stamp setup2',process.memory_info().rss)
 
         # Compute or retrieve the realized flux.
@@ -356,7 +360,7 @@ class Roman_stamp(StampBuilder):
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
         # print('stamp draw3',process.memory_info().rss)
-        SED_wavelengths = gal.SED.wave_list               # Wavelengths in nm
+        SED_wavelengths = gal.SED.wave_list  # Wavelengths in nm
         SED_vals = [gal.SED(w) for w in SED_wavelengths]
         return image
 
