@@ -33,7 +33,7 @@ jobs:
 
       - name: Get test repository
         run: |
-          git clone https://github.com/DukeCosmology/SimHackJune2025.git
+          git clone https://github.com/DukeCosmology/SimHackJune2025.git@reference
           pushd SimHackJune2025
           git lfs pull
           popd
@@ -42,5 +42,6 @@ jobs:
       - name: Run GalSim
         run: |
           pushd SimHackJune2025
-          galsim -v 2 hack.yaml image.nobjects=10
+          galsim hack.yaml
+          sha256sum -c hack.sha
           popd
