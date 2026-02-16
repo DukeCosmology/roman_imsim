@@ -35,7 +35,7 @@ jobs:
 
       - name: Get test repository
         run: |
-          git clone https://github.com/DukeCosmology/SimHackJune2025.git@reference
+          git clone --branch reference https://github.com/DukeCosmology/SimHackJune2025.git
           pushd SimHackJune2025
           git lfs pull
           popd
