@@ -27,7 +27,7 @@ class RomanDetectorCoordinates:
         plate_scale,
         xy_centers,
     ):
-        ### Basic parameters
+        # Basic parameters
         self.naxis1 = naxis1
         self.naxis2 = naxis2
         self.crpix1 = crpix1
@@ -38,7 +38,7 @@ class RomanDetectorCoordinates:
         self.xy_centers = xy_centers
 
         if isinstance(self.xy_centers, dict):
-            ### Convert the dictionary of (x,y) centers to a table
+            # Convert the dictionary of (x,y) centers to a table
             self.sca_list = np.array(
                 sorted(list(self.xy_centers.keys())),
                 dtype=int,
@@ -50,7 +50,7 @@ class RomanDetectorCoordinates:
         else:
             raise Exception("Provide xy_centers as a dict or pd.Dataframe")
 
-        ### Define the Polygons for each SCA
+        # Define the Polygons for each SCA
         self.sca_polygons = self.define_sca_polygons()
 
     def get_sca_center(self, sca):

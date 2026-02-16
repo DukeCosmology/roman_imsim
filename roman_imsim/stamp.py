@@ -60,8 +60,8 @@ class Roman_stamp(StampBuilder):
             # or cached by the skyCatalogs code.
             gal.flux = gal.calculateFlux(bandpass)
         self.flux = gal.flux
-        # Cap (star) flux at 30M photons to avoid gross artifacts when trying to draw the Roman PSF in finite time and memory
-        # flux_cap = 3e7
+        # Cap (star) flux at 30M photons to avoid gross artifacts when trying
+        # to draw the Roman PSF in finite time and memory.
         flux_cap = config.get("flux_cap", 3e7)
         if self.flux > flux_cap:
             if (
@@ -360,8 +360,6 @@ class Roman_stamp(StampBuilder):
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
         # print('stamp draw3',process.memory_info().rss)
-        SED_wavelengths = gal.SED.wave_list  # Wavelengths in nm
-        SED_vals = [gal.SED(w) for w in SED_wavelengths]
         return image
 
     def add_poisson_noise(self, fft_image):

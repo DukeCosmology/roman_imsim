@@ -1,14 +1,11 @@
 import os
-import tempfile
 import unittest
 
 # Import galsim and roman_imsim
 import galsim
-import galsim.config
 import numpy as np
-import yaml
 
-from roman_imsim.photonOps import *
+from roman_imsim.photonOps import ChargeDiff, SlitlessSpec, GrismNV, GrismV, WFSSSDisperser
 
 
 class TestPhotonOps(unittest.TestCase):

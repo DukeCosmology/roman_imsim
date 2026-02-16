@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numba as nb
 import numpy as np
 import yaml
@@ -543,7 +542,7 @@ class SNPITDisperser:
 
         return dM
 
-    def validate(self, x, y, l, sca, order="1", pairwise=True):
+    def validate(self, x, y, lam, sca, order="1", pairwise=True):
         """
         Validate input array dimensionality for disperser evaluation.
 
@@ -551,7 +550,7 @@ class SNPITDisperser:
         ----------
         x, y : ndarray
             Undispersed FPA coordinates.
-        l : ndarray
+        lam : ndarray
             Wavelength array.
         sca : int
             The SCA number.
@@ -569,10 +568,10 @@ class SNPITDisperser:
             raise KeyError("Invalid SCA number")
 
         if pairwise:
-            if (x.shape != y.shape) or (x.shape != l.shape):
+            if (x.shape != y.shape) or (x.shape != lam.shape):
                 raise RuntimeError("Invalid x, y, lam shape for pairwise")
         else:
-            if (x.shape != y.shape) or (l.ndim != 1):
+            if (x.shape != y.shape) or (lam.ndim != 1):
                 raise RuntimeError("Invalid x, y, lam shape")
 
     def sca_to_fpa(self, xsca, ysca, sca):
@@ -808,33 +807,33 @@ if __name__ == "__main__":
     y = np.random.uniform(low=0, high=4088, size=N)
 
     # assume one wavelength (in micron) for each position
-    l = np.random.uniform(low=disp.optical["wl_min"], high=disp.optical["wl_max"], size=N)
+    lam = np.random.uniform(low=disp.optical["wl_min"], high=disp.optical["wl_max"], size=N)
 
     # pair-wise compute the dispersed positions:  here, every (x, y)
     # has exactly one corresponding wavelength (l), so that this maps the
     # tuples: (x,y,l) -> (xp, yp).
-    xp, yp = disp.disperse(x, y, l, sca, order="1", pairwise=True)
+    xp, yp = disp.disperse(x, y, lam, sca, order="1", pairwise=True)
 
     # can also compute the derivatives, which is the tangent vector
     # at some point:
-    dxdl, dydl = disp.deriv(x, y, l, sca, order="1", pairwise=True)
+    dxdl, dydl = disp.deriv(x, y, lam, sca, order="1", pairwise=True)
 
     # can compute the dispersion (the rate of change of the wavelength
     # on a path along the trace:
-    dldr = disp.dispersion(x, y, l, sca, order="1", pairwise=True)
+    dldr = disp.dispersion(x, y, lam, sca, order="1", pairwise=True)
 
     # now demo the non-pairwise.  Here if (x,y) are vectors of size
-    # N elements and l is a vector of M elements, now the output data
+    # N elements and lam is a vector of M elements, now the output data
     # will be a 2d array of (N, M) elements
 
     # create a new wavelength grid
-    l = np.linspace(disp.optical["wl_min"], disp.optical["wl_max"], 100)
+    lam = np.linspace(disp.optical["wl_min"], disp.optical["wl_max"], 100)
 
     # new dispersed positions
-    xp, yp = disp.disperse(x, y, l, sca, order="1", pairwise=False)
+    xp, yp = disp.disperse(x, y, lam, sca, order="1", pairwise=False)
 
     # new tangent vectors
-    dxdl, dydl = disp.deriv(x, y, l, sca, order="1", pairwise=False)
+    dxdl, dydl = disp.deriv(x, y, lam, sca, order="1", pairwise=False)
 
     # new dispersion
-    dldr = disp.dispersion(x, y, l, sca, order="1", pairwise=False)
+    dldr = disp.dispersion(x, y, lam, sca, order="1", pairwise=False)

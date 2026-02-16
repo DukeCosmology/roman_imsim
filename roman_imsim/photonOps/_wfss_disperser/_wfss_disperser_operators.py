@@ -1,7 +1,6 @@
 import numpy as np
-import yaml
-from galsim import PhotonOp
-from galsim.config import GetAllParams, GetRNG, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
+from galsim import GalSimError, PhotonOp
+from galsim.config import GetAllParams, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
 
 from .snpitdispenser import SNPITDisperser
 
@@ -138,7 +137,7 @@ class WFSSSDisperser(PhotonOp):
 
         # )
         # s += ")"
-        return f"galsim.GrismV()"
+        return "galsim.GrismV()"
 
 
 class WFSSSDisperserBuilder(PhotonOpBuilder):
