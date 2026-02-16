@@ -78,17 +78,19 @@ image:
     # chromatic photon shooting is only slighly slower than achromatic, so the difference
     # is even more pronounced in this case.
     use_fft_bright: True
-
-    # These are all by default turned on, but you can turn any of them off if desired:
-    ignore_noise: True
-    stray_light: False
-    thermal_background: False
-    reciprocity_failure: False
-    dark_current: False
-    nonlinearity: False
-    ipc: False
-    read_noise: False
-    sky_subtract: False
+    
+    noise:
+        # These are all by default turned on, but you can turn any of them off if desired:
+        type: RomanNoise
+        ignore_noise: True
+        stray_light: False
+        thermal_background: False
+        reciprocity_failure: False
+        dark_current: False
+        nonlinearity: False
+        ipc: False
+        read_noise: False
+        sky_subtract: False
 
     nobjects: 500
 
