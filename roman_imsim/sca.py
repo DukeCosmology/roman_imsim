@@ -15,6 +15,10 @@ from gwcs import coordinate_frames as cf
 import astropy.units as u
 import astropy.coordinates
 import gwcs
+import sys
+import os
+from .asdf_helper import mk_level2_image_with_wcs
+from pathlib import Path
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
 
@@ -185,7 +189,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
 
 
-    def writeASDF(self, config, base, image, path, include_raw_header=False):
+    def writeASDF_old(self, config, base, image, path, include_raw_header=False):
         """
         Method to write the file to disk
 
@@ -199,6 +203,28 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         print("self attrs:", [a for a in dir(self) if not a.startswith("_")])
         print("config keys:", list(config.keys()))
         print("base keys:  ", list(base.keys()))
+        
+        
+        print("\nconfig keys and values:")
+        for k, v in config.items():
+            if isinstance(v, np.ndarray):
+                print(f"  {k} = ndarray, shape={v.shape}, dtype={v.dtype}")
+            else:
+                print(f"  {k} = {v}")
+
+      
+        print("\nbase keys and values:")
+        for k, v in base.items():
+            if isinstance(v, np.ndarray):
+                print(f"  {k} = ndarray, shape={v.shape}, dtype={v.dtype}")
+            else:
+                print(f"  {k} = {v}")
+
+
+        print("\nimage header:")
+        for key, val in image.header.items():
+            print(f"  {key} = {val}")
+
         
         for key, val in image.header.items():
             print(f"{key} = {val}")
@@ -261,6 +287,168 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         af = asdf.AsdfFile({'roman': tree})
         af.write_to(path)
         
+        return None
+
+    
+
+    def writeASDF(self, config, base, image, path, include_raw_header=False):
+        """
+        Method to write the file to disk
+
+        Parameters:
+        -----------
+        path (str): Output path and filename
+        include_raw_header (bool): If `True` include a copy of the raw FITS header
+           as a dictionary in the ASDF file.
+        """
+    
+        print("self attrs:", [a for a in dir(self) if not a.startswith("_")])
+        print("config keys:", list(config.keys()))
+        print("base keys:  ", list(base.keys()))
+        
+        for key, val in image.header.items():
+            print(f"{key} = {val}")
+        print("Image array shape:", image.array.shape)
+        print(image.array)
+
+
+        # mk_l2_meta
+        mk_l2_meta = {
+            "l2_cal_step_match": {
+                "assign_wcs": self.wcs_from_fits_header,
+                "dark": self.dark_current,
+                "flux": base['flux'],
+                "linearity": self.nonlinearity,
+            },
+            "photometry_match": {},
+            "outlier_detection_match": {},
+            "sky_background_match": {
+                "subtracted": self.sky_subtract,
+            },
+            "source_catalog_match": {},
+            "cal_logs_match": {},
+        }
+
+        # mk_common_meta
+        mk_common_meta = {
+            "coordinates_match": {},
+            "ephemeris_match": {
+                "time": self.mjd
+            },
+            "exposure_match": {
+                "type": config['type'],
+                "start_time": image.header['DATE-OBS'],
+                "exposure_time": image.header['EXPTIME'],
+            },
+            "guidestar_match": {},
+            "wfi_mode_match": {
+                "detector": self.sca,
+                "optical_element": image.header['FILTER'],
+            },
+            "observation_match": {},
+            #not sure if they need to be in deg or rad, just put in the original unit in image
+            "pointing_match": {
+                "target_ra": base['world_center'].ra,
+                "target_dec": base['world_center'].dec,
+            },
+            "program_match": {},
+            "rcs_match": {},
+            "ref_file_match": {},
+            "velocity_aberration_match": {
+                # I don't think we have velocity aberration yet in sim
+                #"ra_reference": base['world_center'].ra,
+                #"dec_reference": base['world_center'].dec,
+            },
+            "visit_match": {
+                #This is higher level when multiple exposure in same visit
+                #"start_time": image.header['DATE-OBS'],
+            },
+            "wcsinfo_match": {
+                "ra_ref": base['world_center'].ra,
+                "dec_ref": base['world_center'].dec,
+            },
+        }
+
+        # mk_basic_meta
+        filename = path
+        #the helper function only write on existing file. So create the asdf file if it is not there
+        filepath = Path(filename)
+        if not filepath.exists():
+            filepath.touch()
+            
+        mod_time = os.path.getmtime(filename)
+        file_date = Time(mod_time, format="unix").isot
+        origin = "Duke"
+        telescope = "ROMAN"
+
+        mk_basic_meta = {
+            "calibration_software_name_match": {},
+            "calibration_software_version_match": {},
+            "product_type_match": {},
+            "filename_match": {"filename": filename},
+            "file_date_match": {"file_date": file_date},
+            "model_type_match": {},
+            "origin_match": {"origin": origin},
+            "prd_version_match": {},
+            "sdf_software_version_match": {},
+            "telescope_match": {"telescope": telescope},
+        }
+
+        # merge into one dictionary for meta
+        meta_dict = {}
+        meta_dict.update(mk_l2_meta)
+        meta_dict.update(mk_common_meta)
+        meta_dict.update(mk_basic_meta)
+
+
+        # Fill out the wcs block - this is very hard since we need to change from wcs to gwcs object stored in asdf
+        # The config wcs is the configuration for building the wcs above
+        # The base is galsim.GSFitsWCS constructed from config wcs using wcs.py, and copied to image.wcs
+        
+        #turn the Galsim header to a fits header for the wcs_from_fits_header function
+        galsim_wcs_header = image.wcs.header           
+        d = dict(galsim_wcs_header)                     
+        wcs_header = Header(d)
+        ny, nx = image.array.shape
+        
+        wcs_header['NAXIS']  = 2                   # number of axes
+        wcs_header['NAXIS1'] = nx                  # image width in pixels
+        wcs_header['NAXIS2'] = ny                  # image height in pixels
+
+        # coordinate type
+        wcs_header['CTYPE1'] = 'RA---TAN-SIP'
+        wcs_header['CTYPE2'] = 'DEC--TAN-SIP'
+
+        # reference pixel 
+        wcs_header['CRPIX1'] = nx/2
+        wcs_header['CRPIX2'] = ny/2
+
+        # reference coordinates 
+        wcs_header['CRVAL1'] = base['world_center'].ra.deg   
+        wcs_header['CRVAL2'] = base['world_center'].dec.deg    
+
+        #I can't find these information (I think they are also connected to border_ref_pix_left etc) so comment below out - the wcs is not correct without these info
+        # linear transformation: pixel scale in deg/pixel
+        #scale = 0.1 / 3600.0          
+        #if the image has rotation wrt constant ra and dec
+        #wcs_header['CD1_1'] = -scale  
+        #wcs_header['CD1_2'] = 0.0
+        #wcs_header['CD2_1'] = 0.0
+        #wcs_header['CD2_2'] = scale
+
+        # coordinate system
+        wcs_header['RADESYS'] = 'ICRS'
+        wcs_header['LONPOLE'] = 180.0
+        
+        wfi_image = mk_level2_image_with_wcs(
+            shape=image.array.shape,
+            filepath=path,
+            data=image.array.astype('float32'),  #For now convert to float32, latter the image.array shall it self be float32
+            meta=meta_dict,
+            #wcs = self.wcs_from_fits_header(wcs_header)
+        )
+        
+      
         return None
 
 
