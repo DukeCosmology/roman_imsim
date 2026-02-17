@@ -12,7 +12,7 @@ base.setdefault("file_num", 0)
 base.setdefault("image_num", 0)
 base.setdefault("obj_num", 0)
 
-galsim.config.ProcessInput(base, logger=logger)
+galsim.config.ProcessInput(base)
 req = {"SCA": int, "filter": str, "mjd": float, "exptime": float}
 
 opt = {
@@ -47,7 +47,7 @@ params = galsim.config.GetAllParams(
 mjd = params["mjd"]
 date = Time(mjd, format="mjd").to_datetime()
 
-wcs_out = galsim.config.BuildWCS(config, 'wcs', base, logger=logger)
+wcs_out = galsim.config.BuildWCS(config, 'wcs', base)
 wcs = wcs_out[0] if isinstance(wcs_out, tuple) else wcs_out
 xsize = config.get("xsize", config.get("size", roman.n_pix))
 ysize = config.get("ysize", config.get("size", roman.n_pix))
