@@ -2,27 +2,17 @@ import yaml
 import galsim
 import galsim.config
 import galsim.roman as roman
-import logging
 from astropy.time import Time
-import roman_imsim
 
-# --- read yaml ---
 with open("config/was.yaml", "r") as f:
     base = yaml.safe_load(f)
 
-config = base["image"]   # for an ImageBuilder-style config parse
-
-# --- minimal runtime keys (often harmless, sometimes needed) ---
+config = base["image"]
 base.setdefault("file_num", 0)
 base.setdefault("image_num", 0)
 base.setdefault("obj_num", 0)
 
-# --- logger ---
-logger = logging.getLogger("date_test")
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
-
-galsim.config.ProcessInput(base, logger=logger)  
+galsim.config.ProcessInput(base, logger=logger)
 req = {"SCA": int, "filter": str, "mjd": float, "exptime": float}
 
 opt = {
@@ -64,7 +54,6 @@ ysize = config.get("ysize", config.get("size", roman.n_pix))
 
 # Dummy image just to get true_center in pixel coordinates
 im = galsim.ImageF(xsize, ysize, wcs=wcs)
-
 world_pos = wcs.toWorld(im.true_center)
 sky_level = roman.getSkyLevel(base['bandpass'], world_pos=world_pos)
 print("before sky_level =", sky_level)
