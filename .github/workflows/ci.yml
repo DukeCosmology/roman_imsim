@@ -40,10 +40,20 @@ jobs:
           git lfs pull
           popd
 
-
-      - name: Run GalSim and validate output
+      - name: Run GalSim
         run: |
           pushd SimHackJune2025
           galsim hack.yaml
-          python compare_to_reference.py
           popd
+
+      - name: Run unit tests
+        run: |
+          pushd roman_imsim
+          pytest --strict-markers --cov=roman_imsim tests/
+          popd
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
