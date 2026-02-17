@@ -59,30 +59,6 @@ class Roman_stamp(StampBuilder):
             # or cached by the skyCatalogs code.
             gal.flux = gal.calculateFlux(bandpass)
         self.flux = gal.flux
-        # Cap (star) flux at 30M photons to avoid gross artifacts when trying
-        # to draw the Roman PSF in finite time and memory
-        flux_cap = 3e7
-        if self.flux > flux_cap:
-            if (
-                hasattr(gal, "original")
-                and hasattr(gal.original, "original")
-                and isinstance(gal.original.original, galsim.DeltaFunction)
-            ) or (isinstance(gal, galsim.DeltaFunction)):
-                gal = gal.withFlux(flux_cap, bandpass)
-                self.flux = flux_cap
-                gal.flux = flux_cap
-        # Cap (star) flux at 30M photons to avoid gross artifacts when trying
-        # to draw the Roman PSF in finite time and memory
-        flux_cap = 3e7
-        if self.flux > flux_cap:
-            if (
-                hasattr(gal, "original")
-                and hasattr(gal.original, "original")
-                and isinstance(gal.original.original, galsim.DeltaFunction)
-            ) or (isinstance(gal, galsim.DeltaFunction)):
-                gal = gal.withFlux(flux_cap, bandpass)
-                self.flux = flux_cap
-                gal.flux = flux_cap
         base["flux"] = gal.flux
         base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
         # print('stamp setup2',process.memory_info().rss)
@@ -205,8 +181,8 @@ class Roman_stamp(StampBuilder):
         # using spline interpolation, then the codepath is quite slow.
         # Better to fix them before doing WavelengthSampler.
         if isinstance(prof, galsim.ChromaticObject):
-            wave_list, _, _ = galsim.utilities.combine_wave_list(prof.SED, bandpass)
-            sed = prof.SED
+            wave_list, _, _ = galsim.utilities.combine_wave_list(prof.sed, bandpass)
+            sed = prof.sed
             # TODO: This bit should probably be ported back to Galsim.
             #       Something like sed.make_tabulated()
             if not isinstance(sed._spec, galsim.LookupTable) or sed._spec.interpolant != "linear":
@@ -214,7 +190,7 @@ class Roman_stamp(StampBuilder):
                 f = np.broadcast_to(sed(wave_list), wave_list.shape)
                 new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
                 new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
-                prof.SED = new_sed
+                prof.sed = new_sed
 
             # Also recurse onto any components.
             if hasattr(prof, "obj_list"):
@@ -345,10 +321,9 @@ class Roman_stamp(StampBuilder):
                 )
 
             # Go back to a combined convolution for fft drawing.
-            gal = gal.withFlux(self.flux, bandpass)
             prof = galsim.Convolve([gal] + psfs)
             try:
-                prof.drawImage(bandpass, **kwargs)
+                prof.drawImage(bandpass=bandpass, **kwargs)
             except galsim.errors.GalSimFFTSizeError as e:
                 # I think this shouldn't happen with the updates I made to how the image size
                 # is calculated, even for extremely bright things.  So it should be ok to
