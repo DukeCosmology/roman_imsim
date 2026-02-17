@@ -454,7 +454,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
       
         return None
 
-def writeASDF_fakedata(self, config, base, image, path, include_raw_header=False):
+    def writeASDF_fakedata(self, config, base, image, path, include_raw_header=False):
         """
         Method to write the file to disk
 
