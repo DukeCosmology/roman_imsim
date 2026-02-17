@@ -51,7 +51,7 @@ def test_compare_image():
         / "RomanWAS_new"
         / "images"
         / "truth"
-        / "Roman_WAS_truth_J129_12909_4.fits"
+        / "Roman_WAS_truth_J129_12909_4.fits.gz"
     )
     output_image = (
         Path(HACK_REPO)
@@ -59,7 +59,7 @@ def test_compare_image():
         / "RomanWAS_new"
         / "images"
         / "truth"
-        / "Roman_WAS_truth_J129_12909_4.fits"
+        / "Roman_WAS_truth_J129_12909_4.fits.gz"
     )
 
     output_hdul = fits.open(output_image)
