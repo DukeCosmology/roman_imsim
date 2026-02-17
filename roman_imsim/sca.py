@@ -19,6 +19,9 @@ import sys
 import os
 from .asdf_helper import mk_level2_image_with_wcs
 from pathlib import Path
+from roman_datamodels import datamodels 
+from roman_datamodels import datamodels as rdm
+from roman_datamodels._stnode import WfiImage
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
 
@@ -451,6 +454,80 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
       
         return None
 
+def writeASDF_fakedata(self, config, base, image, path, include_raw_header=False):
+        """
+        Method to write the file to disk
+
+        Parameters:
+        -----------
+        path (str): Output path and filename
+        include_raw_header (bool): If `True` include a copy of the raw FITS header
+           as a dictionary in the ASDF file.
+        """
+    
+        print("self attrs:", [a for a in dir(self) if not a.startswith("_")])
+        print("config keys:", list(config.keys()))
+        print("base keys:  ", list(base.keys()))
+        
+        for key, val in image.header.items():
+            print(f"{key} = {val}")
+        print("Image array shape:", image.array.shape)
+        print(image.array)
+
+
+
+        # Fill out the wcs block - this is very hard since we need to change from wcs to gwcs object stored in asdf
+        # The config wcs is the configuration for building the wcs above
+        # The base is galsim.GSFitsWCS constructed from config wcs using wcs.py, and copied to image.wcs
+        
+        #turn the Galsim header to a fits header for the wcs_from_fits_header function
+        galsim_wcs_header = image.wcs.header           
+        d = dict(galsim_wcs_header)                     
+        wcs_header = Header(d)
+        ny, nx = image.array.shape
+        
+        wcs_header['NAXIS']  = 2                   # number of axes
+        wcs_header['NAXIS1'] = nx                  # image width in pixels
+        wcs_header['NAXIS2'] = ny                  # image height in pixels
+
+        # coordinate type
+        wcs_header['CTYPE1'] = 'RA---TAN-SIP'
+        wcs_header['CTYPE2'] = 'DEC--TAN-SIP'
+
+        # reference pixel 
+        wcs_header['CRPIX1'] = nx/2
+        wcs_header['CRPIX2'] = ny/2
+
+        # reference coordinates 
+        wcs_header['CRVAL1'] = base['world_center'].ra.deg   
+        wcs_header['CRVAL2'] = base['world_center'].dec.deg    
+
+        #I can't find these information (I think they are also connected to border_ref_pix_left etc) so comment below out - the wcs is not correct without these info
+        # linear transformation: pixel scale in deg/pixel
+        #scale = 0.1 / 3600.0          
+        #if the image has rotation wrt constant ra and dec
+        #wcs_header['CD1_1'] = -scale  
+        #wcs_header['CD1_2'] = 0.0
+        #wcs_header['CD2_1'] = 0.0
+        #wcs_header['CD2_2'] = scale
+
+        # coordinate system
+        wcs_header['RADESYS'] = 'ICRS'
+        wcs_header['LONPOLE'] = 180.0
+        
+
+        tree["meta"]['filename'] = filename
+        tree["meta"]['wcs'] = self.wcs_from_fits_header(wcs_header)
+        tree['data'] = image.array.astype('float32')
+        
+        tree = WfiImage.create_fake_data()
+        with asdf.AsdfFile() as af:
+            af.tree = {"roman": tree}
+            af.write_to(path)
+
+      
+        return None
+
 
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
@@ -554,7 +631,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #manage return
         self.full_image = full_image
         if self.writeASDF:
-            self.writeASDF(config, base, full_image, 'one_image.asdf', include_raw_header=False)
+            self.writeASDF_fakedata(config, base, full_image, 'one_image.asdf', include_raw_header=False)
         
         return full_image, None
 
