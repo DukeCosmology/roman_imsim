@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import galsim
 import numpy as np
 import pytest
 from astropy.io import fits
@@ -22,8 +21,12 @@ RTOL = 1e-6
 
 
 def test_compare_truth():
-    reference_truth = Path(HACK_REPO) / REFERENCE_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
-    output_truth = Path(HACK_REPO) / OUTPUT_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
+    reference_truth = (
+        Path(HACK_REPO) / REFERENCE_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
+    )
+    output_truth = (
+        Path(HACK_REPO) / OUTPUT_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
+    )
 
     output_table = ascii.read(output_truth)
     reference_table = ascii.read(reference_truth)
@@ -42,8 +45,22 @@ def test_compare_truth():
 
 
 def test_compare_image():
-    reference_image = Path(HACK_REPO) / REFERENCE_DIR / "RomanWAS_new" / "images" / "truth" / "Roman_WAS_truth_J129_12909_4.fits"
-    output_image = Path(HACK_REPO) / OUTPUT_DIR / "RomanWAS_new" / "images" / "truth" / "Roman_WAS_truth_J129_12909_4.fits"
+    reference_image = (
+        Path(HACK_REPO)
+        / REFERENCE_DIR
+        / "RomanWAS_new"
+        / "images"
+        / "truth"
+        / "Roman_WAS_truth_J129_12909_4.fits"
+    )
+    output_image = (
+        Path(HACK_REPO)
+        / OUTPUT_DIR
+        / "RomanWAS_new"
+        / "images"
+        / "truth"
+        / "Roman_WAS_truth_J129_12909_4.fits"
+    )
 
     output_hdul = fits.open(output_image)
     reference_hdul = fits.open(reference_image)
@@ -52,4 +69,3 @@ def test_compare_image():
     reference_data = reference_hdul[0].data
 
     np.testing.assert_allclose(output_data, reference_data, rtol=RTOL, atol=ATOL)
-
