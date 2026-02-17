@@ -516,7 +516,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         wcs_header['LONPOLE'] = 180.0
         
 
-        tree["meta"]['filename'] = filename
+        tree["meta"]['filename'] = path
         tree["meta"]['wcs'] = self.wcs_from_fits_header(wcs_header)
         tree['data'] = image.array.astype('float32')
         
