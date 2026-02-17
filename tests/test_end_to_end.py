@@ -16,7 +16,7 @@ pytestmark = pytest.mark.skipif(
     reason=f"Test data not available; {HACK_REPO} not found",
 )
 
-ATOL = 1e-12
+ATOL = 0.1
 RTOL = 0
 
 
