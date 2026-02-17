@@ -70,6 +70,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.filter = params["filter"]
         self.mjd = params["mjd"]
         self.exptime = params["exptime"]
+        self.date = Time(self.mjd, format="mjd").to_datetime()
 
         self.ignore_noise = params.get("ignore_noise", False)
         # self.exptime = params.get('exptime', roman.exptime)  # Default is roman standard exposure time.
@@ -228,7 +229,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # value added to sky_image.  So technically, this includes things that aren't just sky.
         # E.g. includes dark_current and thermal backgrounds.
         sky_image = image.copy()
-        sky_level = roman.getSkyLevel(bp, world_pos=wcs.toWorld(image.true_center))
+        sky_level = roman.getSkyLevel(bp, world_pos=wcs.toWorld(image.true_center), date=self.date)
         logger.debug("Adding sky_level = %s", sky_level)
         if self.stray_light:
             logger.debug("Stray light fraction = %s", roman.stray_light_fraction)
