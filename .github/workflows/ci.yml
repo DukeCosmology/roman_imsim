@@ -41,9 +41,9 @@ jobs:
           popd
 
 
-      - name: Run GalSim
+      - name: Run GalSim and validate output
         run: |
           pushd SimHackJune2025
           galsim hack.yaml
-          sha256sum -c hack.sha
+          python compare_to_reference.py
           popd
