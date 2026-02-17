@@ -8,7 +8,7 @@ from astropy.io import ascii
 REFERENCE_DIR = "reference"
 OUTPUT_DIR = "output"
 
-HACK_REPO = "../SimHackJune2025"
+HACK_REPO = "SimHackJune2025"
 
 
 pytestmark = pytest.mark.skipif(

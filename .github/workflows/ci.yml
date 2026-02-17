@@ -53,9 +53,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pushd roman_imsim
-          pytest --strict-markers --cov=roman_imsim tests/
-          popd
+          pytest --strict-markers --cov=roman_imsim tests/test_end_to_end.py
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
