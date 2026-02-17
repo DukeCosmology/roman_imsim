@@ -12,7 +12,7 @@ import roman_imsim.obseq
 
 
 # --- read yaml ---
-with open("../config/was.yaml", "r") as f:
+with open("config/was.yaml", "r") as f:
     base = yaml.safe_load(f)
 
 config = base["image"]   # for an ImageBuilder-style config parse
