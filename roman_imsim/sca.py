@@ -553,6 +553,51 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # 'read_pattern': [], 
         # 'truncated': False
         # }
+        
+        #tree["meta"]['guide_star'] = {
+        #    'guide_window_id': '?', 
+        #    'guide_mode': 'WIM-ACQ', 
+        #    'window_xstart': -999999, 
+        #    'window_ystart': -999999, 
+        #    'window_xstop': -999999, 
+        #    'window_ystop': -999999, 
+        #    'guide_star_id': '?', 
+        #    'epoch': '?'
+        #    }
+        
+        tree["meta"]['instrument'] = {
+            'name': 'WFI', 
+            'detector': 'WFI01', 
+            'optical_element': params["filter"]
+            }
+        
+        tree["meta"]['observation'] = {
+            'observation_id': '?', 
+            'visit_id': '?', 
+            'program': -999999, 
+            'execution_plan': -999999, 
+            'pass': -999999, 
+            'segment': -999999, 
+            'observation': -999999, 
+            'visit': base['input']['obseq_data']['visit'], 
+            'visit_file_group': -999999, 
+            'visit_file_sequence': -999999, 
+            'visit_file_activity': '?', 
+            'exposure': image.header['EXPTIME'], 
+            'wfi_parallel': False
+            }
+        
+        tree["meta"]['pointing'] = {
+            'pa_aperture': -999999.0, 
+            'pointing_engineering_source': 'CALCULATED', 
+            'ra_v1': -999999.0, 
+            'dec_v1': -999999.0, 
+            'pa_v3': -999999.0, 
+            'target_aperture': 'WFI_CEN', 
+            'target_ra': image.wcs.center.ra.deg, 
+            'target_dec': image.wcs.center.dec.deg
+            }
+  
         # tree["meta"]['program'] = {
         # 'title': '?',
         # 'investigator_name': '?',
