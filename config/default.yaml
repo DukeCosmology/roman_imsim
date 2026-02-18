@@ -3,7 +3,7 @@
 #  -- processing of other detector and instrument effects are still handled in the
 #     python postprocessing layer to enable things not currently in galsim.roman
 
-modules:
+modules: &modules_defaults
 
     # Including galsim.roman in the list of modules to import will add a number of Roman-specific
     # functions and classes that we will use here.
@@ -16,7 +16,7 @@ modules:
     - datetime
 
 # Define some other information about the images
-image:
+image: &image_defaults
 
     # A special Image type that knows all the Roman SCA geometry, WCS, gain, etc.
     # It also by default applies a number of detector effects, but these can be turned
@@ -79,22 +79,20 @@ image:
     # is even more pronounced in this case.
     use_fft_bright: True
     
-    noise:
-        # These are all by default turned on, but you can turn any of them off if desired:
-        type: RomanNoise
-        ignore_noise: True
-        stray_light: False
-        thermal_background: False
-        reciprocity_failure: False
-        dark_current: False
-        nonlinearity: False
-        ipc: False
-        read_noise: False
-        sky_subtract: False
+    # These are all by default turned on, but you can turn any of them off if desired:
+    ignore_noise: True
+    stray_light: False
+    thermal_background: False
+    reciprocity_failure: False
+    dark_current: False
+    nonlinearity: False
+    ipc: False
+    read_noise: False
+    sky_subtract: False
 
     nobjects: 500
 
-stamp:
+stamp: &stamp_defaults
     type: Roman_stamp
     world_pos:
         type: SkyCatWorldPos
@@ -114,10 +112,10 @@ stamp:
 #     n_waves: 10
 
 # Define the galaxy type and positions to use
-gal:
+gal: &gal_defaults
     type: SkyCatObj
 
-input:
+input: &input_defaults
     obseq_data:
         file_name: /hpc/group/cosmology/repos/roman_imsim/Roman_WAS_obseq_test.fits
         visit: 80840
@@ -132,7 +130,7 @@ input:
         exptime: { type: ObSeqData, field: exptime }          
         # obj_types: ['star']
 
-output:
+output: &output_defaults
 
     nfiles: 1
     dir: output/images/truth
