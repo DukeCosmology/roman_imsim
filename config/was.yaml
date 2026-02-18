@@ -5,14 +5,14 @@ template: default.yaml
 # Or you can update the entire field if more convenient
 image.random_seed:
     - { type: ObSeqData, field: visit }
-image.noise.ignore_noise: False
-image.noise.stray_light: True
-image.noise.thermal_background: True
-image.noise.reciprocity_failure: True
-image.noise.dark_current: True
-image.noise.nonlinearity: True
-image.noise.ipc: True
-image.noise.read_noise: True
+image.ignore_noise: False
+image.stray_light: True
+image.thermal_background: True
+image.reciprocity_failure: True
+image.dark_current: True
+image.nonlinearity: True
+image.ipc: True
+image.read_noise: True
 image.nobjects: null
 
 input.obseq_data.file_name: /hpc/group/cosmology/OpenUniverse2024/RomanWAS/Roman_WAS_obseq_11_1_23.fits
