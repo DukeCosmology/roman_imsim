@@ -17,11 +17,9 @@ import astropy.coordinates
 import gwcs
 import sys
 import os
-from .asdf_helper import mk_level2_image_with_wcs
+#from .asdf_helper import mk_level2_image_with_wcs
 from pathlib import Path
-from roman_datamodels import datamodels 
-from roman_datamodels import datamodels as rdm
-from roman_datamodels._stnode import WfiImage
+from roman_datamodels.datamodels import ImageModel
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
 
@@ -454,7 +452,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
       
         return None
 
-    def writeASDF_fakedata(self, config, base, image, path, include_raw_header=False):
+    def writeASDF_rdm(self, config, base, image, path, include_raw_header=False):
         """
         Method to write the file to disk
 
@@ -473,8 +471,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             print(f"{key} = {val}")
         print("Image array shape:", image.array.shape)
         print(image.array)
-
-
 
         # Fill out the wcs block - this is very hard since we need to change from wcs to gwcs object stored in asdf
         # The config wcs is the configuration for building the wcs above
@@ -515,19 +511,12 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         wcs_header['RADESYS'] = 'ICRS'
         wcs_header['LONPOLE'] = 180.0
         
-
+        tree = ImageModel.create_fake_data()
         tree["meta"]['filename'] = path
         tree["meta"]['wcs'] = self.wcs_from_fits_header(wcs_header)
         tree['data'] = image.array.astype('float32')
-        
-        tree = WfiImage.create_fake_data()
-        with asdf.AsdfFile() as af:
-            af.tree = {"roman": tree}
-            af.write_to(path)
-
+        _ = tree.save(path, dir_path=None)
       
-        return None
-
 
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
@@ -631,7 +620,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #manage return
         self.full_image = full_image
         if self.writeASDF:
-            self.writeASDF_fakedata(config, base, full_image, 'one_image.asdf', include_raw_header=False)
+            self.writeASDF_rdm(config, base, full_image, 'one_image.asdf', include_raw_header=False)
         
         return full_image, None
 
