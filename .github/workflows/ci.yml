@@ -40,7 +40,7 @@ jobs:
 
       - name: Get test repository
         run: |
-          git clone --branch reference https://github.com/DukeCosmology/SimHackJune2025.git
+          git clone https://github.com/DukeCosmology/SimHackJune2025.git
           pushd SimHackJune2025
           git lfs pull
           popd
@@ -53,10 +53,10 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest --strict-markers --cov=roman_imsim tests/test_end_to_end.py
+          pytest --strict-markers tests/test_end_to_end.py
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
+      # - name: Upload coverage report
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: coverage.xml
