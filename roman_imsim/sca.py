@@ -441,13 +441,13 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         wcs_header['RADESYS'] = 'ICRS'
         wcs_header['LONPOLE'] = 180.0
         
-        wfi_image = mk_level2_image_with_wcs(
-            shape=image.array.shape,
-            filepath=path,
-            data=image.array.astype('float32'),  #For now convert to float32, latter the image.array shall it self be float32
-            meta=meta_dict,
-            wcs = self.wcs_from_fits_header(wcs_header)
-        )
+        # wfi_image = mk_level2_image_with_wcs(
+        #     shape=image.array.shape,
+        #     filepath=path,
+        #     data=image.array.astype('float32'),  #For now convert to float32, latter the image.array shall it self be float32
+        #     meta=meta_dict,
+        #     wcs = self.wcs_from_fits_header(wcs_header)
+        # )
         
       
         return None
@@ -510,11 +510,83 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # coordinate system
         wcs_header['RADESYS'] = 'ICRS'
         wcs_header['LONPOLE'] = 180.0
-        
+        breakpoint()
         tree = ImageModel.create_fake_data()
+        
+        # the following entries which are commented out because they have default values and are not yet implemented in the yaml, 
+        # but they are required and should be dealt with in the future
+        # tree["meta"]['calibration_software_name'] = 'RomanCAL' 
+        # tree["meta"]['calibration_software_version'] = '?'
+        # tree["meta"]['product_type'] = '?'
         tree["meta"]['filename'] = path
+        # tree["meta"]['file_date'] = #should automatically be set
+        # tree["meta"]['model_type'] = 'ImageModel'
+        # tree["meta"]['origin'] = 'STSCI/SOC'
+        # tree["meta"]['prd_version'] = '?'
+        # tree["meta"]['sdf_software_version'] = '?'
+        tree["meta"]['telescope'] = 'ROMAN'
+        # tree["meta"]["coordinates"] = {'reference_frame': 'ICRS'}
+        # tree["meta"]["ephemeris"] = {
+        # 'ephemeris_reference_frame': '?',
+        # 'type': 'DEFINITIVE', 
+        # 'time': -999999.0, 
+        # 'spatial_x': -999999.0, 
+        # 'spatial_y': -999999.0, 
+        # 'spatial_z': -999999.0, 
+        # 'velocity_x': -999999.0, 
+        # 'velocity_y': -999999.0, 
+        # 'velocity_z': -999999.0
+        # }
+        # tree["meta"]['exposure'] = {
+        # 'type': 'WFI_IMAGE', 
+        # 'start_time': <Time object: scale='utc' format='isot' value=2020-01-01T00:00:00.000>, 
+        # 'end_time': <Time object: scale='utc' format='isot' value=2020-01-01T00:00:00.000>, 
+        # 'engineering_quality': 'OK', 
+        # 'ma_table_id': '?', 
+        # 'nresultants': -999999, 
+        # 'data_problem': '?', 
+        # 'frame_time': -999999.0, 
+        # 'exposure_time': -999999.0, 
+        # 'effective_exposure_time': -999999.0, 
+        # 'ma_table_name': '?', 
+        # 'ma_table_number': -999999, 
+        # 'read_pattern': [], 
+        # 'truncated': False
+        # }
+
+
+
+        
         tree["meta"]['wcs'] = self.wcs_from_fits_header(wcs_header)
+        
+        tree["meta"]['instrument']['detector'] = 'WFI10'
+        tree["meta"]['instrument']['optical_element'] = self.filter
+        tree["meta"]['instrument']['name'] = 'WFI'
+
+        tree["meta"]['obs_date'] = Time(self.mjd, format="mjd").datetime.isoformat()
+        tree["meta"]['pointing'][] = {
+            'pa_aperture': -999999.0, 
+            'pointing_engineering_source': 'CALCULATED', 
+            'ra_v1': -999999.0, 
+            'dec_v1': -999999.0, 
+            'pa_v3': -999999.0, 
+            'target_aperture': 'WFI_CEN', 
+            'target_ra': image.wcs.center.ra.deg, 
+            'target_dec': image.wcs.center.dec.deg
+            }
+        tree["meta"]['exposure_time'] = self.exptime
+        tree["meta"]['mjd_obs'] = self.mjd
+        tree["meta"]['nreads'] = 1
+        tree["meta"]['gain'] = 1.0
+        #tree["meta"]['sky_mean'] = 0.0  # Placeholder for sky mean, as it's not currently implemented in the yaml
+        tree["meta"]['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
+        tree["meta"]['pa_fpa'] = True
         tree['data'] = image.array.astype('float32')
+        tree["err"] = np.zeros_like(image.array, dtype='float32')  # Placeholder for error array
+        tree["dq"] = np.zeros_like(image.array, dtype='uint32')  # Placeholder for data quality array
+
+        
+
         _ = tree.save(path, dir_path=None)
       
 
@@ -540,6 +612,14 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image = Image(full_xsize, full_ysize, dtype=float)
         full_image.setOrigin(base["image_origin"])
         full_image.wcs = wcs
+        breakpoint()
+        print("full image wcs:", full_image.wcs)
+        print("full image wcs type:", type(full_image.wcs))
+        print("full image wcs header:", full_image.wcs.header)
+        print("full image wcs header type:", type(full_image.wcs.header))
+        print("full image wcs header keys:", full_image.wcs.header.keys())
+        print("full image wcs methods:", dir(full_image.wcs))
+
         full_image.setZero()
         
         full_image.header = galsim.FitsHeader()
@@ -567,9 +647,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 "x": {"type": "Random", "min": xmin, "max": xmax},
                 "y": {"type": "Random", "min": ymin, "max": ymax},
             }
-
+   
         nbatch = self.nobjects // 1000 + 1
-        for batch in range(nbatch):
+        for batch in range(3):#range(nbatch):
             #start id of objects in this batch
             start_obj_num = self.nobjects * batch // nbatch
             #end id of objects in this batch
