@@ -553,6 +553,34 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # 'read_pattern': [], 
         # 'truncated': False
         # }
+        # tree["meta"]['program'] = {
+        # 'title': '?',
+        # 'investigator_name': '?',
+        # 'category': '?',
+        # 'subcategory': 'CAL',
+        # 'science_category': '?'
+        # }
+        # tree["meta"]['ref_file'] = {
+        # {'crds': {'version': '?', 'context': '?'}, 
+        # 'apcorr': '?', 
+        # 'area': '?', 
+        # 'dark': '?', 
+        # 'darkdecaysignal': '?', 
+        # 'distortion': '?', 
+        # 'epsf': '?', 
+        # 'mask': '?', 
+        # 'flat': '?', 
+        # 'gain': '?', 
+        # 'inverselinearity': '?', 
+        # 'linearity': '?', 
+        # 'integralnonlinearity': '?', 
+        # 'photom': '?', 
+        # 'readnoise': '?', 
+        # 'refpix': '?', 
+        # 'saturation': '?'
+        # }
+        # tree["meta"]['rcs'] = {'active': False, 'electronics': 'A', 'bank': '1', 'led': '1', 'counts': -999999}
+        # tree["meta"]['velocity_aberration'] = {'ra_reference': -999999.0, 'dec_reference': -999999.0, 'scale_factor': -999999.0}
 
 
 
@@ -564,7 +592,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree["meta"]['instrument']['name'] = 'WFI'
 
         tree["meta"]['obs_date'] = Time(self.mjd, format="mjd").datetime.isoformat()
-        tree["meta"]['pointing'][] = {
+        tree["meta"]['pointing'] = {
             'pa_aperture': -999999.0, 
             'pointing_engineering_source': 'CALCULATED', 
             'ra_v1': -999999.0, 
