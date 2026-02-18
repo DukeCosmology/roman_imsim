@@ -4,25 +4,22 @@ import numpy as np
 from astropy import time
 
 from roman_datamodels import stnode
-
-import sys
-sys.path.insert(0, "/hpc/group/cosmology/boyan/roman_datamodels/src/roman_datamodels/")
-from _maker_utils._base import MESSAGE, save_node
-from _maker_utils._common_meta import (
-    mk_catalog_meta,
-    mk_common_meta,
-    mk_guidewindow_meta,
-    mk_l1_detector_guidewindow_meta,
-    mk_l1_face_guidewindow_meta,
-    mk_l2_meta,
-    mk_mosaic_catalog_meta,
-    mk_msos_stack_meta,
-    mk_ramp_meta,
-    mk_wcs,
-    mk_wfi_wcs_common_meta,
-)
-
-
+from roman_datamodels.datamodels import ImageModel
+from roman_datamodels.maker_utils import (
+        save_node,
+        MESSAGE,
+        mk_catalog_meta,
+        mk_common_meta,
+        mk_guidewindow_meta,
+        mk_l1_detector_guidewindow_meta,
+        mk_l1_face_guidewindow_meta,
+        mk_l2_meta,
+        mk_mosaic_catalog_meta,
+        mk_msos_stack_meta,
+        mk_ramp_meta,
+        mk_wcs,
+        mk_wfi_wcs_common_meta,
+        )
 
 def mk_level2_image_with_wcs(*, shape=(4088, 4088), n_groups=8, filepath=None, wcs = None, **kwargs):
     """
