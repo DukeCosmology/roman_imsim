@@ -1,6 +1,5 @@
 from importlib.metadata import version, PackageNotFoundError
 import gc
-
 import galsim
 import galsim.config
 import romanisim.models as models
@@ -341,10 +340,16 @@ class RomanSCAImageBuilderCMOS(ScatteredImageBuilder):
         resultant_i = 0
         resultant_buffer = []
         # Iterate through all dt
+        if "_global" not in base:
+            base["_global"] = {}
+        if "stamp_setup_cache" not in base["_global"]:
+            base["_global"]["stamp_setup_cache"] = {}
+
         for dt in np.arange(1, max_dt + 1):
 
             nbatch = self.nobjects // 1000 + 1
             full_array = galsim.PhotonArray(0)
+
             for batch in range(nbatch):
                 start_obj_num = self.nobjects * batch // nbatch
                 end_obj_num = self.nobjects * (batch + 1) // nbatch
@@ -361,6 +366,7 @@ class RomanSCAImageBuilderCMOS(ScatteredImageBuilder):
                 stamps, current_vars = galsim.config.BuildStamps(
                     nobj_batch, base, logger=logger, obj_num=start_obj_num, do_noise=False
                 )
+                logger.warning(base["_global"]["stamp_setup_cache"][batch])
                 base["index_key"] = "image_num"
 
                 for k in range(nobj_batch):
