@@ -630,7 +630,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
 
         
-        tree["meta"]['wcs'] = self.wcs_from_fits_header(wcs_header)
         
         tree["meta"]['instrument']['detector'] = 'WFI10'
         tree["meta"]['instrument']['optical_element'] = self.filter
@@ -654,6 +653,147 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #tree["meta"]['sky_mean'] = 0.0  # Placeholder for sky mean, as it's not currently implemented in the yaml
         tree["meta"]['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
         tree["meta"]['pa_fpa'] = True
+
+        ######### Navin
+        #setup value assignment in the same order as they appear in template
+        tree.meta.calibration_software_name = tree.meta.calibration_software_name
+        tree.meta.calibration_software_version = tree.meta.calibration_software_version
+        
+        tree.meta.product_type = tree.meta.product_type
+        
+        tree.meta.filename = tree.meta.filename
+        tree.meta.file_date = tree.meta.file_date
+        
+        tree.meta.model_type = tree.meta.model_type
+        
+        tree.meta.origin = tree.meta.origin
+        
+        tree.meta.prd_version = tree.meta.prd_version
+        
+        tree.meta.sdf_software_version = tree.meta.sdf_software_version
+        
+        tree.meta.telescope = tree.meta.telescope
+        
+        tree.meta.coordinates.reference_frame = tree.meta.coordinates.reference_frame
+        
+        tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
+        tree.meta.ephemeris.type = tree.meta.ephemeris.type
+        tree.meta.ephemeris.time = tree.meta.ephemeris.time
+        tree.meta.ephemeris.spatial_x = tree.meta.ephemeris.spatial_x
+        tree.meta.ephemeris.spatial_y = tree.meta.ephemeris.spatial_y
+        tree.meta.ephemeris.spatial_z = tree.meta.ephemeris.spatial_z
+        tree.meta.ephemeris.velocity_x = tree.meta.ephemeris.velocity_x
+        tree.meta.ephemeris.velocity_y = tree.meta.ephemeris.velocity_y
+        tree.meta.ephemeris.velocity_z = tree.meta.ephemeris.velocity_z
+        
+        tree.meta.exposure.type = tree.meta.exposure.type
+        tree.meta.exposure.start_time = tree.meta.exposure.start_time
+        tree.meta.exposure.end_time = tree.meta.exposure.end_time
+        tree.meta.exposure.engineering_quality = tree.meta.exposure.engineering_quality
+        tree.meta.exposure.ma_table_id = tree.meta.exposure.ma_table_id
+        tree.meta.exposure.nresultants = tree.meta.exposure.nresultants
+        tree.meta.exposure.data_problem = tree.meta.exposure.data_problem
+        tree.meta.exposure.frame_time = tree.meta.exposure.frame_time
+        tree.meta.exposure.exposure_time = tree.meta.exposure.exposure_time
+        tree.meta.exposure.effective_exposure_time = tree.meta.exposure.effective_exposure_time
+        tree.meta.exposure.ma_table_name = tree.meta.exposure.ma_table_name
+        tree.meta.exposure.ma_table_number = tree.meta.exposure.ma_table_number
+        tree.meta.exposure.truncated = tree.meta.exposure.truncated
+        
+        tree.meta.guide_star.guide_window_id = tree.meta.guide_star.guide_window_id
+        tree.meta.guide_star.guide_mode = tree.meta.guide_star.guide_mode
+        tree.meta.guide_star.window_xstart = tree.meta.guide_star.window_xstart
+        tree.meta.guide_star.window_ystart = tree.meta.guide_star.window_ystart
+        tree.meta.guide_star.window_xstop = tree.meta.guide_star.window_xstop
+        tree.meta.guide_star.window_ystop = tree.meta.guide_star.window_ystop
+        tree.meta.guide_star.guide_star_id = tree.meta.guide_star.guide_star_id
+        tree.meta.guide_star.epoch = tree.meta.guide_star.epoch
+        
+        tree.meta.instrument.name = tree.meta.instrument.name
+        tree.meta.instrument.detector = tree.meta.instrument.detector
+        tree.meta.instrument.optical_element = tree.meta.instrument.optical_element
+        
+        tree.meta.observation.observation_id = tree.meta.observation.observation_id
+        tree.meta.observation.visit_id = tree.meta.observation.visit_id
+        tree.meta.observation.program = tree.meta.observation.program
+        tree.meta.observation.execution_plan = tree.meta.observation.execution_plan
+        tree.meta.observation.pass = tree.meta.observation.pass
+        tree.meta.observation.segment = tree.meta.observation.segment
+        tree.meta.observation.observation = tree.meta.observation.observation
+        tree.meta.observation.visit = tree.meta.observation.visit
+        tree.meta.observation.visit_file_group = tree.meta.observation.visit_file_group
+        tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
+        tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
+        tree.meta.observation.exposure = tree.meta.observation.exposure
+        tree.meta.observation.wfi_parallel = tree.meta.observation.wfi_parallel
+        
+        tree.meta.pointing.pa_aperture = tree.meta.pointing.pa_aperture
+        tree.meta.pointing.pointing_engineering_source = tree.meta.pointing.pointing_engineering_source
+        tree.meta.pointing.ra_v1 = tree.meta.pointing.ra_v1
+        tree.meta.pointing.dec_v1 = tree.meta.pointing.dec_v1
+        tree.meta.pointing.pa_v3 = tree.meta.pointing.pa_v3
+        tree.meta.pointing.target_aperture = tree.meta.pointing.target_aperture
+        tree.meta.pointing.target_ra = tree.meta.pointing.target_ra
+        tree.meta.pointing.target_dec = tree.meta.pointing.target_dec
+        tree.meta.program.title = tree.meta.program.title
+        tree.meta.program.investigator_name = tree.meta.program.investigator_name
+        tree.meta.program.category = tree.meta.program.category
+        tree.meta.program.subcategory = tree.meta.program.subcategory
+        tree.meta.program.science_category = tree.meta.program.science_category
+        
+        tree.meta.ref_file.crds.version = tree.meta.ref_file.crds.version
+        tree.meta.ref_file.crds.context = tree.meta.ref_file.crds.context
+        tree.meta.ref_file.apcorr = tree.meta.ref_file.apcorr
+        tree.meta.ref_file.area = tree.meta.ref_file.area
+        tree.meta.ref_file.dark = tree.meta.ref_file.dark
+        tree.meta.ref_file.darkdecaysignal = tree.meta.ref_file.darkdecaysignal
+        tree.meta.ref_file.distortion = tree.meta.ref_file.distortion
+        tree.meta.ref_file.epsf = tree.meta.ref_file.epsf
+        tree.meta.ref_file.mask = tree.meta.ref_file.mask
+        tree.meta.ref_file.flat = tree.meta.ref_file.flat
+        tree.meta.ref_file.gain = tree.meta.ref_file.gain
+        tree.meta.ref_file.inverselinearity = tree.meta.ref_file.inverselinearity
+        tree.meta.ref_file.linearity = tree.meta.ref_file.linearity
+        tree.meta.ref_file.integralnonlinearity = tree.meta.ref_file.integralnonlinearity
+        tree.meta.ref_file.photom = tree.meta.ref_file.photom
+        tree.meta.ref_file.readnoise = tree.meta.ref_file.readnoise
+        tree.meta.ref_file.refpix = tree.meta.ref_file.refpix
+        tree.meta.ref_file.saturation = tree.meta.ref_file.saturation
+        
+        tree.meta.rcs.active = tree.meta.rcs.active
+        tree.meta.rcs.electronics = tree.meta.rcs.electronics
+        tree.meta.rcs.bank = tree.meta.rcs.bank
+        tree.meta.rcs.led = tree.meta.rcs.led
+        tree.meta.rcs.counts = tree.meta.rcs.counts
+        
+        tree.meta.velocity_aberration.ra_reference = tree.meta.velocity_aberration.ra_reference
+        tree.meta.velocity_aberration.dec_reference = tree.meta.velocity_aberration.dec_reference
+        tree.meta.velocity_aberration.scale_factor = tree.meta.velocity_aberration.scale_factor
+        
+        #meta.visit
+        tree.meta.visit.dither.primary_name  = tree.meta.wcsinfo.dither.primary_name
+        tree.meta.visit.dither.subpixel_name = tree.meta.wcsinfo.dither.subpixel_name
+        tree.meta.visit.type                 = tree.meta.wcsinfo.type
+        tree.meta.visit.start_time           = tree.meta.wcsinfo.start_time
+        tree.meta.visit.nexposures           = tree.meta.wcsinfo.nexposures
+        tree.meta.visit.internal_target      = tree.meta.wcsinfo.internal_target
+        #meta.wcs
+        tree.meta.wcs = self.wcs_from_fits_header(wcs_header)
+        #meta.wcsinfo
+        tree.meta.wcsinfo.aperture_name = tree.meta.wcsinfo.aperture_name
+        tree.meta.wcsinfo.v2_ref        = tree.meta.wcsinfo.v2_ref
+        tree.meta.wcsinfo.v3_ref        = tree.meta.wcsinfo.v3_ref
+        tree.meta.wcsinfo.vparity       = tree.meta.wcsinfo.vparity
+        tree.meta.wcsinfo.v3yangle      = tree.meta.wcsinfo.v3yangle
+        tree.meta.wcsinfo.ra_ref        = tree.meta.wcsinfo.ra_ref
+        tree.meta.wcsinfo.dec_ref       = tree.meta.wcsinfo.dec_ref
+        tree.meta.wcsinfo.roll_ref      = tree.meta.wcsinfo.roll_ref
+        tree.meta.wcsinfo.s_region      = tree.meta.wcsinfo.s_region
+        #meta.photometry
+        tree.meta.photometry.conversion_megajanskys = tree.meta.photometry.conversion_megajanskys
+        tree.meta.photometry.conversion_megajanskys_uncertainty = tree.meta.photometry.conversion_megajanskys_uncertainty
+        tree.meta.photometry.pixel_area = tree.meta.photometry.pixel_area
+
         tree['data'] = image.array.astype('float32')
         tree["err"] = np.zeros_like(image.array, dtype='float32')  # Placeholder for error array
         tree["dq"] = np.zeros_like(image.array, dtype='uint32')  # Placeholder for data quality array
