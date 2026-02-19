@@ -30,6 +30,8 @@ image: &image_defaults
         dec: { type: ObSeqData, field: dec }
         pa: { type: ObSeqData, field: pa }
         mjd: { type: ObSeqData, field: mjd }
+        max_sun_angle: 50
+        force_cvz: True
 
     bandpass:
         type: RomanBandpass
@@ -47,7 +49,7 @@ image: &image_defaults
     # move on to another sequence for the next 3 and so on.
     random_seed:
         # Used for noise and nobjects.
-        - 12345
+        - { type: ObSeqData, field: visit }
 
         # Used for objects.  Repeats sequence for each filter
         # Note: Don't use $ shorthand here, since that will implicitly be evaluated once and then
@@ -117,14 +119,14 @@ gal: &gal_defaults
 
 input: &input_defaults
     obseq_data:
-        file_name: /hpc/group/cosmology/repos/roman_imsim/Roman_WAS_obseq_test.fits
-        visit: 80840
+        file_name: /media/taeshin/4TB/roman_imsim/Roman_WAS_obseq_11_1_23.fits
+        visit: 1
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
-        n_waves: 10
+        n_waves: 5
     sky_catalog:
-        file_name: /hpc/group/cosmology/repos/roman_imsim/skyCatalog.yaml 
+        file_name: /media/taeshin/4TB/roman_imsim/config/skyCatalog.yaml 
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }          
@@ -133,7 +135,7 @@ input: &input_defaults
 output: &output_defaults
 
     nfiles: 1
-    dir: output/images/truth
+    dir: /media/taeshin/4TB/roman_imsim_output
     file_name:
         type: FormattedStr
         format: "Roman_LSST_true_%s_%s_%s.fits.gz"
@@ -143,7 +145,7 @@ output: &output_defaults
             - '@image.SCA'
 
     truth:
-        dir: output/truth
+        dir: /media/taeshin/4TB/roman_imsim_output
         file_name:
             type: FormattedStr
             format: "Roman_LSST_index_%s_%s_%s.txt"
@@ -159,3 +161,5 @@ output: &output_defaults
             y: "$image_pos.y"
             realized_flux: "@realized_flux"
             flux: "@flux"
+            mag: "@mag"
+            obj_type: "@object_type"
