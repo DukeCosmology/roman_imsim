@@ -513,12 +513,28 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         breakpoint()
         tree = ImageModel.create_fake_data()
         
-        # the following entries which are commented out because they have default values and are not yet implemented in the yaml, 
-        # but they are required and should be dealt with in the future
-        # tree["meta"]['calibration_software_name'] = 'RomanCAL' 
-        # tree["meta"]['calibration_software_version'] = '?'
-        # tree["meta"]['product_type'] = '?'
-        tree["meta"]['filename'] = path
+        # setup value assignment in the same order as they appear in template
+        # assigning default values: when attribute not understood or not available in the scope of the function.
+        tree.meta.calibration_software_name = tree.meta.calibration_software_name
+        tree.meta.calibration_software_version = tree.meta.calibration_software_version
+
+        tree.meta.product_type = tree.meta.product_type
+
+        tree.meta.filename = path
+        tree.meta.file_date = tree.meta.file_date
+        
+        tree.meta.model_type = tree.meta.model_type
+        
+        tree.meta.origin = tree.meta.origin
+        
+        tree.meta.prd_version = tree.meta.prd_version
+        
+        tree.meta.sdf_software_version = tree.meta.sdf_software_version
+        
+        tree.meta.telescope = tree.meta.telescope
+        
+        tree.meta.coordinates.reference_frame = tree.meta.coordinates.reference_frame
+
         # tree["meta"]['file_date'] = #should automatically be set
         # tree["meta"]['model_type'] = 'ImageModel'
         # tree["meta"]['origin'] = 'STSCI/SOC'
@@ -654,27 +670,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree["meta"]['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
         tree["meta"]['pa_fpa'] = True
 
-        ######### Navin
-        #setup value assignment in the same order as they appear in template
-        tree.meta.calibration_software_name = tree.meta.calibration_software_name
-        tree.meta.calibration_software_version = tree.meta.calibration_software_version
         
-        tree.meta.product_type = tree.meta.product_type
-        
-        tree.meta.filename = tree.meta.filename
-        tree.meta.file_date = tree.meta.file_date
-        
-        tree.meta.model_type = tree.meta.model_type
-        
-        tree.meta.origin = tree.meta.origin
-        
-        tree.meta.prd_version = tree.meta.prd_version
-        
-        tree.meta.sdf_software_version = tree.meta.sdf_software_version
-        
-        tree.meta.telescope = tree.meta.telescope
-        
-        tree.meta.coordinates.reference_frame = tree.meta.coordinates.reference_frame
         
         tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
         tree.meta.ephemeris.type = tree.meta.ephemeris.type
