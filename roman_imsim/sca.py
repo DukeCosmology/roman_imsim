@@ -610,14 +610,19 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #    'epoch': '?'
         #    }
         
-        tree.meta.instrument.name = tree.meta.instrument.name
+        tree.meta.instrument.name = "WFI"
         tree.meta.instrument.detector = tree.meta.instrument.detector
-        tree.meta.instrument.optical_element = params["filter"]
+        tree.meta.instrument.optical_element = self.filter #params["filter"]
         #tree["meta"]['instrument'] = {
         #    'name': 'WFI', 
         #    'detector': 'WFI01', 
         #    'optical_element': params["filter"]
         #    }
+        ##### =====> is it WFI10 or WFI01??? confirm it
+        ##### =====>  self.filter or params["filter"]
+        #tree["meta"]['instrument']['detector'] = 'WFI10'
+        #tree["meta"]['instrument']['optical_element'] = self.filter
+        #tree["meta"]['instrument']['name'] = 'WFI'
         
         tree.meta.observation.observation_id = tree.meta.observation.observation_id
         tree.meta.observation.visit_id = tree.meta.observation.visit_id
@@ -648,16 +653,24 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #    'wfi_parallel': False
         #    }
         
-        tree["meta"]['pointing'] = {
-            'pa_aperture': -999999.0, 
-            'pointing_engineering_source': 'CALCULATED', 
-            'ra_v1': -999999.0, 
-            'dec_v1': -999999.0, 
-            'pa_v3': -999999.0, 
-            'target_aperture': 'WFI_CEN', 
-            'target_ra': image.wcs.center.ra.deg, 
-            'target_dec': image.wcs.center.dec.deg
-            }
+        tree.meta.pointing.pa_aperture = tree.meta.pointing.pa_aperture
+        tree.meta.pointing.pointing_engineering_source = tree.meta.pointing.pointing_engineering_source
+        tree.meta.pointing.ra_v1 = tree.meta.pointing.ra_v1
+        tree.meta.pointing.dec_v1 = tree.meta.pointing.dec_v1
+        tree.meta.pointing.pa_v3 = tree.meta.pointing.pa_v3
+        tree.meta.pointing.target_aperture = 'WFI_CEN'
+        tree.meta.pointing.target_ra = image.wcs.center.ra.deg
+        tree.meta.pointing.target_dec = image.wcs.center.dec.deg
+        #tree["meta"]['pointing'] = {
+        #    'pa_aperture': -999999.0, 
+        #    'pointing_engineering_source': 'CALCULATED', 
+        #    'ra_v1': -999999.0, 
+        #    'dec_v1': -999999.0, 
+        #    'pa_v3': -999999.0, 
+        #    'target_aperture': 'WFI_CEN', 
+        #    'target_ra': image.wcs.center.ra.deg, 
+        #    'target_dec': image.wcs.center.dec.deg
+        #    }
   
         # tree["meta"]['program'] = {
         # 'title': '?',
@@ -689,10 +702,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # tree["meta"]['velocity_aberration'] = {'ra_reference': -999999.0, 'dec_reference': -999999.0, 'scale_factor': -999999.0}
 
         
-        tree["meta"]['instrument']['detector'] = 'WFI10'
-        tree["meta"]['instrument']['optical_element'] = self.filter
-        tree["meta"]['instrument']['name'] = 'WFI'
-
         tree["meta"]['obs_date'] = Time(self.mjd, format="mjd").datetime.isoformat()
         tree["meta"]['pointing'] = {
             'pa_aperture': -999999.0, 
@@ -712,14 +721,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree["meta"]['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
         tree["meta"]['pa_fpa'] = True
         
-        tree.meta.pointing.pa_aperture = tree.meta.pointing.pa_aperture
-        tree.meta.pointing.pointing_engineering_source = tree.meta.pointing.pointing_engineering_source
-        tree.meta.pointing.ra_v1 = tree.meta.pointing.ra_v1
-        tree.meta.pointing.dec_v1 = tree.meta.pointing.dec_v1
-        tree.meta.pointing.pa_v3 = tree.meta.pointing.pa_v3
-        tree.meta.pointing.target_aperture = tree.meta.pointing.target_aperture
-        tree.meta.pointing.target_ra = tree.meta.pointing.target_ra
-        tree.meta.pointing.target_dec = tree.meta.pointing.target_dec
         tree.meta.program.title = tree.meta.program.title
         tree.meta.program.investigator_name = tree.meta.program.investigator_name
         tree.meta.program.category = tree.meta.program.category
