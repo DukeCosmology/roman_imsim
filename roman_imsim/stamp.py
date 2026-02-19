@@ -409,93 +409,138 @@ class Roman_stamp_CMOS(StampBuilder):
             self.exptime = roman.exptime
 
         dt = galsim.config.ParseValue(config, "dt", base, float)[0]
-        gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
-        if gal is None:
-            raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
-        base["object_type"] = getattr(gal, "object_type", "")
-        bandpass = base["bandpass"]
-        if not hasattr(gal, "flux"):
-            # In this case, the object flux has not been precomputed
-            # or cached by the skyCatalogs code.
-            gal.flux = gal.calculateFlux(bandpass)
+        self.dt = dt
+        # create cache location
+        if "_global" not in base:
+            base["_global"] = {}
+        if "stamp_setup_cache" not in base["_global"]:
+            base["_global"]["stamp_setup_cache"] = {}
 
-        self.flux = gal.flux * (
-            dt / self.exptime
-        )  # need to check if we change flux here or elsewhere before its passed to stamps
+        stamp_cache = base["_global"]["stamp_setup_cache"]
+        # check cache and build
+        if base["obj_num"] in stamp_cache and stamp_cache[base["obj_num"]] is not None:
+            cached = stamp_cache[base["obj_num"]]
+            self.pupil_bin = cached["pupil_bin"]
+            self.flux = cached["flux"]
+            gal = cached["gal"]
+            gal.flux = cached["bflux"]
+            base["flux"] = gal.flux
+            base["mag"] = cached["bmag"]
+            world_pos = cached["world_pos"]
+            image_pos = cached["image_pos"]
 
-        # Cap (star) flux at 30M photons/(dt/exptime) to avoid gross artifacts when trying
-        # to draw the Roman PSF in finite time and memory
-        flux_cap = 3e7 * (dt / self.exptime)
-        if self.flux > flux_cap:
-            if (
-                hasattr(gal, "original")
-                and hasattr(gal.original, "original")
-                and isinstance(gal.original.original, galsim.DeltaFunction)
-            ) or (isinstance(gal, galsim.DeltaFunction)):
-                gal = gal.withFlux(flux_cap, bandpass)
-                self.flux = flux_cap
-                gal.flux = flux_cap
-        base["flux"] = (
-            gal.flux
-        )  # need to check if we change flux here or elsewhere (this is currently the full exptime flux)
-        base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
-        # print('stamp setup2',process.memory_info().rss)
-
-        # Compute or retrieve the realized flux.
-        self.rng = galsim.config.GetRNG(config, base, logger, "Roman_stamp")
-        self.realized_flux = galsim.PoissonDeviate(self.rng, mean=gal.flux)()
-        base["realized_flux"] = self.realized_flux
-
-        # Check if the realized flux is 0.
-        if self.realized_flux == 0:
-            # If so, we'll skip everything after this.
-            # The mechanism within GalSim to do this is to raise a special SkipThisObject class.
-            raise galsim.config.SkipThisObject("realized flux=0")
-
-        # Otherwise figure out the stamp size
-        if self.flux < 10 * (dt / self.exptime):
-            # For really faint things, don't try too hard.  Just use 32x32.
-            image_size = 32
-            self.pupil_bin = "achromatic"
-
+            # Compute or retrieve the realized flux.
+            self.rng = galsim.config.GetRNG(config, base, logger, "Roman_stamp")
+            self.realized_flux = galsim.PoissonDeviate(self.rng, mean=cached["bflux"])()
+            base["realized_flux"] = self.realized_flux
+            base["pupil_bin"] = self.pupil_bin
+            base["object_type"] = getattr(gal, "object_type", "")
+            # Check if the realized flux is 0.
+            if self.realized_flux == 0:
+                # If so, we'll skip everything after this.
+                # The mechanism within GalSim to do this is to raise a special SkipThisObject class.
+                raise galsim.config.SkipThisObject("realized flux=0")
         else:
-            gal_achrom = gal.evaluateAtWavelength(bandpass.effective_wavelength)
-            if hasattr(gal_achrom, "original") and isinstance(gal_achrom.original, galsim.DeltaFunction):
-                # For bright stars, set the following stamp size limits
-                if self.flux < 1e6 * (dt / self.exptime):
-                    image_size = 500
-                    self.pupil_bin = 8
-                elif self.flux < 6e6 * (dt / self.exptime):
-                    image_size = 1000
-                    self.pupil_bin = 4
-                else:
-                    image_size = 1600
-                    self.pupil_bin = 2
+            objs = base["obj_num"]
+            gal = galsim.config.BuildGSObject(base, "gal", logger=logger)[0]
+            if gal is None:
+                raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
+            base["object_type"] = getattr(gal, "object_type", "")
+            bandpass = base["bandpass"]
+            if not hasattr(gal, "flux"):
+                # In this case, the object flux has not been precomputed
+                # or cached by the skyCatalogs code.
+                gal.flux = gal.calculateFlux(bandpass)
+
+            self.flux = gal.flux * (
+                dt / self.exptime
+            )  # need to check if we change flux here or elsewhere before its passed to stamps
+
+            # Cap (star) flux at 30M photons/(dt/exptime) to avoid gross artifacts when trying
+            # to draw the Roman PSF in finite time and memory
+            flux_cap = 3e7 * (dt / self.exptime)
+            if self.flux > flux_cap:
+                if (
+                    hasattr(gal, "original")
+                    and hasattr(gal.original, "original")
+                    and isinstance(gal.original.original, galsim.DeltaFunction)
+                ) or (isinstance(gal, galsim.DeltaFunction)):
+                    gal = gal.withFlux(flux_cap, bandpass)
+                    self.flux = flux_cap
+                    gal.flux = flux_cap
+            base["flux"] = (
+                gal.flux
+            )  # need to check if we change flux here or elsewhere (this is currently the full exptime flux)
+            base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
+            # print('stamp setup2',process.memory_info().rss)
+            self.bmag = base["mag"]
+            self.bflux = base["flux"]
+            # Compute or retrieve the realized flux.
+
+            self.rng = galsim.config.GetRNG(config, base, logger, "Roman_stamp")
+            self.realized_flux = galsim.PoissonDeviate(self.rng, mean=gal.flux)()
+            base["realized_flux"] = self.realized_flux
+
+            # Check if the realized flux is 0.
+            if self.realized_flux == 0:
+                # If so, we'll skip everything after this.
+                # The mechanism within GalSim to do this is to raise a special SkipThisObject class.
+                raise galsim.config.SkipThisObject("realized flux=0")
+
+            # Otherwise figure out the stamp size
+            if self.flux < 10 * (dt / self.exptime):
+                # For really faint things, don't try too hard.  Just use 32x32.
+                image_size = 32
+                self.pupil_bin = "achromatic"
+
             else:
-                self.pupil_bin = 8
-                # # Get storead achromatic PSF
-                # psf = galsim.config.BuildGSObject(base, 'psf', logger=logger)[0]['achromatic']
-                # obj = galsim.Convolve(gal_achrom, psf).withFlux(self.flux)
-                obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20))
-                image_size = obj.getGoodImageSize(roman.pixel_scale)
+                gal_achrom = gal.evaluateAtWavelength(bandpass.effective_wavelength)
+                if hasattr(gal_achrom, "original") and isinstance(gal_achrom.original, galsim.DeltaFunction):
+                    # For bright stars, set the following stamp size limits
+                    if self.flux < 1e6 * (dt / self.exptime):
+                        image_size = 500
+                        self.pupil_bin = 8
+                    elif self.flux < 6e6 * (dt / self.exptime):
+                        image_size = 1000
+                        self.pupil_bin = 4
+                    else:
+                        image_size = 1600
+                        self.pupil_bin = 2
+                else:
+                    self.pupil_bin = 8
+                    # # Get storead achromatic PSF
+                    # psf = galsim.config.BuildGSObject(base, 'psf', logger=logger)[0]['achromatic']
+                    # obj = galsim.Convolve(gal_achrom, psf).withFlux(self.flux)
+                    obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20))
+                    image_size = obj.getGoodImageSize(roman.pixel_scale)
+            self.cached_gal = gal
+            # print('stamp setup3',process.memory_info().rss)
+            base["pupil_bin"] = self.pupil_bin
+            logger.info("Object flux is %d", self.flux)
+            logger.info("Object %d will use stamp size = %s", base.get("obj_num", 0), image_size)
 
-        # print('stamp setup3',process.memory_info().rss)
-        base["pupil_bin"] = self.pupil_bin
-        logger.info("Object flux is %d", self.flux)
-        logger.info("Object %d will use stamp size = %s", base.get("obj_num", 0), image_size)
+            # Determine where this object is going to go:
+            # This is the same as what the base StampBuilder does:
+            if "image_pos" in config:
+                image_pos = galsim.config.ParseValue(config, "image_pos", base, galsim.PositionD)[0]
+            else:
+                image_pos = None
 
-        # Determine where this object is going to go:
-        # This is the same as what the base StampBuilder does:
-        if "image_pos" in config:
-            image_pos = galsim.config.ParseValue(config, "image_pos", base, galsim.PositionD)[0]
-        else:
-            image_pos = None
-
-        if "world_pos" in config:
-            world_pos = galsim.config.ParseWorldPos(config, "world_pos", base, logger)
-        else:
-            world_pos = None
-
+            if "world_pos" in config:
+                world_pos = galsim.config.ParseWorldPos(config, "world_pos", base, logger)
+            else:
+                world_pos = None
+            stamp_cache = base["_global"]["stamp_setup_cache"]
+            stamp_cache[objs] = {
+                "gal": self.cached_gal,
+                "image_size": image_size,
+                "pupil_bin": self.pupil_bin,
+                "flux": self.flux,
+                "bflux": self.bflux,
+                "bmag": self.bmag,
+                "image_pos": image_pos,
+                "world_pos": world_pos,
+            }
         return image_size, image_size, image_pos, world_pos
 
     def buildPSF(self, config, base, gsparams, logger):
@@ -631,8 +676,7 @@ class Roman_stamp_CMOS(StampBuilder):
         # print('stamp draw',process.memory_info().rss)
 
         gal, *psfs = prof.obj_list if hasattr(prof, "obj_list") else [prof]
-        dt = self.exptime / 20
-        faint = self.flux < 40 * (dt / self.exptime)
+        faint = self.flux < 40 * (self.dt / self.exptime)
         bandpass = base["bandpass"]
         if faint:
             logger.info("Flux = %.0f  Using trivial sed", self.flux)
@@ -643,7 +687,7 @@ class Roman_stamp_CMOS(StampBuilder):
 
         # Set limit on the size of photons batches to consider when
         # calling gsobject.drawImage.
-        maxN = int(1e6 * (dt / self.exptime))
+        maxN = int(1e6 * (self.dt / self.exptime))
         if "maxN" in config:
             maxN = galsim.config.ParseValue(config, "maxN", base, int)[0]
         # print('stamp draw2',process.memory_info().rss)
