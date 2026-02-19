@@ -511,8 +511,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         wcs_header['RADESYS'] = 'ICRS'
         wcs_header['LONPOLE'] = 180.0
         breakpoint()
+
         tree = ImageModel.create_fake_data()
-        
+
         # setup value assignment in the same order as they appear in template
         # assigning default values: when attribute not understood or not available in the scope of the function.
         tree.meta.calibration_software_name = tree.meta.calibration_software_name
@@ -540,11 +541,11 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # tree["meta"]["coordinates"] = {'reference_frame': 'ICRS'} 
 
         tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
-        tree.meta.ephemeris.type = tree.meta.ephemeris.type
-        tree.meta.ephemeris.time = tree.meta.ephemeris.time
-        tree.meta.ephemeris.spatial_x = tree.meta.ephemeris.spatial_x
-        tree.meta.ephemeris.spatial_y = tree.meta.ephemeris.spatial_y
-        tree.meta.ephemeris.spatial_z = tree.meta.ephemeris.spatial_z
+        tree.meta.ephemeris.type       = tree.meta.ephemeris.type
+        tree.meta.ephemeris.time       = tree.meta.ephemeris.time
+        tree.meta.ephemeris.spatial_x  = tree.meta.ephemeris.spatial_x
+        tree.meta.ephemeris.spatial_y  = tree.meta.ephemeris.spatial_y
+        tree.meta.ephemeris.spatial_z  = tree.meta.ephemeris.spatial_z
         tree.meta.ephemeris.velocity_x = tree.meta.ephemeris.velocity_x
         tree.meta.ephemeris.velocity_y = tree.meta.ephemeris.velocity_y
         tree.meta.ephemeris.velocity_z = tree.meta.ephemeris.velocity_z
@@ -559,6 +560,20 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # 'velocity_y': -999999.0, 
         # 'velocity_z': -999999.0
         # }
+
+        tree.meta.exposure.type            = tree.meta.exposure.type
+        tree.meta.exposure.start_time      = tree.meta.exposure.start_time
+        tree.meta.exposure.end_time        = tree.meta.exposure.end_time
+        tree.meta.exposure.engineering_quality = tree.meta.exposure.engineering_quality
+        tree.meta.exposure.ma_table_id     = tree.meta.exposure.ma_table_id
+        tree.meta.exposure.nresultants     = tree.meta.exposure.nresultants
+        tree.meta.exposure.data_problem    = tree.meta.exposure.data_problem
+        tree.meta.exposure.frame_time      = tree.meta.exposure.frame_time
+        tree.meta.exposure.exposure_time   = tree.meta.exposure.exposure_time
+        tree.meta.exposure.effective_exposure_time = tree.meta.exposure.effective_exposure_time
+        tree.meta.exposure.ma_table_name   = tree.meta.exposure.ma_table_name
+        tree.meta.exposure.ma_table_number = tree.meta.exposure.ma_table_number
+        tree.meta.exposure.truncated = tree.meta.exposure.truncated
         # tree["meta"]['exposure'] = {
         # 'type': 'WFI_IMAGE', 
         # 'start_time': <Time object: scale='utc' format='isot' value=2020-01-01T00:00:00.000>, 
@@ -576,6 +591,14 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # 'truncated': False
         # }
         
+        tree.meta.guide_star.guide_window_id = tree.meta.guide_star.guide_window_id
+        tree.meta.guide_star.guide_mode    = tree.meta.guide_star.guide_mode
+        tree.meta.guide_star.window_xstart = tree.meta.guide_star.window_xstart
+        tree.meta.guide_star.window_ystart = tree.meta.guide_star.window_ystart
+        tree.meta.guide_star.window_xstop  = tree.meta.guide_star.window_xstop
+        tree.meta.guide_star.window_ystop  = tree.meta.guide_star.window_ystop
+        tree.meta.guide_star.guide_star_id = tree.meta.guide_star.guide_star_id
+        tree.meta.guide_star.epoch = tree.meta.guide_star.epoch
         #tree["meta"]['guide_star'] = {
         #    'guide_window_id': '?', 
         #    'guide_mode': 'WIM-ACQ', 
@@ -587,27 +610,43 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #    'epoch': '?'
         #    }
         
-        tree["meta"]['instrument'] = {
-            'name': 'WFI', 
-            'detector': 'WFI01', 
-            'optical_element': params["filter"]
-            }
+        tree.meta.instrument.name = tree.meta.instrument.name
+        tree.meta.instrument.detector = tree.meta.instrument.detector
+        tree.meta.instrument.optical_element = params["filter"]
+        #tree["meta"]['instrument'] = {
+        #    'name': 'WFI', 
+        #    'detector': 'WFI01', 
+        #    'optical_element': params["filter"]
+        #    }
         
-        tree["meta"]['observation'] = {
-            'observation_id': '?', 
-            'visit_id': '?', 
-            'program': -999999, 
-            'execution_plan': -999999, 
-            'pass': -999999, 
-            'segment': -999999, 
-            'observation': -999999, 
-            'visit': base['input']['obseq_data']['visit'], 
-            'visit_file_group': -999999, 
-            'visit_file_sequence': -999999, 
-            'visit_file_activity': '?', 
-            'exposure': image.header['EXPTIME'], 
-            'wfi_parallel': False
-            }
+        tree.meta.observation.observation_id = tree.meta.observation.observation_id
+        tree.meta.observation.visit_id = tree.meta.observation.visit_id
+        tree.meta.observation.program = tree.meta.observation.program
+        tree.meta.observation.execution_plan = tree.meta.observation.execution_plan
+        tree.meta.observation.pass = tree.meta.observation.pass
+        tree.meta.observation.segment = tree.meta.observation.segment
+        tree.meta.observation.observation = tree.meta.observation.observation
+        tree.meta.observation.visit = base['input']['obseq_data']['visit']
+        tree.meta.observation.visit_file_group = tree.meta.observation.visit_file_group
+        tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
+        tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
+        tree.meta.observation.exposure = image.header['EXPTIME']
+        tree.meta.observation.wfi_parallel = tree.meta.observation.wfi_parallel
+        #tree["meta"]['observation'] = {
+        #    'observation_id': '?', 
+        #    'visit_id': '?', 
+        #    'program': -999999, 
+        #    'execution_plan': -999999, 
+        #    'pass': -999999, 
+        #    'segment': -999999, 
+        #    'observation': -999999, 
+        #    'visit': base['input']['obseq_data']['visit'], 
+        #    'visit_file_group': -999999, 
+        #    'visit_file_sequence': -999999, 
+        #    'visit_file_activity': '?', 
+        #    'exposure': image.header['EXPTIME'], 
+        #    'wfi_parallel': False
+        #    }
         
         tree["meta"]['pointing'] = {
             'pa_aperture': -999999.0, 
@@ -649,9 +688,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # tree["meta"]['rcs'] = {'active': False, 'electronics': 'A', 'bank': '1', 'led': '1', 'counts': -999999}
         # tree["meta"]['velocity_aberration'] = {'ra_reference': -999999.0, 'dec_reference': -999999.0, 'scale_factor': -999999.0}
 
-
-
-        
         
         tree["meta"]['instrument']['detector'] = 'WFI10'
         tree["meta"]['instrument']['optical_element'] = self.filter
@@ -675,49 +711,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #tree["meta"]['sky_mean'] = 0.0  # Placeholder for sky mean, as it's not currently implemented in the yaml
         tree["meta"]['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
         tree["meta"]['pa_fpa'] = True
-
-        
-        
-        tree.meta.exposure.type = tree.meta.exposure.type
-        tree.meta.exposure.start_time = tree.meta.exposure.start_time
-        tree.meta.exposure.end_time = tree.meta.exposure.end_time
-        tree.meta.exposure.engineering_quality = tree.meta.exposure.engineering_quality
-        tree.meta.exposure.ma_table_id = tree.meta.exposure.ma_table_id
-        tree.meta.exposure.nresultants = tree.meta.exposure.nresultants
-        tree.meta.exposure.data_problem = tree.meta.exposure.data_problem
-        tree.meta.exposure.frame_time = tree.meta.exposure.frame_time
-        tree.meta.exposure.exposure_time = tree.meta.exposure.exposure_time
-        tree.meta.exposure.effective_exposure_time = tree.meta.exposure.effective_exposure_time
-        tree.meta.exposure.ma_table_name = tree.meta.exposure.ma_table_name
-        tree.meta.exposure.ma_table_number = tree.meta.exposure.ma_table_number
-        tree.meta.exposure.truncated = tree.meta.exposure.truncated
-        
-        tree.meta.guide_star.guide_window_id = tree.meta.guide_star.guide_window_id
-        tree.meta.guide_star.guide_mode = tree.meta.guide_star.guide_mode
-        tree.meta.guide_star.window_xstart = tree.meta.guide_star.window_xstart
-        tree.meta.guide_star.window_ystart = tree.meta.guide_star.window_ystart
-        tree.meta.guide_star.window_xstop = tree.meta.guide_star.window_xstop
-        tree.meta.guide_star.window_ystop = tree.meta.guide_star.window_ystop
-        tree.meta.guide_star.guide_star_id = tree.meta.guide_star.guide_star_id
-        tree.meta.guide_star.epoch = tree.meta.guide_star.epoch
-        
-        tree.meta.instrument.name = tree.meta.instrument.name
-        tree.meta.instrument.detector = tree.meta.instrument.detector
-        tree.meta.instrument.optical_element = tree.meta.instrument.optical_element
-        
-        tree.meta.observation.observation_id = tree.meta.observation.observation_id
-        tree.meta.observation.visit_id = tree.meta.observation.visit_id
-        tree.meta.observation.program = tree.meta.observation.program
-        tree.meta.observation.execution_plan = tree.meta.observation.execution_plan
-        tree.meta.observation.pass = tree.meta.observation.pass
-        tree.meta.observation.segment = tree.meta.observation.segment
-        tree.meta.observation.observation = tree.meta.observation.observation
-        tree.meta.observation.visit = tree.meta.observation.visit
-        tree.meta.observation.visit_file_group = tree.meta.observation.visit_file_group
-        tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
-        tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
-        tree.meta.observation.exposure = tree.meta.observation.exposure
-        tree.meta.observation.wfi_parallel = tree.meta.observation.wfi_parallel
         
         tree.meta.pointing.pa_aperture = tree.meta.pointing.pa_aperture
         tree.meta.pointing.pointing_engineering_source = tree.meta.pointing.pointing_engineering_source
