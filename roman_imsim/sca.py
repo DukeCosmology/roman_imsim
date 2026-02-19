@@ -522,7 +522,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
         tree.meta.product_type = tree.meta.product_type
 
-        tree.meta.filename = path
+        tree.meta.filename = path # ===> save() appies this already. confirm!
 
         #tree.meta.file_date #=> don't assign value, it's set autometically at save() call
 
@@ -570,11 +570,11 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.exposure.nresultants     = tree.meta.exposure.nresultants
         tree.meta.exposure.data_problem    = tree.meta.exposure.data_problem
         tree.meta.exposure.frame_time      = tree.meta.exposure.frame_time
-        tree.meta.exposure.exposure_time   = image.header['EXPTIME']  #tree.meta.exposure.exposure_time
+        tree.meta.exposure.exposure_time   = image.header['EXPTIME'] #self.exptime
         tree.meta.exposure.effective_exposure_time = tree.meta.exposure.effective_exposure_time
         tree.meta.exposure.ma_table_name   = tree.meta.exposure.ma_table_name
         tree.meta.exposure.ma_table_number = tree.meta.exposure.ma_table_number
-        tree.meta.exposure.truncated = tree.meta.exposure.truncated
+        tree.meta.exposure.truncated       = tree.meta.exposure.truncated
         # tree["meta"]['exposure'] = {
         # 'type': 'WFI_IMAGE', 
         # 'start_time': <Time object: scale='utc' format='isot' value=2020-01-01T00:00:00.000>, 
@@ -591,7 +591,8 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # 'read_pattern': [], 
         # 'truncated': False
         # }
-        
+        #tree["meta"]['exposure_time'] = self.exptime
+
         tree.meta.guide_star.guide_window_id = tree.meta.guide_star.guide_window_id
         tree.meta.guide_star.guide_mode    = tree.meta.guide_star.guide_mode
         tree.meta.guide_star.window_xstart = tree.meta.guide_star.window_xstart
@@ -703,19 +704,11 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # tree["meta"]['velocity_aberration'] = {'ra_reference': -999999.0, 'dec_reference': -999999.0, 'scale_factor': -999999.0}
 
         
+        # These don't exist in Roman_datamodels
+        # Additional attr
+        # there's a file_date, do we still want obs_date?
         tree["meta"]['obs_date'] = Time(self.mjd, format="mjd").datetime.isoformat()
-        tree["meta"]['pointing'] = {
-            'pa_aperture': -999999.0, 
-            'pointing_engineering_source': 'CALCULATED', 
-            'ra_v1': -999999.0, 
-            'dec_v1': -999999.0, 
-            'pa_v3': -999999.0, 
-            'target_aperture': 'WFI_CEN', 
-            'target_ra': image.wcs.center.ra.deg, 
-            'target_dec': image.wcs.center.dec.deg
-            }
-        tree["meta"]['exposure_time'] = self.exptime
-        tree["meta"]['mjd_obs'] = self.mjd
+        tree["meta"]['mjd_obs'] = self.mjd 
         tree["meta"]['nreads'] = 1
         tree["meta"]['gain'] = 1.0
         #tree["meta"]['sky_mean'] = 0.0  # Placeholder for sky mean, as it's not currently implemented in the yaml
@@ -785,8 +778,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree["err"] = np.zeros_like(image.array, dtype='float16')  # Placeholder for error array
         tree["dq"] = np.zeros_like(image.array, dtype='uint32')  # Placeholder for data quality array
 
-        
-
         _ = tree.save(path, dir_path=None)
       
 
@@ -826,6 +817,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
         full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
+        self.filter
         full_image.header["FILTER"] = self.filter
         full_image.header["ZPTMAG"] = 2.5 * np.log10(self.exptime * roman.collecting_area)
 
