@@ -11,7 +11,7 @@ MW_extinction_values:
     mode: constant
     value: 3.1
 # catalog_dir: /lus/eagle/projects/RomanDESC/roman_rubin_cats_v1.1.2_faint
-catalog_dir: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint
+catalog_dir: /media/taeshin/4TB/SimHackJune2025-main/skyCatalog
 catalog_name: skyCatalog
 galaxy_magnitude_cut: 32.0
 knots_magnitude_cut: 27.0
@@ -144,4 +144,4 @@ provenance:
     dsps: 0.3.4
     lsstdesc-diffsky: 0.1.6.dev46+g0b637a0
 # skycatalog_root: /lus/eagle/projects/RomanDESC/roman_rubin_cats_v1.1.2_faint
-skycatalog_root: /hpc/group/cosmology/OpenUniverse2024/roman_rubin_cats_v1.1.2_faint
+skycatalog_root: /media/taeshin/4TB/SimHackJune2025-main
