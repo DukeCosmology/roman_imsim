@@ -521,27 +521,33 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.product_type = tree.meta.product_type
 
         tree.meta.filename = path
-        tree.meta.file_date = tree.meta.file_date
-        
-        tree.meta.model_type = tree.meta.model_type
-        
-        tree.meta.origin = tree.meta.origin
-        
+
+        #tree.meta.file_date #=> don't assign value, it's set autometically at save() call
+
+        tree.meta.model_type = tree.meta.model_type #'ImageModel'
+
+        tree.meta.origin = tree.meta.origin #defaults to 'STSCI/SOC' ==> change to Duke?
+
         tree.meta.prd_version = tree.meta.prd_version
-        
+
         tree.meta.sdf_software_version = tree.meta.sdf_software_version
-        
+
         tree.meta.telescope = tree.meta.telescope
         
         tree.meta.coordinates.reference_frame = tree.meta.coordinates.reference_frame
+        ### ===> i'm not sure this is the correct way to assigning.
+        # check by saving the file and checking the data type of tree["meta"]["coordinates"]
+        # tree["meta"]["coordinates"] = {'reference_frame': 'ICRS'} 
 
-        # tree["meta"]['file_date'] = #should automatically be set
-        # tree["meta"]['model_type'] = 'ImageModel'
-        # tree["meta"]['origin'] = 'STSCI/SOC'
-        # tree["meta"]['prd_version'] = '?'
-        # tree["meta"]['sdf_software_version'] = '?'
-        tree["meta"]['telescope'] = 'ROMAN'
-        # tree["meta"]["coordinates"] = {'reference_frame': 'ICRS'}
+        tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
+        tree.meta.ephemeris.type = tree.meta.ephemeris.type
+        tree.meta.ephemeris.time = tree.meta.ephemeris.time
+        tree.meta.ephemeris.spatial_x = tree.meta.ephemeris.spatial_x
+        tree.meta.ephemeris.spatial_y = tree.meta.ephemeris.spatial_y
+        tree.meta.ephemeris.spatial_z = tree.meta.ephemeris.spatial_z
+        tree.meta.ephemeris.velocity_x = tree.meta.ephemeris.velocity_x
+        tree.meta.ephemeris.velocity_y = tree.meta.ephemeris.velocity_y
+        tree.meta.ephemeris.velocity_z = tree.meta.ephemeris.velocity_z
         # tree["meta"]["ephemeris"] = {
         # 'ephemeris_reference_frame': '?',
         # 'type': 'DEFINITIVE', 
@@ -671,16 +677,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree["meta"]['pa_fpa'] = True
 
         
-        
-        tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
-        tree.meta.ephemeris.type = tree.meta.ephemeris.type
-        tree.meta.ephemeris.time = tree.meta.ephemeris.time
-        tree.meta.ephemeris.spatial_x = tree.meta.ephemeris.spatial_x
-        tree.meta.ephemeris.spatial_y = tree.meta.ephemeris.spatial_y
-        tree.meta.ephemeris.spatial_z = tree.meta.ephemeris.spatial_z
-        tree.meta.ephemeris.velocity_x = tree.meta.ephemeris.velocity_x
-        tree.meta.ephemeris.velocity_y = tree.meta.ephemeris.velocity_y
-        tree.meta.ephemeris.velocity_z = tree.meta.ephemeris.velocity_z
         
         tree.meta.exposure.type = tree.meta.exposure.type
         tree.meta.exposure.start_time = tree.meta.exposure.start_time
