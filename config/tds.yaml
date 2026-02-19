@@ -3,14 +3,7 @@ template: default.yaml
 
 # Update the run-specific fields
 # Or you can update the entire field if more convenient
-image.wcs.max_sun_angle: 50
-image.wcs.force_cvz: True
-image.random_seed:
-    - { type: ObSeqData, field: visit }
-image.nobjects: null
-
 input.obseq_data.file_name: /lus/grand/projects/RomanDESC/final_roman_runfiles/tds/Roman_TDS_obseq_11_6_23.fits
-input.roman_psf.n_waves: 5
 input.sky_catalog.file_name: /lus/grand/projects/RomanDESC/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
 input.sky_catalog.obj_types: ['diffsky_galaxy', 'star', 'snana']
 
@@ -18,5 +11,3 @@ output.dir: /lus/grand/projects/RomanDESC/roman_output/RomanTDS/images/truth
 output.file_name.format: "Roman_TDS_truth_%s_%i_%i.fits.gz"
 output.truth.dir: /lus/grand/projects/RomanDESC/roman_output/RomanTDS/truth
 output.truth.file_name.format: "Roman_TDS_index_%s_%i_%i.txt"
-output.truth.columns.mag: "@mag"
-output.truth.columns.obj_type: "@object_type"
