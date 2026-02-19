@@ -512,7 +512,8 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         wcs_header['LONPOLE'] = 180.0
         breakpoint()
 
-        tree = ImageModel.create_fake_data()
+        #tree = ImageModel.create_fake_data()
+        tree = ImageModel.create_minimal()
 
         # setup value assignment in the same order as they appear in template
         # assigning default values: when attribute not understood or not available in the scope of the function.
@@ -569,7 +570,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.exposure.nresultants     = tree.meta.exposure.nresultants
         tree.meta.exposure.data_problem    = tree.meta.exposure.data_problem
         tree.meta.exposure.frame_time      = tree.meta.exposure.frame_time
-        tree.meta.exposure.exposure_time   = tree.meta.exposure.exposure_time
+        tree.meta.exposure.exposure_time   = image.header['EXPTIME']  #tree.meta.exposure.exposure_time
         tree.meta.exposure.effective_exposure_time = tree.meta.exposure.effective_exposure_time
         tree.meta.exposure.ma_table_name   = tree.meta.exposure.ma_table_name
         tree.meta.exposure.ma_table_number = tree.meta.exposure.ma_table_number
@@ -612,7 +613,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         
         tree.meta.instrument.name = "WFI"
         tree.meta.instrument.detector = tree.meta.instrument.detector
-        tree.meta.instrument.optical_element = self.filter #params["filter"]
+        tree.meta.instrument.optical_element = "F" + self.filter[1:] #params["filter"]
         #tree["meta"]['instrument'] = {
         #    'name': 'WFI', 
         #    'detector': 'WFI01', 
@@ -628,14 +629,14 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.observation.visit_id = tree.meta.observation.visit_id
         tree.meta.observation.program = tree.meta.observation.program
         tree.meta.observation.execution_plan = tree.meta.observation.execution_plan
-        tree.meta.observation.pass = tree.meta.observation.pass
+        #tree.meta.observation.pass = tree.meta.observation.pass
         tree.meta.observation.segment = tree.meta.observation.segment
         tree.meta.observation.observation = tree.meta.observation.observation
         tree.meta.observation.visit = base['input']['obseq_data']['visit']
         tree.meta.observation.visit_file_group = tree.meta.observation.visit_file_group
         tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
         tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
-        tree.meta.observation.exposure = image.header['EXPTIME']
+        tree.meta.observation.exposure = base['input']['obseq_data']['SCA']['current'][0] #check if this is what exposure means with roman people
         tree.meta.observation.wfi_parallel = tree.meta.observation.wfi_parallel
         #tree["meta"]['observation'] = {
         #    'observation_id': '?', 
@@ -757,12 +758,12 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.velocity_aberration.scale_factor = tree.meta.velocity_aberration.scale_factor
         
         #meta.visit
-        tree.meta.visit.dither.primary_name  = tree.meta.wcsinfo.dither.primary_name
-        tree.meta.visit.dither.subpixel_name = tree.meta.wcsinfo.dither.subpixel_name
-        tree.meta.visit.type                 = tree.meta.wcsinfo.type
-        tree.meta.visit.start_time           = tree.meta.wcsinfo.start_time
-        tree.meta.visit.nexposures           = tree.meta.wcsinfo.nexposures
-        tree.meta.visit.internal_target      = tree.meta.wcsinfo.internal_target
+        tree.meta.visit.dither.primary_name  = tree.meta.visit.dither.primary_name
+        tree.meta.visit.dither.subpixel_name = tree.meta.visit.dither.subpixel_name
+        tree.meta.visit.type                 = tree.meta.visit.type
+        tree.meta.visit.start_time           = tree.meta.visit.start_time
+        tree.meta.visit.nexposures           = tree.meta.visit.nexposures
+        tree.meta.visit.internal_target      = tree.meta.visit.internal_target
         #meta.wcs
         tree.meta.wcs = self.wcs_from_fits_header(wcs_header)
         #meta.wcsinfo
@@ -781,7 +782,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.photometry.pixel_area = tree.meta.photometry.pixel_area
 
         tree['data'] = image.array.astype('float32')
-        tree["err"] = np.zeros_like(image.array, dtype='float32')  # Placeholder for error array
+        tree["err"] = np.zeros_like(image.array, dtype='float16')  # Placeholder for error array
         tree["dq"] = np.zeros_like(image.array, dtype='uint32')  # Placeholder for data quality array
 
         
@@ -846,9 +847,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 "x": {"type": "Random", "min": xmin, "max": xmax},
                 "y": {"type": "Random", "min": ymin, "max": ymax},
             }
-   
+        self.nobjects = 1002 #for testing, set nobjects to 1002 to make sure the batch division is correct
         nbatch = self.nobjects // 1000 + 1
-        for batch in range(3):#range(nbatch):
+        for batch in range(nbatch):
             #start id of objects in this batch
             start_obj_num = self.nobjects * batch // nbatch
             #end id of objects in this batch
@@ -899,6 +900,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #manage return
         self.full_image = full_image
         if self.writeASDF:
+            breakpoint()
             self.writeASDF_rdm(config, base, full_image, 'one_image.asdf', include_raw_header=False)
         
         return full_image, None
