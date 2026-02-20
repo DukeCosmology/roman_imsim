@@ -240,7 +240,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         if self.thermal_background:
             tb = roman.thermal_backgrounds[self.filter] * self.exptime
             logger.debug("Adding thermal background: %s", tb)
-            sky_image += roman.thermal_backgrounds[self.filter] * self.exptime
+            sky_image += tb
 
         # The image up to here is an expectation value.
         # Realize it as an integer number of photons.
