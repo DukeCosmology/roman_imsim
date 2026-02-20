@@ -102,14 +102,10 @@ stamp:
         -
             type: ChargeDiff
 
-# psf:
-#     type: roman_psf
-#     # If omitted, it would figure this out automatically, because we are using the RomanSCA image
-#     # type.  But if we weren't, you'd have to tell it which SCA to build the PSF for.
-#     SCA: '@image.SCA'
-#     # n_waves defines how finely to sample the PSF profile over the bandpass.
-#     # Using 10 wavelengths usually gives decent accuracy.
-#     n_waves: 10
+psf:
+    type: RomanPSF
+    interpolator:
+        type: RomanPSFInterpolator
 
 # Define the galaxy type and positions to use
 gal:
@@ -120,8 +116,8 @@ input:
         file_name: /hpc/group/cosmology/repos/roman_imsim/Roman_WAS_obseq_test.fits
         visit: 80840
         SCA: '@image.SCA'
-    roman_psf:
-        SCA: '@image.SCA'
+    RomanPSFInterpolator:
+        kind: corners
         n_waves: 10
     sky_catalog:
         file_name: /hpc/group/cosmology/repos/roman_imsim/skyCatalog.yaml 
