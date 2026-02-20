@@ -8,12 +8,12 @@ from astropy.io import ascii
 REFERENCE_DIR = "reference"
 OUTPUT_DIR = "output"
 
-HACK_REPO = "SimHackJune2025"
+TEST_REPO = "roman_imsim_testdata"
 
 
 pytestmark = pytest.mark.skipif(
-    not Path(HACK_REPO).exists(),
-    reason=f"Test data not available; {HACK_REPO} not found",
+    not Path(TEST_REPO).exists(),
+    reason=f"Test data not available; {TEST_REPO} not found",
 )
 
 ATOL = 0.1
@@ -22,10 +22,10 @@ RTOL = 0
 
 def test_compare_truth():
     reference_truth = (
-        Path(HACK_REPO) / REFERENCE_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
+        Path(TEST_REPO) / REFERENCE_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
     )
     output_truth = (
-        Path(HACK_REPO) / OUTPUT_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
+        Path(TEST_REPO) / OUTPUT_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
     )
 
     output_table = ascii.read(output_truth)
@@ -46,7 +46,7 @@ def test_compare_truth():
 
 def test_compare_image():
     reference_image = (
-        Path(HACK_REPO)
+        Path(TEST_REPO)
         / REFERENCE_DIR
         / "RomanWAS_new"
         / "images"
@@ -54,7 +54,7 @@ def test_compare_image():
         / "Roman_WAS_truth_J129_12909_4.fits.gz"
     )
     output_image = (
-        Path(HACK_REPO)
+        Path(TEST_REPO)
         / OUTPUT_DIR
         / "RomanWAS_new"
         / "images"
