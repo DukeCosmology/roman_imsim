@@ -12,8 +12,8 @@ TEST_REPO = "roman_imsim_testdata"
 
 
 pytestmark = pytest.mark.skipif(
-    not Path(TEST_REPO).exists(),
-    reason=f"Test data not available; {TEST_REPO} not found",
+    len(list(Path(TEST_REPO).iterdir())) == 0,
+    reason=f"Test data not available; {TEST_REPO} not initialized/updated",
 )
 
 ATOL = 0.1
