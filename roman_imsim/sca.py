@@ -512,8 +512,8 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         wcs_header['LONPOLE'] = 180.0
         breakpoint()
 
-        #tree = ImageModel.create_fake_data()
-        tree = ImageModel.create_minimal()
+        tree = ImageModel.create_fake_data()
+        #tree = ImageModel.create_minimal()
 
         # Put additional attributes (that do NOT exist in Roman_datamodels) in this block 
         # save() call creates file_date, this is observation date obs_date.
@@ -618,9 +618,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.pointing.ra_v1      = tree.meta.pointing.ra_v1
         tree.meta.pointing.dec_v1     = tree.meta.pointing.dec_v1
         tree.meta.pointing.pa_v3      = tree.meta.pointing.pa_v3
-        tree.meta.pointing.target_aperture = 'WFI_CEN'
-        tree.meta.pointing.target_ra  = image.wcs.center.ra.deg
-        tree.meta.pointing.target_dec = image.wcs.center.dec.deg
+        tree.meta.pointing.target_aperture = 'WFI_CEN' #what kidn of aperture is wcs_header['RA_TARG']
+        tree.meta.pointing.target_ra  = image.wcs.center.ra.deg # or wcs_header['RA_TARG']?
+        tree.meta.pointing.target_dec = image.wcs.center.dec.deg # or wcs_header['DEC_TARG']?
         #meta.program
         tree.meta.program.title = tree.meta.program.title
         tree.meta.program.investigator_name = tree.meta.program.investigator_name
