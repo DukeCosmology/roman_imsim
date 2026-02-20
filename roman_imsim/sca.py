@@ -731,6 +731,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image.setZero()
         
         full_image.header = galsim.FitsHeader()
+        full_image.header["SCA"] = self.sca
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
         full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
@@ -755,7 +756,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 "x": {"type": "Random", "min": xmin, "max": xmax},
                 "y": {"type": "Random", "min": ymin, "max": ymax},
             }
-        self.nobjects = 1002 #for testing, set nobjects to 1002 to make sure the batch division is correct
         nbatch = self.nobjects // 1000 + 1
         for batch in range(nbatch):
             #start id of objects in this batch
@@ -807,9 +807,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
         #manage return
         self.full_image = full_image
-        if self.writeASDF:
-            breakpoint()
-            self.writeASDF_rdm(config, base, full_image, 'one_image.asdf', include_raw_header=False)
+        #if self.writeASDF:
+        #    breakpoint()
+        #    self.writeASDF_rdm(config, base, full_image, 'one_image.asdf', include_raw_header=False)
         
         return full_image, None
 
