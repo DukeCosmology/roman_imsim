@@ -38,14 +38,14 @@ jobs:
 
       - name: Get test repository
         run: |
-          git clone https://github.com/DukeCosmology/SimHackJune2025.git@skylevel_date
-          pushd SimHackJune2025
+          git clone https://github.com/DukeCosmology/roman_imsim_testdata.git@skylevel_date
+          pushd roman_imsim_testdata
           git lfs pull
           popd
 
       - name: Run GalSim
         run: |
-          pushd SimHackJune2025
+          pushd roman_imsim_testdata
           galsim hack.yaml
           popd
 
