@@ -41,6 +41,7 @@ jobs:
           git clone https://github.com/DukeCosmology/roman_imsim_testdata.git
           pushd roman_imsim_testdata
           git submodule init
+          git submodule update
           git lfs pull
           popd
 

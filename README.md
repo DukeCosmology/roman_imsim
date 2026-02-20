@@ -15,4 +15,5 @@ Testing data is provided as a [git submodule](https://git-scm.com/book/en/v2/Git
 To access these data, run
 ```[bash]
 git submodule init
+git submodule update
 ```
