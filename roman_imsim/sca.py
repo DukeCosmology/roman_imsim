@@ -27,9 +27,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         Returns:
             xsize, ysize
         """
-        # import os, psutil
-        # process = psutil.Process()
-        # print('sca setup 1',process.memory_info().rss)
         logger.debug(
             "image %d: Building RomanSCA: image, obj = %d,%d",
             image_num,
@@ -53,15 +50,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         opt = {
             "draw_method": str,
             "use_fft_bright": bool,
-            "stray_light": bool,
-            "thermal_background": bool,
-            "reciprocity_failure": bool,
-            "dark_current": bool,
-            "nonlinearity": bool,
-            "ipc": bool,
-            "read_noise": bool,
-            "sky_subtract": bool,
-            "ignore_noise": bool,
         }
         params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
@@ -72,41 +60,14 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.exptime = params["exptime"]
         self.date = Time(self.mjd, format="mjd").to_datetime()
 
-        self.ignore_noise = params.get("ignore_noise", False)
-        # self.exptime = params.get('exptime', roman.exptime)  # Default is roman standard exposure time.
-        self.stray_light = params.get("stray_light", False)
-        self.thermal_background = params.get("thermal_background", False)
-        self.reciprocity_failure = params.get("reciprocity_failure", False)
-        self.dark_current = params.get("dark_current", False)
-        self.nonlinearity = params.get("nonlinearity", False)
-        self.ipc = params.get("ipc", False)
-        self.read_noise = params.get("read_noise", False)
-        self.sky_subtract = params.get("sky_subtract", False)
-
         # If draw_method isn't in image field, it may be in stamp.  Check.
         self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "phot"))
-
-        # pointing = CelestialCoord(ra=params['ra'], dec=params['dec'])
-        # wcs = roman.getWCS(world_pos        = pointing,
-        #                         PA          = params['pa']*galsim.degrees,
-        #                         date        = params['date'],
-        #                         SCAs        = self.sca,
-        #                         PA_is_FPA   = True
-        #                         )[self.sca]
-
-        # # GalSim expects a wcs in the image field.
-        # config['wcs'] = wcs
 
         # If user hasn't overridden the bandpass to use, get the standard one.
         if "bandpass" not in config:
             base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
 
         return roman.n_pix, roman.n_pix
-
-    # def getBandpass(self, filter_name):
-    #     if not hasattr(self, 'all_roman_bp'):
-    #         self.all_roman_bp = roman.getBandpasses()
-    #     return self.all_roman_bp[filter_name]
 
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
