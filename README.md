@@ -13,7 +13,7 @@ See wiki for information on how to run and documentation.
 Testing data is provided as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules) pointing to <https://github.com/DukeCosmology/roman_imsim_testdata>.
 
 To access these data, run
-```[bash]
+```bash
 git submodule init
 git submodule update
 ```
