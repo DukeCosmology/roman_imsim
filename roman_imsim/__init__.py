@@ -16,3 +16,4 @@ from .sca import *
 from .skycat import *
 from .stamp import *
 from .wcs import *
+from .resultants import *
