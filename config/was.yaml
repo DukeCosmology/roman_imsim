@@ -78,26 +78,29 @@ image:
     # is even more pronounced in this case.
     use_fft_bright: True
 
-    # These are all by default turned on, but you can turn any of them off if desired:
-    # ignore_noise: True
-    # stray_light: False
-    # thermal_background: False
-    # reciprocity_failure: False
-    # dark_current: False
-    # nonlinearity: False
-    # ipc: False
-    # read_noise: False
-    # sky_subtract: False
+    noise:
+        # These are all by default turned on, but you can turn any of them off if desired:
+        type: RomanNoise
+        # These are all by default turned on, but you can turn any of them off if desired:
+        # ignore_noise: True
+        # stray_light: False
+        # thermal_background: False
+        # reciprocity_failure: False
+        # dark_current: False
+        # nonlinearity: False
+        # ipc: False
+        # read_noise: False
+        # sky_subtract: False
 
-    ignore_noise: False
-    stray_light: True
-    thermal_background: True
-    reciprocity_failure: True
-    dark_current: True
-    nonlinearity: True
-    ipc: True
-    read_noise: True
-    sky_subtract: False
+        ignore_noise: False
+        stray_light: True
+        thermal_background: True
+        reciprocity_failure: True
+        dark_current: True
+        nonlinearity: True
+        ipc: True
+        read_noise: True
+        sky_subtract: False
 
     # nobjects: 500
 
