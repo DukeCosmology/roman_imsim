@@ -515,8 +515,21 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #tree = ImageModel.create_fake_data()
         tree = ImageModel.create_minimal()
 
-        # setup value assignment in the same order as they appear in template
-        # assigning default values: when attribute not understood or not available in the scope of the function.
+        # Put additional attributes (that do NOT exist in Roman_datamodels) in this block 
+        # save() call creates file_date, this is observation date obs_date.
+        tree["meta"]['obs_date'] = Time(self.mjd, format="mjd").datetime.isoformat()
+        tree["meta"]['mjd_obs'] = self.mjd 
+        tree["meta"]['nreads'] = 1
+        tree["meta"]['gain'] = 1.0
+        #tree["meta"]['sky_mean'] = 0.0  # Placeholder for sky mean, as it's not currently implemented in the yaml
+        tree["meta"]['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
+        tree["meta"]['pa_fpa'] = True
+
+        # ------------------------------------------ 
+        # setup value assignment in the same order as they appear in RDM
+        # template. Assigning default values when attribute not understood or
+        # not available in the scope of the function.  
+        # --------------------------------------------------
         tree.meta.calibration_software_name = tree.meta.calibration_software_name
         tree.meta.calibration_software_version = tree.meta.calibration_software_version
 
@@ -528,7 +541,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
 
         tree.meta.model_type = tree.meta.model_type #'ImageModel'
 
-        tree.meta.origin = tree.meta.origin #defaults to 'STSCI/SOC' ==> change to Duke?
+        tree.meta.origin = tree.meta.origin #defaults to 'STSCI/SOC' ==> change to Duke? #will rdm validate this value? Check!
 
         tree.meta.prd_version = tree.meta.prd_version
 
@@ -541,6 +554,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # check by saving the file and checking the data type of tree["meta"]["coordinates"]
         # tree["meta"]["coordinates"] = {'reference_frame': 'ICRS'} 
 
+        #meta.ephemeris
         tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
         tree.meta.ephemeris.type       = tree.meta.ephemeris.type
         tree.meta.ephemeris.time       = tree.meta.ephemeris.time
@@ -550,18 +564,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.ephemeris.velocity_x = tree.meta.ephemeris.velocity_x
         tree.meta.ephemeris.velocity_y = tree.meta.ephemeris.velocity_y
         tree.meta.ephemeris.velocity_z = tree.meta.ephemeris.velocity_z
-        # tree["meta"]["ephemeris"] = {
-        # 'ephemeris_reference_frame': '?',
-        # 'type': 'DEFINITIVE', 
-        # 'time': -999999.0, 
-        # 'spatial_x': -999999.0, 
-        # 'spatial_y': -999999.0, 
-        # 'spatial_z': -999999.0, 
-        # 'velocity_x': -999999.0, 
-        # 'velocity_y': -999999.0, 
-        # 'velocity_z': -999999.0
-        # }
-
+        #.meta.exposure
         tree.meta.exposure.type            = tree.meta.exposure.type
         tree.meta.exposure.start_time      = tree.meta.exposure.start_time
         tree.meta.exposure.end_time        = tree.meta.exposure.end_time
@@ -575,24 +578,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.exposure.ma_table_name   = tree.meta.exposure.ma_table_name
         tree.meta.exposure.ma_table_number = tree.meta.exposure.ma_table_number
         tree.meta.exposure.truncated       = tree.meta.exposure.truncated
-        # tree["meta"]['exposure'] = {
-        # 'type': 'WFI_IMAGE', 
-        # 'start_time': <Time object: scale='utc' format='isot' value=2020-01-01T00:00:00.000>, 
-        # 'end_time': <Time object: scale='utc' format='isot' value=2020-01-01T00:00:00.000>, 
-        # 'engineering_quality': 'OK', 
-        # 'ma_table_id': '?', 
-        # 'nresultants': -999999, 
-        # 'data_problem': '?', 
-        # 'frame_time': -999999.0, 
-        # 'exposure_time': -999999.0, 
-        # 'effective_exposure_time': -999999.0, 
-        # 'ma_table_name': '?', 
-        # 'ma_table_number': -999999, 
-        # 'read_pattern': [], 
-        # 'truncated': False
-        # }
-        #tree["meta"]['exposure_time'] = self.exptime
-
+        #meta.guide_star
         tree.meta.guide_star.guide_window_id = tree.meta.guide_star.guide_window_id
         tree.meta.guide_star.guide_mode    = tree.meta.guide_star.guide_mode
         tree.meta.guide_star.window_xstart = tree.meta.guide_star.window_xstart
@@ -601,126 +587,47 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.guide_star.window_ystop  = tree.meta.guide_star.window_ystop
         tree.meta.guide_star.guide_star_id = tree.meta.guide_star.guide_star_id
         tree.meta.guide_star.epoch = tree.meta.guide_star.epoch
-        #tree["meta"]['guide_star'] = {
-        #    'guide_window_id': '?', 
-        #    'guide_mode': 'WIM-ACQ', 
-        #    'window_xstart': -999999, 
-        #    'window_ystart': -999999, 
-        #    'window_xstop': -999999, 
-        #    'window_ystop': -999999, 
-        #    'guide_star_id': '?', 
-        #    'epoch': '?'
-        #    }
-        
+        #meta.instrument
         tree.meta.instrument.name = "WFI"
         tree.meta.instrument.detector = tree.meta.instrument.detector
         tree.meta.instrument.optical_element = "F" + self.filter[1:] #params["filter"]
-        #tree["meta"]['instrument'] = {
-        #    'name': 'WFI', 
-        #    'detector': 'WFI01', 
-        #    'optical_element': params["filter"]
-        #    }
         ##### =====> is it WFI10 or WFI01??? confirm it
         ##### =====>  self.filter or params["filter"]
+        # The following assignments can be found in this file. Do we need to assign "detector" attr dynamically?
         #tree["meta"]['instrument']['detector'] = 'WFI10'
         #tree["meta"]['instrument']['optical_element'] = self.filter
         #tree["meta"]['instrument']['name'] = 'WFI'
         
         tree.meta.observation.observation_id = tree.meta.observation.observation_id
-        tree.meta.observation.visit_id = tree.meta.observation.visit_id
-        tree.meta.observation.program = tree.meta.observation.program
+        tree.meta.observation.visit_id       = tree.meta.observation.visit_id
+        tree.meta.observation.program        = tree.meta.observation.program
         tree.meta.observation.execution_plan = tree.meta.observation.execution_plan
-        #tree.meta.observation.pass = tree.meta.observation.pass
-        tree.meta.observation.segment = tree.meta.observation.segment
-        tree.meta.observation.observation = tree.meta.observation.observation
-        tree.meta.observation.visit = base['input']['obseq_data']['visit']
-        tree.meta.observation.visit_file_group = tree.meta.observation.visit_file_group
+        # pass being a special python-statement, dot call on attr named pass ends up as Error
+        #tree.meta.observation["pass']       = tree.meta.observation["pass"]
+        tree.meta.observation.segment        = tree.meta.observation.segment
+        tree.meta.observation.observation    = tree.meta.observation.observation
+        tree.meta.observation.visit          = base['input']['obseq_data']['visit']
+        tree.meta.observation.visit_file_group    = tree.meta.observation.visit_file_group
         tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
         tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
-        tree.meta.observation.exposure = base['input']['obseq_data']['SCA']['current'][0] #check if this is what exposure means with roman people
-        tree.meta.observation.wfi_parallel = tree.meta.observation.wfi_parallel
-        #tree["meta"]['observation'] = {
-        #    'observation_id': '?', 
-        #    'visit_id': '?', 
-        #    'program': -999999, 
-        #    'execution_plan': -999999, 
-        #    'pass': -999999, 
-        #    'segment': -999999, 
-        #    'observation': -999999, 
-        #    'visit': base['input']['obseq_data']['visit'], 
-        #    'visit_file_group': -999999, 
-        #    'visit_file_sequence': -999999, 
-        #    'visit_file_activity': '?', 
-        #    'exposure': image.header['EXPTIME'], 
-        #    'wfi_parallel': False
-        #    }
-        
-        tree.meta.pointing.pa_aperture = tree.meta.pointing.pa_aperture
+        tree.meta.observation.exposure       = base['input']['obseq_data']['SCA']['current'][0] #check if this is what exposure means with roman people
+        tree.meta.observation.wfi_parallel   = tree.meta.observation.wfi_parallel
+        #meta.pointing
+        tree.meta.pointing.pa_aperture= tree.meta.pointing.pa_aperture
         tree.meta.pointing.pointing_engineering_source = tree.meta.pointing.pointing_engineering_source
-        tree.meta.pointing.ra_v1 = tree.meta.pointing.ra_v1
-        tree.meta.pointing.dec_v1 = tree.meta.pointing.dec_v1
-        tree.meta.pointing.pa_v3 = tree.meta.pointing.pa_v3
+        tree.meta.pointing.ra_v1      = tree.meta.pointing.ra_v1
+        tree.meta.pointing.dec_v1     = tree.meta.pointing.dec_v1
+        tree.meta.pointing.pa_v3      = tree.meta.pointing.pa_v3
         tree.meta.pointing.target_aperture = 'WFI_CEN'
-        tree.meta.pointing.target_ra = image.wcs.center.ra.deg
+        tree.meta.pointing.target_ra  = image.wcs.center.ra.deg
         tree.meta.pointing.target_dec = image.wcs.center.dec.deg
-        #tree["meta"]['pointing'] = {
-        #    'pa_aperture': -999999.0, 
-        #    'pointing_engineering_source': 'CALCULATED', 
-        #    'ra_v1': -999999.0, 
-        #    'dec_v1': -999999.0, 
-        #    'pa_v3': -999999.0, 
-        #    'target_aperture': 'WFI_CEN', 
-        #    'target_ra': image.wcs.center.ra.deg, 
-        #    'target_dec': image.wcs.center.dec.deg
-        #    }
-  
-        # tree["meta"]['program'] = {
-        # 'title': '?',
-        # 'investigator_name': '?',
-        # 'category': '?',
-        # 'subcategory': 'CAL',
-        # 'science_category': '?'
-        # }
-        # tree["meta"]['ref_file'] = {
-        # {'crds': {'version': '?', 'context': '?'}, 
-        # 'apcorr': '?', 
-        # 'area': '?', 
-        # 'dark': '?', 
-        # 'darkdecaysignal': '?', 
-        # 'distortion': '?', 
-        # 'epsf': '?', 
-        # 'mask': '?', 
-        # 'flat': '?', 
-        # 'gain': '?', 
-        # 'inverselinearity': '?', 
-        # 'linearity': '?', 
-        # 'integralnonlinearity': '?', 
-        # 'photom': '?', 
-        # 'readnoise': '?', 
-        # 'refpix': '?', 
-        # 'saturation': '?'
-        # }
-        # tree["meta"]['rcs'] = {'active': False, 'electronics': 'A', 'bank': '1', 'led': '1', 'counts': -999999}
-        # tree["meta"]['velocity_aberration'] = {'ra_reference': -999999.0, 'dec_reference': -999999.0, 'scale_factor': -999999.0}
-
-        
-        # These don't exist in Roman_datamodels
-        # Additional attr
-        # there's a file_date, do we still want obs_date?
-        tree["meta"]['obs_date'] = Time(self.mjd, format="mjd").datetime.isoformat()
-        tree["meta"]['mjd_obs'] = self.mjd 
-        tree["meta"]['nreads'] = 1
-        tree["meta"]['gain'] = 1.0
-        #tree["meta"]['sky_mean'] = 0.0  # Placeholder for sky mean, as it's not currently implemented in the yaml
-        tree["meta"]['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
-        tree["meta"]['pa_fpa'] = True
-        
+        #meta.program
         tree.meta.program.title = tree.meta.program.title
         tree.meta.program.investigator_name = tree.meta.program.investigator_name
         tree.meta.program.category = tree.meta.program.category
         tree.meta.program.subcategory = tree.meta.program.subcategory
         tree.meta.program.science_category = tree.meta.program.science_category
-        
+        #meta.ref_file
         tree.meta.ref_file.crds.version = tree.meta.ref_file.crds.version
         tree.meta.ref_file.crds.context = tree.meta.ref_file.crds.context
         tree.meta.ref_file.apcorr = tree.meta.ref_file.apcorr
@@ -739,17 +646,16 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.ref_file.readnoise = tree.meta.ref_file.readnoise
         tree.meta.ref_file.refpix = tree.meta.ref_file.refpix
         tree.meta.ref_file.saturation = tree.meta.ref_file.saturation
-        
+        #.meta.rcs 
         tree.meta.rcs.active = tree.meta.rcs.active
         tree.meta.rcs.electronics = tree.meta.rcs.electronics
-        tree.meta.rcs.bank = tree.meta.rcs.bank
-        tree.meta.rcs.led = tree.meta.rcs.led
+        tree.meta.rcs.bank   = tree.meta.rcs.bank
+        tree.meta.rcs.led    = tree.meta.rcs.led
         tree.meta.rcs.counts = tree.meta.rcs.counts
-        
+        #meta.velocity_aberration
         tree.meta.velocity_aberration.ra_reference = tree.meta.velocity_aberration.ra_reference
         tree.meta.velocity_aberration.dec_reference = tree.meta.velocity_aberration.dec_reference
         tree.meta.velocity_aberration.scale_factor = tree.meta.velocity_aberration.scale_factor
-        
         #meta.visit
         tree.meta.visit.dither.primary_name  = tree.meta.visit.dither.primary_name
         tree.meta.visit.dither.subpixel_name = tree.meta.visit.dither.subpixel_name
@@ -774,13 +680,24 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.photometry.conversion_megajanskys_uncertainty = tree.meta.photometry.conversion_megajanskys_uncertainty
         tree.meta.photometry.pixel_area = tree.meta.photometry.pixel_area
 
-        tree['data'] = image.array.astype('float32')
-        tree["err"] = np.zeros_like(image.array, dtype='float16')  # Placeholder for error array
-        tree["dq"] = np.zeros_like(image.array, dtype='uint32')  # Placeholder for data quality array
+        tree.data = image.array.astype('float32')
+        tree.dq   = np.zeros_like(image.array, dtype='uint32')  # Placeholder for data quality array
+        tree.err  = np.zeros_like(image.array, dtype='float16')  # Placeholder for error array
+        tree.var_poisson = tree.var_poisson
+        tree.chisq = tree.chisq
+        tree.dumo  = tree.dumo
+        tree.amp33 = tree.amp33
+        tree.border_ref_pix_left = tree.border_ref_pix_left
+        tree.border_ref_pix_right = tree.border_ref_pix_right
+        tree.border_ref_pix_top = tree.border_ref_pix_top
+        tree.border_ref_pix_bottom = tree.border_ref_pix_bottom
+        tree.dq_border_ref_pix_left = tree.dq_border_ref_pix_left
+        tree.dq_border_ref_pix_right = tree.dq_border_ref_pix_right
+        tree.dq_border_ref_pix_top = tree.dq_border_ref_pix_top
+        tree.dq_border_ref_pix_bottom = tree.dq_border_ref_pix_bottom
 
         _ = tree.save(path, dir_path=None)
       
-
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
 
