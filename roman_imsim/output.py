@@ -1,24 +1,20 @@
 import galsim
 from galsim.config.output import (
-        RegisterOutputType, 
-        OutputBuilder
+        RegisterOutputType, OutputBuilder
         )
-from galsim.config.image import BuildImage
+
 import numpy as np
-from astropy import wcs as fits_wcs
 from astropy.io.fits import Header
-from astropy.time import Time
 from roman_datamodels.datamodels import ImageModel
-from astropy.modeling.models import (
-    Shift, Polynomial2D, Pix2Sky_TAN, RotateNative2Celestial, Mapping)
-from gwcs import coordinate_frames as cf
-import astropy.units as u
-import astropy.coordinates
-import gwcs
+from .sca import RomanSCAImageBuilder
+
+__all__ = ["RomanASDFBuilder"]
 
 class RomanASDFBuilder(OutputBuilder):
     """Builder class for constructing and writing DataCube output types.
     """
+
+    default_ext = '.asdf'
 
     def buildImages(self, config, base, file_num, image_num, obj_num, ignore, logger):
         """Build the images for output.
@@ -48,7 +44,7 @@ class RomanASDFBuilder(OutputBuilder):
         params = galsim.config.GetAllParams(config, base, opt=opt, ignore=ignore)[0]
         self.include_raw_header = params.get("include_raw_header", False)
 
-        image = BuildImage(base, image_num, obj_num, logger=logger)
+        image = galsim.config.BuildImage(base, image_num, obj_num, logger=logger)
         return [ image ]
 
     def writeFile(self, data, file_name, config, base, logger):
@@ -65,97 +61,36 @@ class RomanASDFBuilder(OutputBuilder):
         """
         self.writeASDF(config, base, data[0], file_name, logger)
 
-
-    def wcs_from_fits_header(self, header):
-        """Convert a FITS WCS to a GWCS.
-
-        This function reads SIP coefficients from a FITS WCS and implements
-        the corresponding gWCS WCS.
-        Copied from romanisim/wcs.py
-
-        Parameters
-        ----------
-        header : astropy.io.fits.header.Header
-            FITS header
-
-        Returns
-        -------
-        wcs : gwcs.wcs.WCS
-            gwcs WCS corresponding to header
-        """
-
-        # NOTE: this function ignores table distortions
-
-        def coeffs_to_poly(mat, degree):
-            pol = Polynomial2D(degree=degree)
-            for i in range(mat.shape[0]):
-                for j in range(mat.shape[1]):
-                    if 0 < i + j <= degree:
-                        setattr(pol, f'c{i}_{j}', mat[i, j])
-            return pol
-
-
-        w = fits_wcs.WCS(header)
-        ny, nx = header['NAXIS2'] + 1, header['NAXIS1'] + 1
-        x0, y0 = w.wcs.crpix
-
-        cd = w.wcs.piximg_matrix
-
-        cfx, cfy = np.dot(cd, [w.sip.a.ravel(), w.sip.b.ravel()])
-        a = np.reshape(cfx, w.sip.a.shape)
-        b = np.reshape(cfy, w.sip.b.shape)
-        a[1, 0] = cd[0, 0]
-        a[0, 1] = cd[0, 1]
-        b[1, 0] = cd[1, 0]
-        b[0, 1] = cd[1, 1]
-
-        polx = coeffs_to_poly(a, w.sip.a_order)
-        poly = coeffs_to_poly(b, w.sip.b_order)
-
-        # construct GWCS:
-        det2sky = (
-            (Shift(-x0) & Shift(-y0)) | Mapping((0, 1, 0, 1)) | (polx & poly)
-            | Pix2Sky_TAN() | RotateNative2Celestial(*w.wcs.crval, header['LONPOLE'])
-        )
-
-        detector_frame = cf.Frame2D(name="detector", axes_names=("x", "y"),
-                                    unit=(u.pix, u.pix))
-        sky_frame = cf.CelestialFrame(
-            reference_frame=getattr(astropy.coordinates, w.wcs.radesys).__call__(),
-            name=w.wcs.radesys,
-            unit=(u.deg, u.deg)
-        )
-        pipeline = [(detector_frame, det2sky), (sky_frame, None)]
-        gw = gwcs.WCS(pipeline)
-        gw.bounding_box = ((-0.5, nx - 0.5), (-0.5, ny - 0.5))
-
-        return gw
-
-    def writeASDF(self, config, base, image, path, logger):
+    def writeASDF(self, config, base, image, fname_path, logger):
         """
         Method to write the file to disk
 
         Parameters:
         -----------
-        path (str): Output path and filename
+        fname_path (str): Output path and filename
         include_raw_header (bool): If `True` include a copy of the raw FITS header
            as a dictionary in the ASDF file.
         """
     
-        print("self attrs:", [a for a in dir(self) if not a.startswith("_")])
-        print("config keys:", list(config.keys()))
-        print("base keys:  ", list(base.keys()))
-        
-        for key, val in image.header.items():
-            print(f"{key} = {val}")
-        print("Image array shape:", image.array.shape)
-        print(image.array)
+        #print("self attrs:", [a for a in dir(self) if not a.startswith("_")])
+        #print("config keys:", list(config.keys()))
+        #print("base keys:  ", list(base.keys()))
+        #
+        #for key, val in image.header.items():
+        #    print(f"{key} = {val}")
+        #print("Image array shape:", image.array.shape)
+        #print(image.array)
         
         sca      = image.header['SCA']
         exptime  = image.header['EXPTIME']
         fltr     = image.header["FILTER"]
         date_obs = image.header["DATE-OBS"]
         mjd_obs  = image.header["MJD-OBS"]
+
+        if fname_path.suffix != ".asdf":
+            raise NotImplementedError(
+            f"The extension of the file_name/format MUST be {self.default_ext}. Roman_datamodels only allows asdf and parquet."
+            )
 
         # Fill out the wcs block - this is very hard since we need to change from wcs to gwcs object stored in asdf
         # The config wcs is the configuration for building the wcs above
@@ -195,14 +130,13 @@ class RomanASDFBuilder(OutputBuilder):
         # coordinate system
         wcs_header['RADESYS'] = 'ICRS'
         wcs_header['LONPOLE'] = 180.0
-        breakpoint()
 
         tree = ImageModel.create_fake_data()
         #tree = ImageModel.create_minimal()
 
         # Put additional attributes (that do NOT exist in Roman_datamodels) in this block 
         # save() call creates file_date, this is observation date obs_date.
-        tree["meta"]['obs_date'] = date_obs
+        tree["meta"]['date_obs'] = date_obs
         tree["meta"]['mjd_obs'] = mjd_obs
         tree["meta"]['nreads'] = 1
         tree["meta"]['gain'] = 1.0
@@ -223,7 +157,7 @@ class RomanASDFBuilder(OutputBuilder):
 
         tree.meta.product_type = tree.meta.product_type
 
-        tree.meta.filename = path # ===> save() appies this already. confirm!
+        tree.meta.filename = config['file_name']['current'][0] # ===> save() appies this already. confirm!
 
         #tree.meta.file_date #=> don't assign value, it's set autometically at save() call
 
@@ -298,7 +232,7 @@ class RomanASDFBuilder(OutputBuilder):
         tree.meta.observation.visit_file_group    = tree.meta.observation.visit_file_group
         tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
         tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
-        tree.meta.observation.exposure       = base['input']['obseq_data']['SCA']['current'][0] #check if this is what exposure means with roman people
+        tree.meta.observation.exposure       = sca #check if this is what exposure means with roman people
         tree.meta.observation.wfi_parallel   = tree.meta.observation.wfi_parallel
         #meta.pointing
         tree.meta.pointing.pa_aperture= tree.meta.pointing.pa_aperture
@@ -352,7 +286,7 @@ class RomanASDFBuilder(OutputBuilder):
         tree.meta.visit.nexposures           = tree.meta.visit.nexposures
         tree.meta.visit.internal_target      = tree.meta.visit.internal_target
         #meta.wcs
-        tree.meta.wcs = self.wcs_from_fits_header(wcs_header)
+        tree.meta.wcs = RomanSCAImageBuilder.wcs_from_fits_header(wcs_header)
         #meta.wcsinfo
         tree.meta.wcsinfo.aperture_name = tree.meta.wcsinfo.aperture_name
         tree.meta.wcsinfo.v2_ref        = tree.meta.wcsinfo.v2_ref
@@ -384,7 +318,7 @@ class RomanASDFBuilder(OutputBuilder):
         tree.dq_border_ref_pix_top = tree.dq_border_ref_pix_top
         tree.dq_border_ref_pix_bottom = tree.dq_border_ref_pix_bottom
 
-        _ = tree.save(path, dir_path=None)
-        logger.info(f"saved {path}")
+        _ = tree.save(fname_path)
+        logger.info(f"saved {fname_path}")
 
 RegisterOutputType('RomanASDF', RomanASDFBuilder())
