@@ -5,7 +5,6 @@ from galsim.config.output import (
 
 from pathlib import Path
 import numpy as np
-from astropy.io.fits import Header
 from roman_datamodels.datamodels import ImageModel
 from .sca import RomanSCAImageBuilder
 
@@ -61,6 +60,11 @@ class RomanASDFBuilder(OutputBuilder):
             base:           The base configuration dict.
             logger:         If given, a logger object to log progress.
         """
+        if Path(file_name).suffix != ".asdf":
+            raise NotImplementedError(
+            f"The extension of the file_name/format MUST be {self.default_ext}. Roman_datamodels only allows asdf and parquet."
+            )
+
         self.writeASDF(config, base, data[0], file_name, logger)
 
     def writeASDF(self, config, base, image, fname_path, logger):
@@ -90,36 +94,32 @@ class RomanASDFBuilder(OutputBuilder):
         mjd_obs  = image.header["MJD-OBS"]
         ZPTMAG   = image.header['ZPTMAG']
 
-        if Path(fname_path).suffix != ".asdf":
-            raise NotImplementedError(
-            f"The extension of the file_name/format MUST be {self.default_ext}. Roman_datamodels only allows asdf and parquet."
-            )
-
         # Fill out the wcs block - this is very hard since we need to change from wcs to gwcs object stored in asdf
         # The config wcs is the configuration for building the wcs above
         # The base is galsim.GSFitsWCS constructed from config wcs using wcs.py, and copied to image.wcs
         
-        #turn the Galsim header to a fits header for the wcs_from_fits_header function
-        galsim_wcs_header = image.wcs.header           
-        d = dict(galsim_wcs_header)                     
-        wcs_header = Header(d)
+        #use astropy.io.fits.header.Header form of header: required in wcs_from_fits_header
+        wcs_header = image.wcs.header.header
+        # These are needed to create gwcs object
         ny, nx = image.array.shape
-        
         wcs_header['NAXIS']  = 2                   # number of axes
         wcs_header['NAXIS1'] = nx                  # image width in pixels
         wcs_header['NAXIS2'] = ny                  # image height in pixels
 
-        # coordinate type
-        wcs_header['CTYPE1'] = 'RA---TAN-SIP'
-        wcs_header['CTYPE2'] = 'DEC--TAN-SIP'
+        #### already assigned, redundant repetition?
+        ## coordinate type
+        #wcs_header['CTYPE1'] = 'RA---TAN-SIP'
+        #wcs_header['CTYPE2'] = 'DEC--TAN-SIP'
 
-        # reference pixel 
-        wcs_header['CRPIX1'] = nx/2
-        wcs_header['CRPIX2'] = ny/2
-
-        # reference coordinates 
-        wcs_header['CRVAL1'] = base['world_center'].ra.deg   
-        wcs_header['CRVAL2'] = base['world_center'].dec.deg    
+        ### already assigned, redundant repetition, but conversion to int is required
+        ### comment/delete this block if float is fine. This too is a repetition again.
+        ## reference pixel 
+        #wcs_header['CRPIX1'] = nx/2
+        #wcs_header['CRPIX2'] = ny/2
+        #### Is the repetition really needed? already defined! but default value differs from assigned.
+        ## reference coordinates 
+        #wcs_header['CRVAL1'] = base['world_center'].ra.deg   
+        #wcs_header['CRVAL2'] = base['world_center'].dec.deg    
 
         #I can't find these information (I think they are also connected to border_ref_pix_left etc) so comment below out - the wcs is not correct without these info
         # linear transformation: pixel scale in deg/pixel
@@ -131,8 +131,12 @@ class RomanASDFBuilder(OutputBuilder):
         #wcs_header['CD2_2'] = scale
 
         # coordinate system
-        wcs_header['RADESYS'] = 'ICRS'
-        wcs_header['LONPOLE'] = 180.0
+        wcs_header.update([('RADESYS', "ICRS", "Reference Coordinate System")])
+        #####also already defined
+        #wcs_header['LONPOLE'] = 180.0
+
+        #changing the instrument name from WFC -> WFI, OK?
+        wcs_header["INSTRUME"] = "WFI"
 
         tree = ImageModel.create_fake_data()
         #tree = ImageModel.create_minimal()
@@ -140,9 +144,9 @@ class RomanASDFBuilder(OutputBuilder):
         # Put additional attributes (that do NOT exist in Roman_datamodels) in this block 
         tree["meta"]['raw_wcs_header'] = {}
         if self.include_raw_header:
-            for key, value in wcs_header.items():
-                print(f"Keyword: {key}, Value: {value}")
-                tree["meta"]['raw_wcs_header'][key] = value
+            for card in wcs_header.cards:
+                print(f"Keyword: {card.keyword}, Value: {card.value}, Comment: {card.comment}")
+                tree["meta"]['raw_wcs_header'][card.keyword] = {"value": card.value, "comment": card.comment}
         # save() call autometically creates a file_date, here obs_date is observation date
         tree["meta"]['date_obs'] = date_obs
         tree["meta"]['mjd_obs'] = mjd_obs
@@ -151,7 +155,6 @@ class RomanASDFBuilder(OutputBuilder):
         #tree["meta"]['sky_mean'] = 0.0    # Placeholder for sky mean, as it's not currently implemented in the yaml
         tree["meta"]['zptmag'] = ZPTMAG    #2.5 * np.log10(self.exptime * roman.collecting_area)
         tree["meta"]['pa_fpa'] = True
-
 
         # ------------------------------------------ 
         # setup value assignment in the same order as they appear in RDM
@@ -216,14 +219,13 @@ class RomanASDFBuilder(OutputBuilder):
         tree.meta.guide_star.guide_star_id = tree.meta.guide_star.guide_star_id
         tree.meta.guide_star.epoch = tree.meta.guide_star.epoch
         #meta.instrument
-        tree.meta.instrument.name = "WFI"
+        tree.meta.instrument.name = wcs_header["INSTRUME"] # changed it from manual WFI to fetch the same value
         tree.meta.instrument.detector = tree.meta.instrument.detector
         tree.meta.instrument.optical_element = "F" + fltr[1:]
         ##### =====> is it WFI10 or WFI01??? confirm it
-        ##### =====>  self.fltr or params["fltr"]
         # The following assignments can be found in this file. Do we need to assign "detector" attr dynamically?
         #tree["meta"]['instrument']['detector'] = 'WFI10'
-        #tree["meta"]['instrument']['optical_element'] = self.fltr
+        #tree["meta"]['instrument']['optical_element'] = fltr
         #tree["meta"]['instrument']['name'] = 'WFI'
         
         tree.meta.observation.observation_id = tree.meta.observation.observation_id
