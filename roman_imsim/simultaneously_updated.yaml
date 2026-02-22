@@ -1,0 +1,165 @@
+# Default settings for roman simulation
+# Includes creation of noisless oversampled images (including PSF)
+#  -- processing of other detector and instrument effects are still handled in the
+#     python postprocessing layer to enable things not currently in galsim.roman
+
+modules:
+
+    # Including galsim.roman in the list of modules to import will add a number of Roman-specific
+    # functions and classes that we will use here.
+    - roman_imsim
+    - galsim.roman
+
+    # We need this for one of our Eval items.  GalSim does not by default import datetime into
+    # the globals dict it uses when evaluating Eval items, so we can tell it to import it here.
+    - datetime
+
+# Define some other information about the images
+image:
+
+    # A special Image type that knows all the Roman SCA geometry, WCS, gain, etc.
+    # It also by default applies a number of detector effects, but these can be turned
+    # off if desired by setting some parameters (given below) to False.
+    type: roman_sca
+
+    wcs:
+        type: RomanWCS
+        SCA: '@image.SCA'
+        ra: { type: ObSeqData, field: ra }
+        dec: { type: ObSeqData, field: dec }
+        pa: { type: ObSeqData, field: pa }
+        mjd: { type: ObSeqData, field: mjd }
+
+    bandpass:
+        type: RomanBandpass
+        name: { type: ObSeqData, field: filter }
+
+    # When you want to have multiple images generate the same random galaxies, then
+    # you can set up multiple random number generators with different update cadences
+    # by making random_seed a list.
+    # The default behavior is just to have the random seeds for each object go in order by
+    # object number across all images, but this shows how to set it up so we use two separate
+    # cadences.
+    # The first one behaves normally, which will be used for things like noise on the image.
+    # The second one sets the initial seed for each object to repeat to the same starting value
+    # at the start of each filter.  If we were doing more than 3 total files, it would then
+    # move on to another sequence for the next 3 and so on.
+    random_seed:
+        # Used for noise and nobjects.
+        - { type: ObSeqData, field: visit }
+
+        # Used for objects.  Repeats sequence for each filter
+        # Note: Don't use $ shorthand here, since that will implicitly be evaluated once and then
+        # treated the same way as an integer (i.e. making a regular sequence starting from that
+        # value).  Using an explicit dict with an Eval type means GalSim will leave it alone and
+        # evaluate it as is for each object.
+
+
+    # We're just doing one SCA here.
+    # If you wanted to do all of them in each of three filters (given below), you could use:
+    #
+    # SCA:
+    #     type: Sequence
+    #     first: 1
+    #     last: 18
+    #     repeat: 3  # repeat each SCA num 3 times before moving on, for the 3 filters.
+    #
+    SCA: 5
+    mjd: { type: ObSeqData, field: mjd }
+    filter: { type: ObSeqData, field: filter }
+    exptime: { type: ObSeqData, field: exptime }
+
+    # Photon shooting is way faster for chromatic objects than fft, especially when most of them
+    # are fairly faint.  The cross-over point for achromatic objects is generally of order
+    # flux=1.e6 or so (depending on the profile).  Most of our objects here are much fainter than
+    # that.  The fft rendering for chromatic is a factor of 10 or so slower still, whereas
+    # chromatic photon shooting is only slighly slower than achromatic, so the difference
+    # is even more pronounced in this case.
+    draw_method: 'auto'
+
+    # These are all by default turned on, but you can turn any of them off if desired:
+    ignore_noise: True
+    stray_light: False
+    thermal_background: False
+    reciprocity_failure: False
+    dark_current: False
+    nonlinearity: False
+    ipc: False
+    read_noise: False
+    sky_subtract: False
+
+    nobjects: 10
+
+stamp:
+    type: Roman_stamp
+    world_pos:
+        type: SkyCatWorldPos
+    exptime: { type: ObSeqData, field: exptime }
+    skip_failures: True
+    photon_ops:
+        -
+            type: ChargeDiff
+
+# psf:
+#     type: roman_psf
+#     # If omitted, it would figure this out automatically, because we are using the RomanSCA image
+#     # type.  But if we weren't, you'd have to tell it which SCA to build the PSF for.
+#     SCA: '@image.SCA'
+#     # n_waves defines how finely to sample the PSF profile over the bandpass.
+#     # Using 10 wavelengths usually gives decent accuracy.
+#     n_waves: 10
+
+# Define the galaxy type and positions to use
+gal:
+    type: SkyCatObj
+
+input:
+    obseq_data:
+        file_name: Roman_WAS_obseq_11_1_23.fits
+        visit: 12909
+        SCA: '@image.SCA'
+    roman_psf:
+        SCA: '@image.SCA'
+        n_waves: 5
+    sky_catalog:
+        file_name: skyCatalog//skyCatalog.yaml 
+        edge_pix: 512
+        mjd: { type: ObSeqData, field: mjd }
+        exptime: { type: ObSeqData, field: exptime }          
+        obj_types: ['diffsky_galaxy','star','snana']
+
+output:
+
+    #type: Fits
+    type: RomanASDF
+    nfiles: 1
+    dir: output/RomanWAS_new/images/truth
+    include_raw_header: true
+    file_name:
+        type: FormattedStr
+        #format: "Roman_WAS_truth_%s_%i_%i.fits.gz"
+        format: "Roman_WAS_truth_%s_%i_%i.asdf"
+        items:
+            - { type: ObSeqData, field: filter }
+            - { type: ObSeqData, field: visit }
+            - '@image.SCA'
+
+    truth:
+        dir: output/RomanWAS_new/truth
+        file_name:
+            type: FormattedStr
+            format: "Roman_WAS_index_%s_%i_%i.txt"
+            items:
+                - { type: ObSeqData, field: filter }
+                - { type: ObSeqData, field: visit }
+                - '@image.SCA'
+        columns:
+            object_id: "@object_id"
+            ra: "$sky_pos.ra.deg"
+            dec: "$sky_pos.dec.deg"
+            x: "$image_pos.x"
+            y: "$image_pos.y"
+            realized_flux: "@realized_flux"
+            flux: "@flux"
+            mag: "@mag"
+            obj_type: "@object_type"

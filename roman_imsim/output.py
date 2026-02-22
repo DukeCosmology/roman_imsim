@@ -3,6 +3,7 @@ from galsim.config.output import (
         RegisterOutputType, OutputBuilder
         )
 
+from pathlib import Path
 import numpy as np
 from astropy.io.fits import Header
 from roman_datamodels.datamodels import ImageModel
@@ -14,6 +15,7 @@ class RomanASDFBuilder(OutputBuilder):
     """Builder class for constructing and writing DataCube output types.
     """
 
+    #override the base class variable
     default_ext = '.asdf'
 
     def buildImages(self, config, base, file_num, image_num, obj_num, ignore, logger):
@@ -86,8 +88,9 @@ class RomanASDFBuilder(OutputBuilder):
         fltr     = image.header["FILTER"]
         date_obs = image.header["DATE-OBS"]
         mjd_obs  = image.header["MJD-OBS"]
+        ZPTMAG   = image.header['ZPTMAG']
 
-        if fname_path.suffix != ".asdf":
+        if Path(fname_path).suffix != ".asdf":
             raise NotImplementedError(
             f"The extension of the file_name/format MUST be {self.default_ext}. Roman_datamodels only allows asdf and parquet."
             )
@@ -135,17 +138,20 @@ class RomanASDFBuilder(OutputBuilder):
         #tree = ImageModel.create_minimal()
 
         # Put additional attributes (that do NOT exist in Roman_datamodels) in this block 
-        # save() call creates file_date, this is observation date obs_date.
+        tree["meta"]['raw_wcs_header'] = {}
+        if self.include_raw_header:
+            for key, value in wcs_header.items():
+                print(f"Keyword: {key}, Value: {value}")
+                tree["meta"]['raw_wcs_header'][key] = value
+        # save() call autometically creates a file_date, here obs_date is observation date
         tree["meta"]['date_obs'] = date_obs
         tree["meta"]['mjd_obs'] = mjd_obs
         tree["meta"]['nreads'] = 1
         tree["meta"]['gain'] = 1.0
-        #tree["meta"]['sky_mean'] = 0.0  # Placeholder for sky mean, as it's not currently implemented in the yaml
-        tree["meta"]['zptmag'] = image.header['ZPTMAG']    #2.5 * np.log10(self.exptime * roman.collecting_area)
+        #tree["meta"]['sky_mean'] = 0.0    # Placeholder for sky mean, as it's not currently implemented in the yaml
+        tree["meta"]['zptmag'] = ZPTMAG    #2.5 * np.log10(self.exptime * roman.collecting_area)
         tree["meta"]['pa_fpa'] = True
 
-        if self.include_raw_header:
-            pass
 
         # ------------------------------------------ 
         # setup value assignment in the same order as they appear in RDM
