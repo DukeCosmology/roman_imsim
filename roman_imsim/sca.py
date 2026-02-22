@@ -122,8 +122,8 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
     #     return self.all_roman_bp[filter_name]
 
     
-    
-    def wcs_from_fits_header(self, header):
+    @staticmethod
+    def wcs_from_fits_header(header):
         """Convert a FITS WCS to a GWCS.
 
         This function reads SIP coefficients from a FITS WCS and implements
@@ -254,7 +254,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         ny, nx = image.array.shape
         wcs_header['NAXIS1'] = nx
         wcs_header['NAXIS2'] = ny
-        tree['wcs'] = self.wcs_from_fits_header(wcs_header)
+        tree['wcs'] = wcs_from_fits_header(wcs_header)
 
         # check for catalogs
         #tree['catalogs'] = self.catalogs   # what is this? can't find this property anywhere
@@ -316,7 +316,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # mk_l2_meta
         mk_l2_meta = {
             "l2_cal_step_match": {
-                "assign_wcs": self.wcs_from_fits_header,
+                "assign_wcs": wcs_from_fits_header,
                 "dark": self.dark_current,
                 "flux": base['flux'],
                 "linearity": self.nonlinearity,
@@ -446,7 +446,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #     filepath=path,
         #     data=image.array.astype('float32'),  #For now convert to float32, latter the image.array shall it self be float32
         #     meta=meta_dict,
-        #     wcs = self.wcs_from_fits_header(wcs_header)
+        #     wcs = wcs_from_fits_header(wcs_header)
         # )
         
       
@@ -510,7 +510,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         # coordinate system
         wcs_header['RADESYS'] = 'ICRS'
         wcs_header['LONPOLE'] = 180.0
-        breakpoint()
 
         tree = ImageModel.create_fake_data()
         #tree = ImageModel.create_minimal()
@@ -664,7 +663,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         tree.meta.visit.nexposures           = tree.meta.visit.nexposures
         tree.meta.visit.internal_target      = tree.meta.visit.internal_target
         #meta.wcs
-        tree.meta.wcs = self.wcs_from_fits_header(wcs_header)
+        tree.meta.wcs = wcs_from_fits_header(wcs_header)
         #meta.wcsinfo
         tree.meta.wcsinfo.aperture_name = tree.meta.wcsinfo.aperture_name
         tree.meta.wcsinfo.v2_ref        = tree.meta.wcsinfo.v2_ref
@@ -720,7 +719,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image = Image(full_xsize, full_ysize, dtype=float)
         full_image.setOrigin(base["image_origin"])
         full_image.wcs = wcs
-        breakpoint()
         print("full image wcs:", full_image.wcs)
         print("full image wcs type:", type(full_image.wcs))
         print("full image wcs header:", full_image.wcs.header)
@@ -808,7 +806,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         #manage return
         self.full_image = full_image
         #if self.writeASDF:
-        #    breakpoint()
         #    self.writeASDF_rdm(config, base, full_image, 'one_image.asdf', include_raw_header=False)
         
         return full_image, None
@@ -918,18 +915,18 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             sky_image.quantize()
             image -= sky_image
 
-def fitsheader_to_dict(self):
-        """
-        Method to convert the FITS header to a plain dictionary
-        """
-        if self.full_image.header is not None:
-            hdr_out = {}
-            for key, value in self.full_image.header.items(): #not sure if .items() is a valid method here
-                hdr_out[key] = value
-            return hdr_out
-        else:
-            raise ValueError('self.fitsheader is empty, \
-                             please load the header first')
+#def fitsheader_to_dict(self):
+#        """
+#        Method to convert the FITS header to a plain dictionary
+#        """
+#        if self.full_image.header is not None:
+#            hdr_out = {}
+#            for key, value in self.full_image.header.items(): #not sure if .items() is a valid method here
+#                hdr_out[key] = value
+#            return hdr_out
+#        else:
+#            raise ValueError('self.fitsheader is empty, \
+#                             please load the header first')
 
 
 # Register this as a valid type
