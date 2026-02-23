@@ -38,7 +38,7 @@ jobs:
 
       - name: Get test repository
         run: |
-          git clone https://github.com/DukeCosmology/roman_imsim_testdata.git@skylevel_date
+          git clone https://github.com/DukeCosmology/roman_imsim_testdata.git
           pushd roman_imsim_testdata
           git lfs pull
           popd
