@@ -142,10 +142,10 @@ class RomanASDFBuilder(OutputBuilder):
         #tree = ImageModel.create_minimal()
 
         # Put additional attributes (that do NOT exist in Roman_datamodels) in this block 
-        tree["meta"]['raw_wcs_header'] = {}
         if self.include_raw_header:
+            tree["meta"]['raw_wcs_header'] = {}
             for card in wcs_header.cards:
-                print(f"Keyword: {card.keyword}, Value: {card.value}, Comment: {card.comment}")
+                print(f"keyword: {card.keyword}, value: {card.value}, comment: {card.comment}")
                 tree["meta"]['raw_wcs_header'][card.keyword] = {"value": card.value, "comment": card.comment}
         # save() call autometically creates a file_date, here obs_date is observation date
         tree["meta"]['date_obs'] = date_obs
@@ -166,7 +166,7 @@ class RomanASDFBuilder(OutputBuilder):
 
         tree.meta.product_type = tree.meta.product_type
 
-        tree.meta.filename = config['file_name']['current'][0] # ===> save() appies this already. confirm!
+        tree.meta.filename = Path(fname_path).name # ===> save() appies this already. confirm!
 
         #tree.meta.file_date #=> don't assign value, it's set autometically at save() call
 
