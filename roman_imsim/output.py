@@ -248,7 +248,7 @@ class RomanASDFBuilder(OutputBuilder):
         tree.meta.pointing.ra_v1      = tree.meta.pointing.ra_v1
         tree.meta.pointing.dec_v1     = tree.meta.pointing.dec_v1
         tree.meta.pointing.pa_v3      = tree.meta.pointing.pa_v3
-        tree.meta.pointing.target_aperture = 'WFI_CEN' #what kidn of aperture is wcs_header['RA_TARG']
+        tree.meta.pointing.target_aperture = f"{wcs_header['INSTRUME']}_CEN" #what kidn of aperture is wcs_header['RA_TARG']
         tree.meta.pointing.target_ra  = image.wcs.center.ra.deg # or wcs_header['RA_TARG']?
         tree.meta.pointing.target_dec = image.wcs.center.dec.deg # or wcs_header['DEC_TARG']?
         #meta.program
@@ -296,7 +296,7 @@ class RomanASDFBuilder(OutputBuilder):
         #meta.wcs
         tree.meta.wcs = RomanSCAImageBuilder.wcs_from_fits_header(wcs_header)
         #meta.wcsinfo
-        tree.meta.wcsinfo.aperture_name = tree.meta.wcsinfo.aperture_name
+        tree.meta.wcsinfo.aperture_name = f"{wcs_header['INSTRUME']}_{sca}_FULL" #what does full stand for?
         tree.meta.wcsinfo.v2_ref        = tree.meta.wcsinfo.v2_ref
         tree.meta.wcsinfo.v3_ref        = tree.meta.wcsinfo.v3_ref
         tree.meta.wcsinfo.vparity       = tree.meta.wcsinfo.vparity
