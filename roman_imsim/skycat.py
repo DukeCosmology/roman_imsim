@@ -11,6 +11,11 @@ from galsim.config import (
     RegisterObjectType,
     RegisterValueType,
 )
+from galsim.errors import galsim_warn
+
+
+def no_lensing(self):
+    return 0.0, 0.0, 1.0
 
 
 class SkyCatalogInterface:
@@ -33,7 +38,8 @@ class SkyCatalogInterface:
         ysize=None,
         obj_types=None,
         edge_pix=100,
-        max_flux=None,
+        skycat_lensing=True,
+        galsim_shear=False,
         logger=None,
     ):
         """
@@ -57,6 +63,8 @@ class SkyCatalogInterface:
         edge_pix : float [100]
             Size in pixels of the buffer region around nominal image
             to consider objects.
+        skycat_lensing : bool [False]
+            If True, then do not apply lensing to the objects from SkyCatalogs.
         logger : logging.Logger [None]
             Logger object.
         """
@@ -82,12 +90,22 @@ class SkyCatalogInterface:
         self.sca_center = wcs.toWorld(galsim.PositionD(self.xsize / 2.0, self.ysize / 2.0))
         self._objects = None
 
-        # import os, psutil
-        # process = psutil.Process()
-        # print('skycat init',process.memory_info().rss)
+        self._skycat_lensing = skycat_lensing
+        if self._skycat_lensing and galsim_shear:
+            galsim_warn(
+                "A shear is applied on top of the SkyCatalog shearing. It is "
+                "recommended to set skycat_lensing = False when applying an "
+                "external shear."
+            )
 
     @property
     def objects(self):
+
+        if not self._skycat_lensing:
+            from skycatalogs.objects.diffsky_object import DiffskyObject
+
+            DiffskyObject.get_wl_params = no_lensing
+
         from skycatalogs import skyCatalogs
         from skycatalogs import __version__ as skycatalogs_version
         from packaging.version import Version
@@ -98,9 +116,6 @@ class SkyCatalogInterface:
             from skycatalogs.utils import PolygonalRegion
 
         if self._objects is None:
-            # import os, psutil
-            # process = psutil.Process()
-            # print('skycat obj 1',process.memory_info().rss)
             # Select objects from polygonal region bounded by CCD edges
             corners = (
                 (-self.edge_pix, -self.edge_pix),
@@ -117,9 +132,6 @@ class SkyCatalogInterface:
             self._objects = sky_cat.get_objects_by_region(region, obj_type_set=self.obj_types, mjd=self.mjd)
             if not self._objects:
                 self.logger.warning("No objects found on image.")
-            # import os, psutil
-            # process = psutil.Process()
-            # print('skycat obj 2',process.memory_info().rss)
         return self._objects
 
     def get_sca_center(self):
@@ -189,15 +201,6 @@ class SkyCatalogInterface:
         if np.isnan(flux):
             return None
 
-        # if True and skycat_obj.object_type == 'galaxy':
-        #     # Apply DC2 dilation to the individual galaxy components.
-        #     for component, gsobj in gsobjs.items():
-        #         comp = component if component != 'knots' else 'disk'
-        #         a = skycat_obj.get_native_attribute(f'size_{comp}_true')
-        #         b = skycat_obj.get_native_attribute(f'size_minor_{comp}_true')
-        #         scale = np.sqrt(a/b)
-        #         gsobjs[component] = gsobj.dilate(scale)
-
         # Set up simple SED if too faint
         if flux < 40:
             faint = True
@@ -233,15 +236,14 @@ class SkyCatalogInterface:
         gs_object = gs_object.withFlux(flux, self.bandpass)
         gs_object.flux = flux
 
-        # Get the object type
         if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
-            gs_object.object_type = "galaxy"
+            object_type = "galaxy"
         if skycat_obj.object_type in {"star", "gaia_star"}:
-            gs_object.object_type = "star"
+            object_type = "star"
         if skycat_obj.object_type == "snana":
-            gs_object.object_type = "transient"
+            object_type = "transient"
 
-        return gs_object
+        return gs_object, object_type
 
 
 class SkyCatalogLoader(InputLoader):
@@ -257,6 +259,7 @@ class SkyCatalogLoader(InputLoader):
             "mjd": float,
             "xsize": int,
             "ysize": int,
+            "skycat_lensing": bool,
         }
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt)
         wcs = galsim.config.BuildWCS(base["image"], "wcs", base, logger=logger)
@@ -267,6 +270,7 @@ class SkyCatalogLoader(InputLoader):
             base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)[0]
 
         kwargs["bandpass"] = base["bandpass"]
+        kwargs["galsim_shear"] = "shear" in base["gal"]
         # Sky catalog object lists are created per CCD, so they are
         # not safe to reuse.
         safe = False
@@ -306,13 +310,14 @@ def SkyCatObj(config, base, ignore, gsparams, logger):
 
     req = {"index": int}
     opt = {"num": int}
-    kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt)
+    kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore)
     index = kwargs["index"]
 
     rng = galsim.config.GetRNG(config, base, logger, "SkyCatObj")
 
-    obj = skycat.getObj(index, gsparams=gsparams, rng=rng)
+    obj, object_type = skycat.getObj(index, gsparams=gsparams, rng=rng)
     base["object_id"] = skycat.objects[index].id
+    base["object_type"] = object_type
 
     return obj, safe
 
