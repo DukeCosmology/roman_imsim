@@ -228,12 +228,12 @@ class SkyCatalogInterface:
         # We cache the SEDs for potential later use
         if hasattr(skycat_obj, "get_wl_params"):
             # _, _, mu = skycat_obj.get_wl_params()
-            gamma1 = skycat_obj.get_native_attribute('shear1')
-            gamma2 = skycat_obj.get_native_attribute('shear2')
-            kappa = skycat_obj.get_native_attribute('convergence')
-            mu = 1./((1. - kappa)**2 - (gamma1**2 + gamma2**2))
+            gamma1 = skycat_obj.get_native_attribute("shear1")
+            gamma2 = skycat_obj.get_native_attribute("shear2")
+            kappa = skycat_obj.get_native_attribute("convergence")
+            mu = 1.0 / ((1.0 - kappa) ** 2 - (gamma1**2 + gamma2**2))
         else:
-            mu = 1.
+            mu = 1.0
 
         self._seds = skycat_obj.get_observer_sed_components(mjd=mjd)
         fluxes = {}
@@ -289,9 +289,13 @@ class SkyCatalogInterface:
             if faint:
                 seds = {cmp_name: self._trivial_sed for cmp_name in gsobjs}
             else:
-                seds = self._seds if self._seds is not None else skycat_obj.get_observer_sed_components(mjd=self.mjd)
+                seds = (
+                    self._seds
+                    if self._seds is not None
+                    else skycat_obj.get_observer_sed_components(mjd=self.mjd)
+                )
         else:
-             seds = {cmp_name: 1. for cmp_name in gsobjs}
+            seds = {cmp_name: 1.0 for cmp_name in gsobjs}
 
         gs_obj_list = []
         for component in gsobjs:
@@ -373,11 +377,11 @@ def SkyCatObj(config, base, ignore, gsparams, logger):
         message = (
             "skyCatalogs selection and SCA center do not agree: \n"
             "skycat.sca_center: "
-            f"{sca_center.ra/galsim.degrees:.5f}, "
-            f"{sca_center.dec/galsim.degrees:.5f}\n"
+            f"{sca_center.ra / galsim.degrees:.5f}, "
+            f"{sca_center.dec / galsim.degrees:.5f}\n"
             "world_center: "
-            f"{world_center.ra/galsim.degrees:.5f}, "
-            f"{world_center.dec/galsim.degrees:.5f} \n"
+            f"{world_center.ra / galsim.degrees:.5f}, "
+            f"{world_center.dec / galsim.degrees:.5f} \n"
             f"Separation: {sep:.2e} arcsec"
         )
         raise RuntimeError(message)
