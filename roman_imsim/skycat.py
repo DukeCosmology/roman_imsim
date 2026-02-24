@@ -38,6 +38,7 @@ class SkyCatalogInterface:
         ysize=None,
         obj_types=None,
         edge_pix=100,
+        chromaticity=True,
         skycat_lensing=True,
         galsim_shear=False,
         logger=None,
@@ -63,8 +64,16 @@ class SkyCatalogInterface:
         edge_pix : float [100]
             Size in pixels of the buffer region around nominal image
             to consider objects.
+        chromatic : bool [True]
+            Whether to use the chromatic GSObjects from skyCatalogs. If False,
+            don't use the SED information and uses the flux inegrated over the
+            bandpass instead.
         skycat_lensing : bool [False]
             If True, then do not apply lensing to the objects from SkyCatalogs.
+        galsim_shear : bool [False]
+            Whether a shear is specified in the config file. Only here for the
+            purpose of raising a warning if both skycat_lensing and galsim_shear
+            are applied.
         logger : logging.Logger [None]
             Logger object.
         """
@@ -89,6 +98,8 @@ class SkyCatalogInterface:
             self.logger.warning(f"Object types restricted to {obj_types}")
         self.sca_center = wcs.toWorld(galsim.PositionD(self.xsize / 2.0, self.ysize / 2.0))
         self._objects = None
+
+        self.chromaticity = chromaticity
 
         self._skycat_lensing = skycat_lensing
         if self._skycat_lensing and galsim_shear:
@@ -171,7 +182,68 @@ class SkyCatalogInterface:
         ra, dec = skycat_obj.ra, skycat_obj.dec
         return galsim.CelestialCoord(ra * galsim.degrees, dec * galsim.degrees)
 
-    def getObj(self, index, gsparams=None, rng=None, exptime=30):
+    def getFlux(self, index=None, skycat_obj=None, filter=None, mjd=None, exptime=None):
+        """
+        Return the flux associated to an object.
+
+        Parameters
+        ----------
+        index : int
+            Index of the object in the self.objects catalog. Either index or
+            skycat_obj must be provided. [Default: None]
+        skycat_obj : skyCatalogs object
+            The skyCatalogs object for which the flux is computed. Either index
+            or skycat_obj must be provided. [Default: None]
+        filter : str, optional
+            Name of the filter for which the flux is computed. If None, use the
+            filter provided during initialization. [Default: None]
+        mjd : float, optional
+            Date of the observation in MJD format. If None, use the
+            mjd provided during initialization. [Default: None]
+        exptime : int or float, optional
+            Exposure time of the observation. If None, use the
+            exptime provided during initialization. [Default: None]
+
+        Returns
+        -------
+        flux
+            Computer flux at the given date for the requested exposure time and
+            filter.
+        """
+
+        if filter is None:
+            filter = self.bandpass.name
+        if mjd is None:
+            mjd = self.mjd
+        if exptime is None:
+            exptime = self.exptime
+
+        if index is not None and skycat_obj is None:
+            skycat_obj = self.objects[index]
+        elif skycat_obj is not None and index is None:
+            pass
+        else:
+            raise ValueError("Either index or skycat_obj must be provided, but not both.")
+
+        # We cache the SEDs for potential later use
+        if hasattr(skycat_obj, "get_wl_params"):
+            # _, _, mu = skycat_obj.get_wl_params()
+            gamma1 = skycat_obj.get_native_attribute('shear1')
+            gamma2 = skycat_obj.get_native_attribute('shear2')
+            kappa = skycat_obj.get_native_attribute('convergence')
+            mu = 1./((1. - kappa)**2 - (gamma1**2 + gamma2**2))
+        else:
+            mu = 1.
+
+        self._seds = skycat_obj.get_observer_sed_components(mjd=mjd)
+        fluxes = {}
+        for cmp_name, sed in self._seds.items():
+            raw_flux = sed.calculateFlux(self.bandpass)
+            fluxes[cmp_name] = raw_flux * mu * exptime * roman.collecting_area
+
+        return fluxes
+
+    def getObj(self, index, gsparams=None, rng=None):
         """
         Return the galsim object for the skyCatalog object
         corresponding to the specified index.  If the skyCatalog
@@ -195,26 +267,41 @@ class SkyCatalogInterface:
         gsobjs = skycat_obj.get_gsobject_components(gsparams)
 
         # Compute the flux or get the cached value.
-        flux = (
-            skycat_obj.get_roman_flux(self.bandpass.name, mjd=self.mjd) * self.exptime * roman.collecting_area
-        )
+        fluxes = self.getFlux(skycat_obj=skycat_obj)
+        flux = sum(fluxes.values())
         if np.isnan(flux):
             return None
 
         # Set up simple SED if too faint
         if flux < 40:
             faint = True
-        if not faint:
-            seds = skycat_obj.get_observer_sed_components(mjd=self.mjd)
+
+        # This should catch both "star" and "gaia_star" objects
+        if "star" in skycat_obj.object_type:
+            # Cap (star) flux at 30M photons to avoid gross artifacts when trying
+            # to draw the Roman PSF in finite time and memory
+            flux_cap = 3e7
+            if flux > flux_cap:
+                flux = flux_cap
+                fluxes["this_object"] = flux_cap
+
+        if self.chromaticity:
+            if faint:
+                seds = {cmp_name: self._trivial_sed for cmp_name in gsobjs}
+            else:
+                seds = self._seds if self._seds is not None else skycat_obj.get_observer_sed_components(mjd=self.mjd)
+        else:
+             seds = {cmp_name: 1. for cmp_name in gsobjs}
 
         gs_obj_list = []
         for component in gsobjs:
-            if faint:
-                gsobjs[component] = gsobjs[component].evaluateAtWavelength(self.bandpass)
-                gs_obj_list.append(gsobjs[component] * self._trivial_sed)
+            # Give the object the right flux
+            gsobj = gsobjs[component] * seds[component]
+            if self.chromaticity:
+                gsobj = gsobj.withFlux(fluxes[component], self.bandpass)
             else:
-                if component in seds:
-                    gs_obj_list.append(gsobjs[component] * seds[component])
+                gsobj = gsobj.withFlux(fluxes[component])
+            gs_obj_list.append(gsobj)
 
         if not gs_obj_list:
             return None
@@ -224,17 +311,9 @@ class SkyCatalogInterface:
         else:
             gs_object = galsim.Add(gs_obj_list)
 
-        # This should catch both "star" and "gaia_star" objects
-        if "star" in skycat_obj.object_type:
-            # Cap (star) flux at 30M photons to avoid gross artifacts when trying
-            # to draw the Roman PSF in finite time and memory
-            flux_cap = 3e7
-            if flux > flux_cap:
-                flux = flux_cap
-
-        # Give the object the right flux
-        gs_object = gs_object.withFlux(flux, self.bandpass)
-        gs_object.flux = flux
+        # gs_object = gs_object.withFlux(flux, self.bandpass)
+        if not hasattr(gs_object, "flux"):
+            gs_object.flux = flux
 
         if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
             object_type = "galaxy"
@@ -260,6 +339,7 @@ class SkyCatalogLoader(InputLoader):
             "xsize": int,
             "ysize": int,
             "skycat_lensing": bool,
+            "chromaticity": bool,
         }
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt)
         wcs = galsim.config.BuildWCS(base["image"], "wcs", base, logger=logger)
