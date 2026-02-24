@@ -30,8 +30,6 @@ image: &image_defaults
         dec: { type: ObSeqData, field: dec }
         pa: { type: ObSeqData, field: pa }
         mjd: { type: ObSeqData, field: mjd }
-        max_sun_angle: 50
-        force_cvz: True
 
     bandpass:
         type: RomanBandpass
@@ -92,8 +90,6 @@ image: &image_defaults
     read_noise: False
     sky_subtract: False
 
-    nobjects: 500
-
 stamp: &stamp_defaults
     type: Roman_stamp
     world_pos:
@@ -119,23 +115,24 @@ gal: &gal_defaults
 
 input: &input_defaults
     obseq_data:
-        file_name: /media/taeshin/4TB/roman_imsim/Roman_WAS_obseq_11_1_23.fits
+        dir: /hpc/group/cosmology/OpenUniverse2024/
+        # file_name: Roman_WAS_obseq_11_1_23.fits
         visit: 1
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
         n_waves: 5
     sky_catalog:
-        file_name: /media/taeshin/4TB/roman_imsim/config/skyCatalog.yaml 
+        file_name: config/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }          
-        # obj_types: ['star']
+        obj_types: ['diffsky_galaxy', 'snana', 'star']
 
 output: &output_defaults
 
     nfiles: 1
-    dir: /media/taeshin/4TB/roman_imsim_output
+    dir: output
     file_name:
         type: FormattedStr
         format: "Roman_LSST_true_%s_%s_%s.fits.gz"
@@ -145,7 +142,7 @@ output: &output_defaults
             - '@image.SCA'
 
     truth:
-        dir: /media/taeshin/4TB/roman_imsim_output
+        dir: output
         file_name:
             type: FormattedStr
             format: "Roman_LSST_index_%s_%s_%s.txt"
