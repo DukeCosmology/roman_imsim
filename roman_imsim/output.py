@@ -147,13 +147,19 @@ class RomanASDFBuilder(OutputBuilder):
             for card in wcs_header.cards:
                 print(f"keyword: {card.keyword}, value: {card.value}, comment: {card.comment}")
                 tree["meta"]['raw_wcs_header'][card.keyword] = {"value": card.value, "comment": card.comment}
-        # save() call autometically creates a file_date, here obs_date is observation date
-        tree["meta"]['date_obs'] = date_obs
-        tree["meta"]['mjd_obs'] = mjd_obs
-        tree["meta"]['nreads'] = 1
-        tree["meta"]['gain'] = 1.0
+        # save() call autometically creates a file_date, so you don't have to
+        # pass a file creation/modification date. Here obs_date is the observation date.
+        tree["meta"]['date_obs'] = {"value": date_obs, 
+                                    "comment": "observation date"}
+        tree["meta"]['mjd_obs'] = {"value": mjd_obs, "comment": "obsevation date in mjd"}
+        tree["meta"]['nreads'] = {"value": 1, "comment": ""}
+        tree["meta"]['gain'] = {"value": 1.0, "comment": ""}
         #tree["meta"]['sky_mean'] = 0.0    # Placeholder for sky mean, as it's not currently implemented in the yaml
-        tree["meta"]['zptmag'] = ZPTMAG    #2.5 * np.log10(self.exptime * roman.collecting_area)
+        tree["meta"]['zptmag'] = {"value"  : ZPTMAG, 
+                                  "comment": "Instrumental zero-point magnitude to get the\
+                                              apparaent magnitude that is independent of collecting\
+                                              area and exposure time. Calculated as -\
+                                              2.5 *np.log10*(flux) + np.log10(exptime *collecting_area)"}
         tree["meta"]['pa_fpa'] = True
 
         # ------------------------------------------ 
@@ -187,35 +193,35 @@ class RomanASDFBuilder(OutputBuilder):
 
         #meta.ephemeris
         tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
-        tree.meta.ephemeris.type       = tree.meta.ephemeris.type
-        tree.meta.ephemeris.time       = tree.meta.ephemeris.time
-        tree.meta.ephemeris.spatial_x  = tree.meta.ephemeris.spatial_x
-        tree.meta.ephemeris.spatial_y  = tree.meta.ephemeris.spatial_y
-        tree.meta.ephemeris.spatial_z  = tree.meta.ephemeris.spatial_z
+        tree.meta.ephemeris.type = tree.meta.ephemeris.type
+        tree.meta.ephemeris.time = tree.meta.ephemeris.time
+        tree.meta.ephemeris.spatial_x = tree.meta.ephemeris.spatial_x
+        tree.meta.ephemeris.spatial_y = tree.meta.ephemeris.spatial_y
+        tree.meta.ephemeris.spatial_z = tree.meta.ephemeris.spatial_z
         tree.meta.ephemeris.velocity_x = tree.meta.ephemeris.velocity_x
         tree.meta.ephemeris.velocity_y = tree.meta.ephemeris.velocity_y
         tree.meta.ephemeris.velocity_z = tree.meta.ephemeris.velocity_z
         #.meta.exposure
-        tree.meta.exposure.type            = tree.meta.exposure.type
-        tree.meta.exposure.start_time      = tree.meta.exposure.start_time
-        tree.meta.exposure.end_time        = tree.meta.exposure.end_time
+        tree.meta.exposure.type = tree.meta.exposure.type
+        tree.meta.exposure.start_time = tree.meta.exposure.start_time
+        tree.meta.exposure.end_time = tree.meta.exposure.end_time
         tree.meta.exposure.engineering_quality = tree.meta.exposure.engineering_quality
-        tree.meta.exposure.ma_table_id     = tree.meta.exposure.ma_table_id
-        tree.meta.exposure.nresultants     = tree.meta.exposure.nresultants
-        tree.meta.exposure.data_problem    = tree.meta.exposure.data_problem
-        tree.meta.exposure.frame_time      = tree.meta.exposure.frame_time
-        tree.meta.exposure.exposure_time   = exptime
+        tree.meta.exposure.ma_table_id = tree.meta.exposure.ma_table_id
+        tree.meta.exposure.nresultants = tree.meta.exposure.nresultants
+        tree.meta.exposure.data_problem = tree.meta.exposure.data_problem
+        tree.meta.exposure.frame_time = tree.meta.exposure.frame_time
+        tree.meta.exposure.exposure_time = exptime
         tree.meta.exposure.effective_exposure_time = tree.meta.exposure.effective_exposure_time
-        tree.meta.exposure.ma_table_name   = tree.meta.exposure.ma_table_name
+        tree.meta.exposure.ma_table_name = tree.meta.exposure.ma_table_name
         tree.meta.exposure.ma_table_number = tree.meta.exposure.ma_table_number
-        tree.meta.exposure.truncated       = tree.meta.exposure.truncated
+        tree.meta.exposure.truncated = tree.meta.exposure.truncated
         #meta.guide_star
         tree.meta.guide_star.guide_window_id = tree.meta.guide_star.guide_window_id
-        tree.meta.guide_star.guide_mode    = tree.meta.guide_star.guide_mode
+        tree.meta.guide_star.guide_mode = tree.meta.guide_star.guide_mode
         tree.meta.guide_star.window_xstart = tree.meta.guide_star.window_xstart
         tree.meta.guide_star.window_ystart = tree.meta.guide_star.window_ystart
-        tree.meta.guide_star.window_xstop  = tree.meta.guide_star.window_xstop
-        tree.meta.guide_star.window_ystop  = tree.meta.guide_star.window_ystop
+        tree.meta.guide_star.window_xstop = tree.meta.guide_star.window_xstop
+        tree.meta.guide_star.window_ystop = tree.meta.guide_star.window_ystop
         tree.meta.guide_star.guide_star_id = tree.meta.guide_star.guide_star_id
         tree.meta.guide_star.epoch = tree.meta.guide_star.epoch
         #meta.instrument
@@ -229,27 +235,27 @@ class RomanASDFBuilder(OutputBuilder):
         #tree["meta"]['instrument']['name'] = 'WFI'
         
         tree.meta.observation.observation_id = tree.meta.observation.observation_id
-        tree.meta.observation.visit_id       = tree.meta.observation.visit_id
-        tree.meta.observation.program        = tree.meta.observation.program
+        tree.meta.observation.visit_id = tree.meta.observation.visit_id
+        tree.meta.observation.program = tree.meta.observation.program
         tree.meta.observation.execution_plan = tree.meta.observation.execution_plan
         # pass being a special python-statement, dot call on attr named pass ends up as Error
-        #tree.meta.observation["pass']       = tree.meta.observation["pass"]
-        tree.meta.observation.segment        = tree.meta.observation.segment
-        tree.meta.observation.observation    = tree.meta.observation.observation
-        tree.meta.observation.visit          = base['input']['obseq_data']['visit']
-        tree.meta.observation.visit_file_group    = tree.meta.observation.visit_file_group
+        #tree.meta.observation["pass'] = tree.meta.observation["pass"]
+        tree.meta.observation.segment = tree.meta.observation.segment
+        tree.meta.observation.observation = tree.meta.observation.observation
+        tree.meta.observation.visit = base['input']['obseq_data']['visit']
+        tree.meta.observation.visit_file_group = tree.meta.observation.visit_file_group
         tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
         tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
-        tree.meta.observation.exposure       = sca #check if this is what exposure means with roman people
-        tree.meta.observation.wfi_parallel   = tree.meta.observation.wfi_parallel
+        tree.meta.observation.exposure = sca #check if this is what exposure means with roman people
+        tree.meta.observation.wfi_parallel = tree.meta.observation.wfi_parallel
         #meta.pointing
-        tree.meta.pointing.pa_aperture= tree.meta.pointing.pa_aperture
+        tree.meta.pointing.pa_aperture = tree.meta.pointing.pa_aperture
         tree.meta.pointing.pointing_engineering_source = tree.meta.pointing.pointing_engineering_source
-        tree.meta.pointing.ra_v1      = tree.meta.pointing.ra_v1
-        tree.meta.pointing.dec_v1     = tree.meta.pointing.dec_v1
-        tree.meta.pointing.pa_v3      = tree.meta.pointing.pa_v3
+        tree.meta.pointing.ra_v1 = tree.meta.pointing.ra_v1
+        tree.meta.pointing.dec_v1 = tree.meta.pointing.dec_v1
+        tree.meta.pointing.pa_v3 = tree.meta.pointing.pa_v3
         tree.meta.pointing.target_aperture = f"{wcs_header['INSTRUME']}_CEN" #what kidn of aperture is wcs_header['RA_TARG']
-        tree.meta.pointing.target_ra  = image.wcs.center.ra.deg # or wcs_header['RA_TARG']?
+        tree.meta.pointing.target_ra = image.wcs.center.ra.deg # or wcs_header['RA_TARG']?
         tree.meta.pointing.target_dec = image.wcs.center.dec.deg # or wcs_header['DEC_TARG']?
         #meta.program
         tree.meta.program.title = tree.meta.program.title
@@ -279,8 +285,8 @@ class RomanASDFBuilder(OutputBuilder):
         #.meta.rcs 
         tree.meta.rcs.active = tree.meta.rcs.active
         tree.meta.rcs.electronics = tree.meta.rcs.electronics
-        tree.meta.rcs.bank   = tree.meta.rcs.bank
-        tree.meta.rcs.led    = tree.meta.rcs.led
+        tree.meta.rcs.bank = tree.meta.rcs.bank
+        tree.meta.rcs.led = tree.meta.rcs.led
         tree.meta.rcs.counts = tree.meta.rcs.counts
         #meta.velocity_aberration
         tree.meta.velocity_aberration.ra_reference = tree.meta.velocity_aberration.ra_reference
@@ -289,33 +295,33 @@ class RomanASDFBuilder(OutputBuilder):
         #meta.visit
         tree.meta.visit.dither.primary_name  = tree.meta.visit.dither.primary_name
         tree.meta.visit.dither.subpixel_name = tree.meta.visit.dither.subpixel_name
-        tree.meta.visit.type                 = tree.meta.visit.type
-        tree.meta.visit.start_time           = tree.meta.visit.start_time
-        tree.meta.visit.nexposures           = tree.meta.visit.nexposures
-        tree.meta.visit.internal_target      = tree.meta.visit.internal_target
+        tree.meta.visit.type = tree.meta.visit.type
+        tree.meta.visit.start_time = tree.meta.visit.start_time
+        tree.meta.visit.nexposures = tree.meta.visit.nexposures
+        tree.meta.visit.internal_target = tree.meta.visit.internal_target
         #meta.wcs
         tree.meta.wcs = RomanSCAImageBuilder.wcs_from_fits_header(wcs_header)
         #meta.wcsinfo
-        tree.meta.wcsinfo.aperture_name = f"{wcs_header['INSTRUME']}_{sca}_FULL" #what does full stand for?
-        tree.meta.wcsinfo.v2_ref        = tree.meta.wcsinfo.v2_ref
-        tree.meta.wcsinfo.v3_ref        = tree.meta.wcsinfo.v3_ref
-        tree.meta.wcsinfo.vparity       = tree.meta.wcsinfo.vparity
-        tree.meta.wcsinfo.v3yangle      = tree.meta.wcsinfo.v3yangle
-        tree.meta.wcsinfo.ra_ref        = tree.meta.wcsinfo.ra_ref
-        tree.meta.wcsinfo.dec_ref       = tree.meta.wcsinfo.dec_ref
-        tree.meta.wcsinfo.roll_ref      = tree.meta.wcsinfo.roll_ref
-        tree.meta.wcsinfo.s_region      = tree.meta.wcsinfo.s_region
+        tree.meta.wcsinfo.aperture_name = f"{wcs_header['INSTRUME']}_{sca:02}_FULL" #what does full stand for?
+        tree.meta.wcsinfo.v2_ref = tree.meta.wcsinfo.v2_ref
+        tree.meta.wcsinfo.v3_ref = tree.meta.wcsinfo.v3_ref
+        tree.meta.wcsinfo.vparity = tree.meta.wcsinfo.vparity
+        tree.meta.wcsinfo.v3yangle = tree.meta.wcsinfo.v3yangle
+        tree.meta.wcsinfo.ra_ref = tree.meta.wcsinfo.ra_ref
+        tree.meta.wcsinfo.dec_ref = tree.meta.wcsinfo.dec_ref
+        tree.meta.wcsinfo.roll_ref = tree.meta.wcsinfo.roll_ref
+        tree.meta.wcsinfo.s_region = tree.meta.wcsinfo.s_region
         #meta.photometry
         tree.meta.photometry.conversion_megajanskys = tree.meta.photometry.conversion_megajanskys
         tree.meta.photometry.conversion_megajanskys_uncertainty = tree.meta.photometry.conversion_megajanskys_uncertainty
         tree.meta.photometry.pixel_area = tree.meta.photometry.pixel_area
 
         tree.data = image.array.astype('float32')
-        tree.dq   = np.zeros_like(image.array, dtype='uint32')  # Placeholder for data quality array
-        tree.err  = np.zeros_like(image.array, dtype='float16')  # Placeholder for error array
+        tree.dq = np.zeros_like(image.array, dtype='uint32')  # Placeholder for data quality array
+        tree.err = np.zeros_like(image.array, dtype='float16')  # Placeholder for error array
         tree.var_poisson = tree.var_poisson
         tree.chisq = tree.chisq
-        tree.dumo  = tree.dumo
+        tree.dumo = tree.dumo
         tree.amp33 = tree.amp33
         tree.border_ref_pix_left = tree.border_ref_pix_left
         tree.border_ref_pix_right = tree.border_ref_pix_right
