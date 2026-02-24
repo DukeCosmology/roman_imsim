@@ -1,23 +1,10 @@
 # Start with the default.yaml file, which we will modify below
-template: default.yaml
+template: config/default.yaml
 
-# Update the run-specific fields
-# Or you can update the entire field if more convenient
-image.ignore_noise: False
-image.stray_light: True
-image.thermal_background: True
-image.reciprocity_failure: True
-image.dark_current: True
-image.nonlinearity: True
-image.ipc: True
-image.read_noise: True
-
-input.obseq_data.file_name: /media/taeshin/4TB/roman_imsim/Roman_WAS_obseq_11_1_23.fits
+input.obseq_data.file_name: RomanWAS/Roman_WAS_obseq_11_1_23.fits
 input.obseq_data.visit: 12909
-input.sky_catalog.file_name: /media/taeshin/4TB/roman_imsim/config/skyCatalog.yaml
-input.sky_catalog.obj_types: ['diffsky_galaxy','star','snana']
 
-output.dir: /media/taeshin/4TB/roman_imsim_output
+output.dir: 'output/was'  # Adjust this to a shared location with sufficient storage
 output.file_name.format: "Roman_WAS_truth_%s_%i_%i.fits.gz"
-output.truth.dir: /media/taeshin/4TB/roman_imsim_output
+output.truth.dir: 'output/was'  # Adjust this to a shared location with sufficient storage
 output.truth.file_name.format: "Roman_WAS_index_%s_%i_%i.txt"
