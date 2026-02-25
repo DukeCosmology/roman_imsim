@@ -23,7 +23,7 @@ class roman_utils(object):
         """
         config = galsim.config.ReadConfig(config_file)[0]
         # if a yaml template is used, update the config accordingly; otherwise, do nothing
-        galsim.config.ProcessTemplate(config, base=config)
+        galsim.config.ProcessAllTemplates(config)
 
         self.visit, self.sca = self.check_input(visit, sca, image_name)
 
