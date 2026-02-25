@@ -9,7 +9,6 @@ from galsim.image import Image
 
 
 class RomanSCAImageBuilder(ScatteredImageBuilder):
-
     def setup(self, config, base, image_num, obj_num, ignore, logger):
         """Do the initialization and setup for building the image.
 
@@ -58,7 +57,6 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.filter = params["filter"]
         self.mjd = params["mjd"]
         self.exptime = params["exptime"]
-        self.date = Time(self.mjd, format="mjd").to_datetime()
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
         self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "phot"))
