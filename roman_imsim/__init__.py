@@ -5,6 +5,8 @@ try:
 except ImportError:
     pass
 
+# Register the template on importing
+from ._templates import *
 from .bandpass import *
 from .detector_physics import *
 
