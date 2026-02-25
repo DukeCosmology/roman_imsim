@@ -33,7 +33,7 @@ jobs:
       - name: Run GalSim
         run: |
           pushd roman_imsim_testdata
-          galsim hack.yaml
+          uv run galsim hack.yaml
           popd
 
       - name: Run unit tests
