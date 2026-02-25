@@ -88,9 +88,9 @@ class SkyCatalogInterface:
 
     @property
     def objects(self):
-        from skycatalogs import skyCatalogs
-        from skycatalogs import __version__ as skycatalogs_version
         from packaging.version import Version
+        from skycatalogs import __version__ as skycatalogs_version
+        from skycatalogs import skyCatalogs
 
         if Version(skycatalogs_version) < Version("2.0"):
             PolygonalRegion = skyCatalogs.PolygonalRegion

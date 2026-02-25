@@ -12,6 +12,8 @@ try:
 except PackageNotFoundError:
     pass
 
+# Register the template on importing
+from ._templates import *
 from .bandpass import *
 from .detector_physics import *
 
@@ -25,5 +27,3 @@ from .stamp import *
 from .wcs import *
 
 from .noise import *
-# Register the template on importing
-from ._templates import *
