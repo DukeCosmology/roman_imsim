@@ -38,7 +38,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest --strict-markers tests/test_end_to_end.py
+          uv run pytest --strict-markers tests/test_end_to_end.py
 
       # - name: Upload coverage report
       #   uses: actions/upload-artifact@v4
