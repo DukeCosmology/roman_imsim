@@ -25,3 +25,5 @@ from .stamp import *
 from .wcs import *
 
 from .noise import *
+# Register the template on importing
+from ._templates import *

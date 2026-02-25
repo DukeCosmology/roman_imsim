@@ -1,5 +1,9 @@
+# Import just roman_imsim so we can access the registered template
+modules:
+    - roman_imsim
+
 # Start with the default.yaml file, which we will modify below
-template: config/default.yaml
+template: roman_imsim_default
 
 image.wcs.max_sun_angle: 50
 image.wcs.force_cvz: true
