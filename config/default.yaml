@@ -78,7 +78,7 @@ image: &image_defaults
     # chromatic photon shooting is only slighly slower than achromatic, so the difference
     # is even more pronounced in this case.
     use_fft_bright: True
-    
+
     # These are all by default turned on, but you can turn any of them off if desired:
     ignore_noise: True
     stray_light: False
