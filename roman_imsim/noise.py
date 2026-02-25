@@ -4,7 +4,6 @@ from galsim.config import NoiseBuilder, RegisterNoiseType
 
 
 class RomanNoiseBuilder(NoiseBuilder):
-
     def addNoise(self, config, base, image, rng, current_var, draw_method, logger):
         """Read the noise parameters from the config dict and add the appropriate noise to the
         given image.
@@ -78,7 +77,7 @@ class RomanNoiseBuilder(NoiseBuilder):
         if thermal_background:
             tb = roman.thermal_backgrounds[filter_name] * exptime
             logger.debug("Adding thermal background: %s", tb)
-            sky_image += roman.thermal_backgrounds[filter_name] * exptime
+            sky_image += tb
 
         # The image up to here is an expectation value.
         # Realize it as an integer number of photons.
@@ -149,7 +148,6 @@ class RomanNoiseBuilder(NoiseBuilder):
 
 
 class NoNoiseBuilder(NoiseBuilder):
-
     def addNoise(self, config, base, image, rng, current_var, draw_method, logger):
         return None
 
