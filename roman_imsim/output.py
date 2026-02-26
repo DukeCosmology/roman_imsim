@@ -80,7 +80,7 @@ class RomanASDFBuilder(OutputBuilder):
     
         #print("self attrs:", [a for a in dir(self) if not a.startswith("_")])
         #print("config keys:", list(config.keys()))
-        #print("base keys:  ", list(base.keys()))
+        #.asdfprint("base keys:  ", list(base.keys()))
         #
         #for key, val in image.header.items():
         #    print(f"{key} = {val}")
@@ -98,9 +98,9 @@ class RomanASDFBuilder(OutputBuilder):
         # The config wcs is the configuration for building the wcs above
         # The base is galsim.GSFitsWCS constructed from config wcs using wcs.py, and copied to image.wcs
         
-        #use astropy.io.fits.header.Header form of header: required in wcs_from_fits_header
+        # use astropy.io.fits.header.Header form of header: required in wcs_from_fits_header
         wcs_header = image.wcs.header.header
-        # These are needed to create gwcs object
+        # Don't remove, these are needed to create gwcs object.
         ny, nx = image.array.shape
         wcs_header['NAXIS']  = 2                   # number of axes
         wcs_header['NAXIS1'] = nx                  # image width in pixels
@@ -121,6 +121,7 @@ class RomanASDFBuilder(OutputBuilder):
         #wcs_header['CRVAL1'] = base['world_center'].ra.deg   
         #wcs_header['CRVAL2'] = base['world_center'].dec.deg    
 
+        # Agreed with Arun to remove this part. Keeping commented for now.
         #I can't find these information (I think they are also connected to border_ref_pix_left etc) so comment below out - the wcs is not correct without these info
         # linear transformation: pixel scale in deg/pixel
         #scale = 0.1 / 3600.0          
@@ -156,10 +157,7 @@ class RomanASDFBuilder(OutputBuilder):
         tree["meta"]['gain'] = {"value": 1.0, "comment": ""}
         #tree["meta"]['sky_mean'] = 0.0    # Placeholder for sky mean, as it's not currently implemented in the yaml
         tree["meta"]['zptmag'] = {"value"  : ZPTMAG, 
-                                  "comment": "Instrumental zero-point magnitude to get the\
-                                              apparaent magnitude that is independent of collecting\
-                                              area and exposure time. Calculated as -\
-                                              2.5 *np.log10*(flux) + np.log10(exptime *collecting_area)"}
+                                  "comment": "Instrumental zero-point magnitude to get the apparaent magnitude that is independent of collecting area and exposure time. Calculated as - 2.5 *np.log10*(flux) + np.log10(exptime *collecting_area)"}
         tree["meta"]['pa_fpa'] = True
 
         # ------------------------------------------ 
@@ -246,7 +244,7 @@ class RomanASDFBuilder(OutputBuilder):
         tree.meta.observation.visit_file_group = tree.meta.observation.visit_file_group
         tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
         tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
-        tree.meta.observation.exposure = sca #check if this is what exposure means with roman people
+        tree.meta.observation.exposure = sca #Ask SSC: check if this is what exposure means?
         tree.meta.observation.wfi_parallel = tree.meta.observation.wfi_parallel
         #meta.pointing
         tree.meta.pointing.pa_aperture = tree.meta.pointing.pa_aperture
@@ -302,7 +300,7 @@ class RomanASDFBuilder(OutputBuilder):
         #meta.wcs
         tree.meta.wcs = RomanSCAImageBuilder.wcs_from_fits_header(wcs_header)
         #meta.wcsinfo
-        tree.meta.wcsinfo.aperture_name = f"{wcs_header['INSTRUME']}_{sca:02}_FULL" #what does full stand for?
+        tree.meta.wcsinfo.aperture_name = f"{wcs_header['INSTRUME']}_{sca:02}_FULL" #what does full stand for? # FULL or CEN?
         tree.meta.wcsinfo.v2_ref = tree.meta.wcsinfo.v2_ref
         tree.meta.wcsinfo.v3_ref = tree.meta.wcsinfo.v3_ref
         tree.meta.wcsinfo.vparity = tree.meta.wcsinfo.vparity
