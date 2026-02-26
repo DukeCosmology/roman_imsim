@@ -1,4 +1,4 @@
 [submodule "roman_imsim_testdata"]
 	path = roman_imsim_testdata
 	url = https://github.com/DukeCosmology/roman_imsim_testdata.git
-	branch = main
+	branch = .
