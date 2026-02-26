@@ -3,7 +3,7 @@
 #  -- processing of other detector and instrument effects are still handled in the
 #     python postprocessing layer to enable things not currently in galsim.roman
 
-modules: &modules_defaults
+modules:
 
     # Including galsim.roman in the list of modules to import will add a number of Roman-specific
     # functions and classes that we will use here.
@@ -16,7 +16,7 @@ modules: &modules_defaults
     - datetime
 
 # Define some other information about the images
-image: &image_defaults
+image:
 
     # A special Image type that knows all the Roman SCA geometry, WCS, gain, etc.
     # It also by default applies a number of detector effects, but these can be turned
@@ -90,15 +90,14 @@ image: &image_defaults
     read_noise: False
     sky_subtract: False
 
-stamp: &stamp_defaults
+stamp:
     type: Roman_stamp
     world_pos:
         type: SkyCatWorldPos
     exptime: { type: ObSeqData, field: exptime }
 
     photon_ops:
-        -
-            type: ChargeDiff
+        - { type: ChargeDiff }
 
 # psf:
 #     type: roman_psf
@@ -110,10 +109,10 @@ stamp: &stamp_defaults
 #     n_waves: 10
 
 # Define the galaxy type and positions to use
-gal: &gal_defaults
+gal:
     type: SkyCatObj
 
-input: &input_defaults
+input:
     obseq_data:
         dir: /hpc/group/cosmology/OpenUniverse2024/
         # file_name: Roman_WAS_obseq_11_1_23.fits
@@ -126,10 +125,10 @@ input: &input_defaults
         file_name: config/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
-        exptime: { type: ObSeqData, field: exptime }          
+        exptime: { type: ObSeqData, field: exptime }
         obj_types: ['diffsky_galaxy', 'snana', 'star']
 
-output: &output_defaults
+output:
 
     nfiles: 1
     dir: output
