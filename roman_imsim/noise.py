@@ -33,6 +33,10 @@ class RomanNoiseBuilder(NoiseBuilder):
             NOT IMPLEMENTED
         """
 
+        req = {
+            "ignore_noise": bool,
+        }
+        
         opt = {
             "mjd": float,
             "stray_light": bool,
@@ -45,7 +49,7 @@ class RomanNoiseBuilder(NoiseBuilder):
             "sky_subtract": bool,
         }
 
-        params, safe = galsim.config.GetAllParams(config, base, req={}, opt=opt, ignore=[])
+        params, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=[])
 
         mjd = params.get("mjd", None)
         stray_light = params.get("stray_light", False)
