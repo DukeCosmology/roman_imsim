@@ -95,7 +95,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         try:
             full_image.header["VERSION"] = version("roman_imsim")
         except PackageNotFoundError:
-            pass
+            full_image.header["VERSION"] = "unknown"
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
         full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
