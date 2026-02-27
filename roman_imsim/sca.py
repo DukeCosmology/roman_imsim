@@ -1,4 +1,4 @@
-import importlib.metadata
+from importlib.metadata import version, PackageNotFoundError
 
 import galsim
 import galsim.config
@@ -92,7 +92,10 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image.setZero()
 
         full_image.header = galsim.FitsHeader()
-        full_image.header["VERSION"] = importlib.metadata.version("roman_imsim")
+        try:
+            full_image.header["VERSION"] = version("roman_imsim")
+        except PackageNotFoundError:
+            pass
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
         full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
