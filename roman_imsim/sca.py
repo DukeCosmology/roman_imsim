@@ -1,3 +1,5 @@
+import importlib.metadata
+
 import galsim
 import galsim.config
 import galsim.roman as roman
@@ -90,6 +92,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image.setZero()
 
         full_image.header = galsim.FitsHeader()
+        full_image.header["VERSION"] = importlib.metadata.version("roman_imsim")
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
         full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
