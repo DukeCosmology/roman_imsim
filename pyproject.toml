@@ -1,7 +1,7 @@
 [build-system]
 requires = [
-    "setuptools>=61",
-    "setuptools_scm>=8",
+    "setuptools>=80",
+    "setuptools_scm[simple]>=8",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -27,10 +27,6 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/DukeCosmology/roman_imsim"
-
-[tool.setuptools_scm]
-write_to = "roman_imsim/_version.py"
-write_to_template = "__version__ = '{version}'\n"
 
 [tool.setuptools.packages.find]
 where = ["."]

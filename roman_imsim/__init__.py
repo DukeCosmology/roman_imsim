@@ -1,8 +1,16 @@
+from importlib.metadata import version, PackageNotFoundError
+
 try:
     from lsst.utils.threads import disable_implicit_threading
 
     disable_implicit_threading()
 except ImportError:
+    pass
+
+try:
+    __version__ = version("roman_imsim")
+except PackageNotFoundError:
+    # package is not installed
     pass
 
 from .bandpass import *
@@ -18,5 +26,3 @@ from .stamp import *
 from .wcs import *
 
 from .noise import *
-
-from ._version import __version__
