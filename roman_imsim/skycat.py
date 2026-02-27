@@ -145,6 +145,27 @@ class SkyCatalogInterface:
                 self.logger.warning("No objects found on image.")
         return self._objects
 
+    def _build_dtype_dict(self):
+        self._dtype_dict = {}
+        obj_types = []
+        for coll in self._objects.get_collections():
+            objects_type = coll._object_type_unique
+            if objects_type in obj_types:
+                continue
+            col_names = list(coll.native_columns)
+            for col_name in col_names:
+                try:
+                    # Some columns cannot be read in snana
+                    np_type = coll.get_native_attribute(col_name).dtype.type()
+                except Exception as e:
+                    self.logger.warning(f"The column {col_name} could not be read from skyCatalog.")
+                    continue
+                if np_type is None:
+                    py_type = str
+                else:
+                    py_type = type(np_type.astype(object))
+                self._dtype_dict[col_name] = py_type
+
     def get_sca_center(self):
         """
         Return the SCA center.
@@ -243,6 +264,45 @@ class SkyCatalogInterface:
 
         return fluxes
 
+    def getValue(self, index, field):
+        """
+        Return a skyCatalog value for the an object.
+
+        Parameters
+        ----------
+        index : int
+            Index of the object in the self.objects catalog.
+        field : str
+            Name of the field for which you want the value.
+
+        Returns
+        -------
+        int or float or str or None
+            The value associated to the field or None if the field do not exist.
+        """
+
+        skycat_obj = self.objects[index]
+
+        if field not in self._dtype_dict:
+            # We cannot raise an error because one could have a field for snana
+            # in the config and we don't want to crash because there are no SN
+            # in this particular image. We then default to False which might not
+            # be the right type for the required column but we have no way of knowing
+            # the correct type if the column do not exist.
+            self.logger.warning(f"The field {field} was not found in skyCatalog.")
+            return None
+        elif field not in skycat_obj.native_columns:
+            if self._dtype_dict[field] is int:
+                # There are no "special value" for integer so we default to
+                # hopefully something completely off
+                return -9999
+            elif self._dtype_dict[field] is float:
+                return np.nan
+            elif self._dtype_dict[field] is str:
+                return None
+        else:
+            return skycat_obj.get_native_attribute(field)
+
     def getObj(self, index, gsparams=None, rng=None):
         """
         Return the galsim object for the skyCatalog object
@@ -289,11 +349,7 @@ class SkyCatalogInterface:
             if faint:
                 seds = {cmp_name: self._trivial_sed for cmp_name in gsobjs}
             else:
-                seds = (
-                    self._seds
-                    if self._seds is not None
-                    else skycat_obj.get_observer_sed_components(mjd=self.mjd)
-                )
+                seds = skycat_obj.get_observer_sed_components(mjd=self.mjd)
         else:
             seds = {cmp_name: 1.0 for cmp_name in gsobjs}
 
@@ -425,9 +481,46 @@ def SkyCatWorldPos(config, base, value_type):
     return pos, safe
 
 
+def SkyCatValue(config, base, value_type):
+    """Return a value from the object part of the skyCatalog"""
+
+    skycat = galsim.config.GetInputObj("sky_catalog", config, base, "SkyCatValue")
+
+    # Setup the indexing sequence if it hasn't been specified.  The
+    # normal thing with a catalog is to just use each object in order,
+    # so we don't require the user to specify that by hand.  We can do
+    # it for them.
+    galsim.config.SetDefaultIndex(config, skycat.getNObjects())
+
+    req = {"field": str, "index": int}
+    opt = {"obs_kind": str}
+    params, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt)
+    field = params["field"]
+    index = params["index"]
+    obs_kind = params.get("obs_kind", None)
+
+    if field == "flux":
+        if obs_kind is None:
+            val = skycat.getFlux(index)
+        else:
+            pointing = galsim.config.GetInputObj("obseq_data", config, base, "OpSeqDataLoader")
+            filter = pointing.get("filter", obs_kind=obs_kind)
+            exptime = pointing.get("exptime", obs_kind=obs_kind)
+            mjd = pointing.get("mjd", obs_kind=obs_kind)
+            val = skycat.getFlux(index, filter=filter, exptime=exptime, mjd=mjd)
+    else:
+        val = skycat.getValue(index, field)
+
+    return val, safe
+
+
 RegisterInputType("sky_catalog", SkyCatalogLoader(SkyCatalogInterface, has_nobj=True))
 RegisterObjectType("SkyCatObj", SkyCatObj, input_type="sky_catalog")
 RegisterValueType("SkyCatWorldPos", SkyCatWorldPos, [galsim.CelestialCoord], input_type="sky_catalog")
+
+# Here we have to provide None as a type otherwise Galsim complains but I don't know why..
+RegisterValueType("SkyCatValue", SkyCatValue, [float, int, str, None], input_type="sky_catalog")
+
 
 # This class was modified from https://github.com/LSSTDESC/imSim/. License info follows:
 
