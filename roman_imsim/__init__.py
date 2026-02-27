@@ -18,3 +18,5 @@ from .stamp import *
 from .wcs import *
 
 from .noise import *
+
+from ._version import __version__
