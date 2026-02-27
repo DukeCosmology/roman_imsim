@@ -97,9 +97,7 @@ class PSFInterpolator:
         psf = galsim.Gaussian(fwhm=fwhm_dict[bpass.name])
         return psf.withGSParams(maximum_fft_size=16384)
 
-    def _psf_call(
-        self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations
-    ):
+    def _psf_call(self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations):
 
         if pupil_bin == 8:
             psf = models.psf_utils.getPSF(

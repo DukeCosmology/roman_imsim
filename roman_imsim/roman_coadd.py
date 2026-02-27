@@ -2,8 +2,6 @@ import galsim
 import galsim.roman as roman
 import galsim.config
 from galsim.config import RegisterImageType
-from galsim.config import BuildStamps
-from galsim.config.image import FlattenNoiseVariance
 from galsim.config.image_scattered import ScatteredImageBuilder
 from galsim.image import Image
 from astropy.time import Time
@@ -33,43 +31,40 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         # import os, psutil
         # process = psutil.Process()
         # print('sca setup 1',process.memory_info().rss)
-        logger.debug('image %d: Building RomanSCA: image, obj = %d,%d',
-                     image_num, image_num, obj_num)
+        logger.debug("image %d: Building RomanSCA: image, obj = %d,%d", image_num, image_num, obj_num)
 
         self.nobjects = self.getNObj(config, base, image_num, logger=logger)
-        logger.debug('image %d: nobj = %d', image_num, self.nobjects)
+        logger.debug("image %d: nobj = %d", image_num, self.nobjects)
 
         # These are allowed for Scattered, but we don't use them here.
-        extra_ignore = ['image_pos', 'world_pos', 'stamp_size', 'stamp_xsize', 'stamp_ysize',
-                        'nobjects']
+        extra_ignore = ["image_pos", "world_pos", "stamp_size", "stamp_xsize", "stamp_ysize", "nobjects"]
         req = {
-            'SCA': int,
-            'filter': str,
-            'mjd': float,
-            'exptime': float,
-            'coadd_file': str,
-            'white_scale': float,
-            'pink_scale': float,
-            'pixel_scale': float
+            "SCA": int,
+            "filter": str,
+            "mjd": float,
+            "exptime": float,
+            "coadd_file": str,
+            "white_scale": float,
+            "pink_scale": float,
+            "pixel_scale": float,
         }
         opt = {
-            'draw_method': str,
-            'ignore_noise': bool,
+            "draw_method": str,
+            "ignore_noise": bool,
             "use_fft_bright": bool,
             # 'sca_filepath': str,
-            'xsize': int,
-            'ysize': int
+            "xsize": int,
+            "ysize": int,
         }
-        params = galsim.config.GetAllParams(
-            config, base, req=req, opt=opt, ignore=ignore+extra_ignore)[0]
+        params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
-        self.sca = params['SCA']
-        base['SCA'] = self.sca
-        self.filter = params['filter']
-        self.mjd = params['mjd']
-        self.exptime = params['exptime']
+        self.sca = params["SCA"]
+        base["SCA"] = self.sca
+        self.filter = params["filter"]
+        self.mjd = params["mjd"]
+        self.exptime = params["exptime"]
 
-        self.ignore_noise = params.get('ignore_noise', False)
+        self.ignore_noise = params.get("ignore_noise", False)
         # self.exptime = params.get('exptime', roman.exptime)  # Default is roman standard exposure time.
         # self.stray_light = params.get('stray_light', False)
         # self.thermal_background = params.get('thermal_background', False)
@@ -81,8 +76,7 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         # self.sky_subtract = params.get('sky_subtract', False)
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
-        self.draw_method = params.get('draw_method',
-                                      base.get('stamp', {}).get('draw_method', 'auto'))
+        self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "auto"))
 
         # pointing = CelestialCoord(ra=params['ra'], dec=params['dec'])
         # wcs = roman.getWCS(world_pos        = pointing,
@@ -96,19 +90,18 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         # config['wcs'] = wcs
 
         self.rng = galsim.config.GetRNG(config, base)
-        self.visit = int(base['input']['obseq_data']['visit'])
+        self.visit = int(base["input"]["obseq_data"]["visit"])
 
         # If user hasn't overridden the bandpass to use, get the standard one.
-        if 'bandpass' not in config:
-            base['bandpass'] = galsim.config.BuildBandpass(
-                base['image'], 'bandpass', base, logger=logger)
+        if "bandpass" not in config:
+            base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
 
         self.coadd_hdu = fits.open(params["coadd_file"])
-        self.white_scale = params['white_noise_weight']
-        self.pink_scale = params['pink_noise_weight']
+        self.white_scale = params["white_noise_weight"]
+        self.pink_scale = params["pink_noise_weight"]
 
         # return roman.n_pix, roman.n_pix
-        return int(self.coadd_hdu[0].header['NAXIS1']), int(self.coadd_hdu[0].header['NAXIS2'])
+        return int(self.coadd_hdu[0].header["NAXIS1"]), int(self.coadd_hdu[0].header["NAXIS2"])
 
     # def getBandpass(self, filter_name):
     #     if not hasattr(self, 'all_roman_bp'):
@@ -128,53 +121,59 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         Returns:
             the final image and the current noise variance in the image as a tuple
         """
-        full_xsize = base['image_xsize']
-        full_ysize = base['image_ysize']
-        wcs = base['wcs']
+        full_xsize = base["image_xsize"]
+        full_ysize = base["image_ysize"]
+        wcs = base["wcs"]
 
         full_image = Image(full_xsize, full_ysize, dtype=float)
-        full_image.setOrigin(base['image_origin'])
+        full_image.setOrigin(base["image_origin"])
         full_image.wcs = wcs
         full_image.setZero()
 
         full_image.header = galsim.FitsHeader()
-        full_image.header['EXPTIME'] = self.exptime
-        full_image.header['MJD-OBS'] = self.mjd
-        full_image.header['DATE-OBS'] = Time(self.mjd,
-                                             format='mjd').datetime.isoformat()
-        full_image.header['FILTER'] = self.filter
-        full_image.header['ZPTMAG'] = 2.5 * \
-            np.log10(self.exptime*roman.collecting_area)
+        full_image.header["EXPTIME"] = self.exptime
+        full_image.header["MJD-OBS"] = self.mjd
+        full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
+        full_image.header["FILTER"] = self.filter
+        full_image.header["ZPTMAG"] = 2.5 * np.log10(self.exptime * roman.collecting_area)
 
-        base['current_image'] = full_image
+        base["current_image"] = full_image
 
-        if 'image_pos' in config and 'world_pos' in config:
+        if "image_pos" in config and "world_pos" in config:
             raise galsim.GalSimConfigValueError(
                 "Both image_pos and world_pos specified for Scattered image.",
-                (config['image_pos'], config['world_pos']))
+                (config["image_pos"], config["world_pos"]),
+            )
 
-        if 'image_pos' not in config and 'world_pos' not in config:
-            xmin = base['image_origin'].x
-            xmax = xmin + full_xsize-1
-            ymin = base['image_origin'].y
-            ymax = ymin + full_ysize-1
-            config['image_pos'] = {
-                'type': 'XY',
-                'x': {'type': 'Random', 'min': xmin, 'max': xmax},
-                'y': {'type': 'Random', 'min': ymin, 'max': ymax}
+        if "image_pos" not in config and "world_pos" not in config:
+            xmin = base["image_origin"].x
+            xmax = xmin + full_xsize - 1
+            ymin = base["image_origin"].y
+            ymax = ymin + full_ysize - 1
+            config["image_pos"] = {
+                "type": "XY",
+                "x": {"type": "Random", "min": xmin, "max": xmax},
+                "y": {"type": "Random", "min": ymin, "max": ymax},
             }
 
         nbatch = self.nobjects // 1000 + 1
         for batch in range(nbatch):
-            start_obj_num = (self.nobjects * batch // nbatch)
-            end_obj_num = (self.nobjects * (batch+1) // nbatch)
+            start_obj_num = self.nobjects * batch // nbatch
+            end_obj_num = self.nobjects * (batch + 1) // nbatch
             nobj_batch = end_obj_num - start_obj_num
             if nbatch > 1:
-                logger.warning("Start batch %d/%d with %d objects [%d, %d)",
-                               batch+1, nbatch, nobj_batch, start_obj_num, end_obj_num)
+                logger.warning(
+                    "Start batch %d/%d with %d objects [%d, %d)",
+                    batch + 1,
+                    nbatch,
+                    nobj_batch,
+                    start_obj_num,
+                    end_obj_num,
+                )
             stamps, current_vars = galsim.config.BuildStamps(
-                nobj_batch, base, logger=logger, obj_num=start_obj_num, do_noise=False)
-            base['index_key'] = 'image_num'
+                nobj_batch, base, logger=logger, obj_num=start_obj_num, do_noise=False
+            )
+            base["index_key"] = "image_num"
 
             for k in range(nobj_batch):
                 # This is our signal that the object was skipped.
@@ -187,11 +186,11 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
                     # avoid an error.  But this isn't covered in the imsim test suite.
                     continue
 
-                logger.debug('image %d: full bounds = %s',
-                             image_num, str(full_image.bounds))
-                logger.debug('image %d: stamp %d bounds = %s',
-                             image_num, k+start_obj_num, str(stamps[k].bounds))
-                logger.debug('image %d: Overlap = %s', image_num, str(bounds))
+                logger.debug("image %d: full bounds = %s", image_num, str(full_image.bounds))
+                logger.debug(
+                    "image %d: stamp %d bounds = %s", image_num, k + start_obj_num, str(stamps[k].bounds)
+                )
+                logger.debug("image %d: Overlap = %s", image_num, str(bounds))
                 full_image[bounds] += stamps[k][bounds]
             stamps = None
 
@@ -202,8 +201,8 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         # current_var = FlattenNoiseVariance(
         #         base, full_image, stamps, current_vars, logger)
 
-        logger.info('roman pixel scale: %.5f' % (roman.pixel_scale))
-        full_image /= (0.0390625/0.11)**2
+        logger.info("roman pixel scale: %.5f" % (roman.pixel_scale))
+        full_image /= (0.0390625 / 0.11) ** 2
 
         return full_image, None
 
@@ -223,17 +222,17 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         if self.ignore_noise:
             return
 
-        base['current_noise_image'] = base['current_image']
-        wcs = base['wcs']
-        bp = base['bandpass']
+        base["current_noise_image"] = base["current_image"]
+        # wcs = base["wcs"]
+        # bp = base["bandpass"]
         # rng = galsim.config.GetRNG(config, base)
-        logger.info('image %d: Start RomanSCA detector effects',
-                    base.get('image_num', 0))
+        logger.info("image %d: Start RomanSCA detector effects", base.get("image_num", 0))
 
         noise_white = self.coadd_hdu[0].data[0][11]
         noise_pink = self.coadd_hdu[0].data[0][10]
         image += noise_white * self.white_scale
         image += noise_pink * self.pink_scale
 
+
 # Register this as a valid type
-RegisterImageType('roman_coadd', RomanCoaddImageBuilder())
+RegisterImageType("roman_coadd", RomanCoaddImageBuilder())
