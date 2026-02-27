@@ -10,6 +10,7 @@ except ImportError:
 try:
     __version__ = version("roman_imsim")
 except PackageNotFoundError:
+    # package is not installed
     pass
 
 from .bandpass import *
