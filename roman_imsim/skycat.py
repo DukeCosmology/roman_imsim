@@ -143,6 +143,8 @@ class SkyCatalogInterface:
             self._objects = sky_cat.get_objects_by_region(region, obj_type_set=self.obj_types, mjd=self.mjd)
             if not self._objects:
                 self.logger.warning("No objects found on image.")
+            else:
+                self._build_dtype_dict()
         return self._objects
 
     def _build_dtype_dict(self):
@@ -157,7 +159,7 @@ class SkyCatalogInterface:
                 try:
                     # Some columns cannot be read in snana
                     np_type = coll.get_native_attribute(col_name).dtype.type()
-                except Exception as e:
+                except ValueError:
                     self.logger.warning(f"The column {col_name} could not be read from skyCatalog.")
                     continue
                 if np_type is None:
@@ -293,8 +295,8 @@ class SkyCatalogInterface:
             return None
         elif field not in skycat_obj.native_columns:
             if self._dtype_dict[field] is int:
-                # There are no "special value" for integer so we default to
-                # hopefully something completely off
+                # There are no "special value" for integer so we default to hopefully something completely off
+                # np.nan is a float and None is a string, so we use -9999 for int
                 return -9999
             elif self._dtype_dict[field] is float:
                 return np.nan
@@ -497,17 +499,9 @@ def SkyCatValue(config, base, value_type):
     params, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt)
     field = params["field"]
     index = params["index"]
-    obs_kind = params.get("obs_kind", None)
 
     if field == "flux":
-        if obs_kind is None:
-            val = skycat.getFlux(index)
-        else:
-            pointing = galsim.config.GetInputObj("obseq_data", config, base, "OpSeqDataLoader")
-            filter = pointing.get("filter", obs_kind=obs_kind)
-            exptime = pointing.get("exptime", obs_kind=obs_kind)
-            mjd = pointing.get("mjd", obs_kind=obs_kind)
-            val = skycat.getFlux(index, filter=filter, exptime=exptime, mjd=mjd)
+        val = skycat.getFlux(index=index)
     else:
         val = skycat.getValue(index, field)
 
