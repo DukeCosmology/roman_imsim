@@ -55,6 +55,14 @@ class Roman_stamp(StampBuilder):
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
         base["object_type"] = getattr(gal, "object_type", "")
         bandpass = base["bandpass"]
+
+        if base["image"]["type"] == "roman_coadd":
+            self.is_coadd = True
+            self.pixel_scale = float(base["image"]["pixel_scale"])
+        else:
+            self.is_coadd = False
+            self.pixel_scale = roman.pixel_scale
+
         if not hasattr(gal, "flux"):
             # In this case, the object flux has not been precomputed
             # or cached by the skyCatalogs code.
