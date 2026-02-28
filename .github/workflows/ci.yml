@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest       # <-- changed from ubuntu-latest
     strategy:
       matrix:
         python-version: [3.14]
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           lfs: true
-          submodules: false
+          submodules: false     # <-- disable automatic submodule checkout
 
       - name: Checkout submodules tracking their remote branch
         run: |
