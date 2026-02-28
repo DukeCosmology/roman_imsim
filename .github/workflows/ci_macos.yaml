@@ -1,0 +1,53 @@
+name: End-to-end Test macOS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: null
+
+jobs:
+  build:
+    runs-on: macos-latest       # <-- changed from ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.14]
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: true
+          submodules: false     # <-- disable automatic submodule checkout
+
+      - name: Checkout submodules tracking their remote branch
+        run: |
+          git submodule update --init --remote
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install build tools and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine pytest pytest-cov
+
+      - name: Install package (editable)
+        run: pip install -e .
+
+      - name: Run GalSim
+        run: |
+          pushd roman_imsim_testdata
+          galsim hack.yaml
+          popd
+
+      - name: Run unit tests
+        run: |
+          pytest --strict-markers tests/test_end_to_end.py
+
+      # - name: Upload coverage report
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: coverage.xml
