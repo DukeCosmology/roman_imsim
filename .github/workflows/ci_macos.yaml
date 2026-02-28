@@ -1,8 +1,6 @@
 name: End-to-end Test macOS
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch: null
 
 jobs:
