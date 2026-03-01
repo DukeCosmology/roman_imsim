@@ -21,9 +21,12 @@ image:
     # It also by default applies a number of detector effects, but these can be turned
     # off if desired by setting some parameters (given below) to False.
     type: roman_coadd
-    coadd_file: '/cwork/cmh215/OU24-Roman-Coadds/H158/prod_H_00_00_map.fits.gz'
+    coadd_file: '/home/yuedong/Work/H158_Row00/prod_H_00_00_map.fits'
     xsize: 2688
     ysize: 2688
+    white_scale: 0.7
+    pink_scale: 0.3
+    pixel_scale: 0.0390625
 
     wcs:
         type: RomanWCS
@@ -74,13 +77,14 @@ image:
     filter: { type: ObSeqData, field: filter }
     exptime: { type: ObSeqData, field: exptime }
 
+    draw_method: 'phot'
     # Photon shooting is way faster for chromatic objects than fft, especially when most of them
     # are fairly faint.  The cross-over point for achromatic objects is generally of order
     # flux=1.e6 or so (depending on the profile).  Most of our objects here are much fainter than
     # that.  The fft rendering for chromatic is a factor of 10 or so slower still, whereas
     # chromatic photon shooting is only slighly slower than achromatic, so the difference
     # is even more pronounced in this case.
-    draw_method: 'auto'
+    use_fft_bright: True
 
     # These are all by default turned on, but you can turn any of them off if desired:
     # ignore_noise: True
@@ -102,11 +106,6 @@ image:
     # ipc: True
     # read_noise: True
     # sky_subtract: False
-
-    dither_from_file: /hpc/home/yf194/Work/final_sims_2023/Roman_WAS_obseq_11_1_23_ditherlist.txt
-    # sca_filepath: /hpc/group/cosmology/phy-lsst/roman_sensors
-    save_diff: False
-    diff_dir: /hpc/group/cosmology/yuedong/roman_output/test/images/truth/diff/
 
     # nobjects: 500
 
@@ -134,14 +133,14 @@ gal:
 
 input:
     obseq_data:
-        file_name: /hpc/group/cosmology/OpenUniverse2024/RomanWAS/Roman_WAS_obseq_11_1_23.fits
+        file_name: /home/yuedong/Work/SimHackJune2025/Roman_WAS_obseq_11_1_23.fits
         visit: 4907
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
         n_waves: 5
     sky_catalog:
-        file_name: /hpc/home/yf194/Work/projects/roman_imsim/config/skyCatalog.yaml
+        file_name: /home/yuedong/Work/SimHackJune2025/skyCatalog/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }
@@ -150,7 +149,7 @@ input:
 output:
 
     nfiles: 1
-    dir: /hpc/group/cosmology/yuedong/roman_output/test_coadd/images/truth
+    dir: /home/yuedong/Work/coadd_sim/images/truth
     file_name:
         type: FormattedStr
         format: "Roman_WAS_truth_%s_%i_%i.fits.gz"
@@ -160,7 +159,7 @@ output:
             - '@image.SCA'
 
     truth:
-        dir: /hpc/group/cosmology/yuedong/roman_output/test_coadd/truth
+        dir: /home/yuedong/Work/coadd_sim/truth
         file_name:
             type: FormattedStr
             format: "Roman_WAS_index_%s_%i_%i.txt"
