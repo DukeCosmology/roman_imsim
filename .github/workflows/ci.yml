@@ -18,29 +18,27 @@ jobs:
           lfs: true
           submodules: true
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
 
       - name: Install build tools and test dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install build twine pytest pytest-cov
+          uv add --dev build twine pytest pytest-cov
 
       - name: Install package (editable)
-        run: pip install -e .
+        run: uv pip install -e .
 
       - name: Run GalSim
         run: |
           pushd roman_imsim_testdata
-          galsim hack.yaml
+          uv run galsim hack.yaml
           popd
 
       - name: Run unit tests
         run: |
-          pytest --strict-markers tests/test_end_to_end.py
+          uv run pytest --strict-markers tests/test_end_to_end.py
 
       # - name: Upload coverage report
       #   uses: actions/upload-artifact@v4
