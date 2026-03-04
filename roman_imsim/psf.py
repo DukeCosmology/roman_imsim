@@ -77,13 +77,29 @@ valid_psf_interpolator_types = {}
 class PSFInterpolator:
     """Base class for PSF interpolator"""
 
+    self.PSF_coadd = self._psf_call_coadd(bpass, n_waves, logger)
+
     def _parse_pupil_bin(self, pupil_bin):
         if pupil_bin == "achromatic":
             return 8
         else:
             return pupil_bin
 
-    def _psf_call(self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations):
+    def _psf_call_coadd(self, bpass, n_waves, logger):
+        # Currently only implementing a Gaussian PSF for each band
+        fwhm_dict = {
+            "Y106": 0.220,
+            "J129": 0.231,
+            "H158": 0.242,
+            "F184": 0.253,
+            "K213": 0.264,
+        }
+        psf = galsim.Gaussian(fwhm=fwhm_dict[bpass.name])
+        return psf.withGSParams(maximum_fft_size=16384)
+
+    def _psf_call(
+        self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations
+    ):
 
         if pupil_bin == 8:
             psf = models.psf_utils.getPSF(
@@ -255,6 +271,9 @@ class CornerPSFInterpolator(PSFInterpolator):
         # if ((pos.x-roman.n_pix/2)**2+(pos.y-roman.n_pix/2)**2)<((pos.x-roman.n_pix)**2+(pos.y-1)**2):
         #     psf = self.PSF[pupil_bin]['cc']
         # return psf
+
+        if is_coadd:
+            return self.PSF_coadd
 
         psf = self.PSF[pupil_bin]
         if pupil_bin != 8:

@@ -21,7 +21,7 @@ image:
     # It also by default applies a number of detector effects, but these can be turned
     # off if desired by setting some parameters (given below) to False.
     type: roman_coadd
-    coadd_file: '/home/yuedong/Work/H158_Row00/prod_H_00_00_map.fits'
+    coadd_file: '/hpc/group/cosmology/yuedong/H158_Row00/prod_H_00_00_map.fits'
     xsize: 2688
     ysize: 2688
     white_scale: 0.7
@@ -39,7 +39,8 @@ image:
 
     bandpass:
         type: RomanBandpass
-        name: { type: ObSeqData, field: filter }
+        # name: { type: ObSeqData, field: filter }
+        name: "H158"
 
     # When you want to have multiple images generate the same random galaxies, then
     # you can set up multiple random number generators with different update cadences
@@ -133,14 +134,14 @@ gal:
 
 input:
     obseq_data:
-        file_name: /home/yuedong/Work/SimHackJune2025/Roman_WAS_obseq_11_1_23.fits
+        file_name: /hpc/group/cosmology/OpenUniverse2024/RomanWAS/Roman_WAS_obseq_11_1_23.fits
         visit: 4907
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
         n_waves: 5
     sky_catalog:
-        file_name: /home/yuedong/Work/SimHackJune2025/skyCatalog/skyCatalog.yaml
+        file_name: /hpc/home/yf194/Work/projects/roman_imsim/config/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }
@@ -149,7 +150,7 @@ input:
 output:
 
     nfiles: 1
-    dir: /home/yuedong/Work/coadd_sim/images/truth
+    dir: /hpc/group/cosmology/yuedong/roman_output/coadd_sim_new/images/truth
     file_name:
         type: FormattedStr
         format: "Roman_WAS_truth_%s_%i_%i.fits.gz"
@@ -159,7 +160,7 @@ output:
             - '@image.SCA'
 
     truth:
-        dir: /home/yuedong/Work/coadd_sim/truth
+        dir: /hpc/group/cosmology/yuedong/roman_output/coadd_sim_new/truth
         file_name:
             type: FormattedStr
             format: "Roman_WAS_index_%s_%i_%i.txt"
