@@ -298,8 +298,6 @@ class Roman_stamp(StampBuilder):
             # print('-------- psf ----------',psfs)
 
             # print('stamp draw3a',process.memory_info().rss)
-            print(gal.sed)
-            print(bandpass)
             gal.drawImage(
                 bandpass=bandpass,
                 method="phot",

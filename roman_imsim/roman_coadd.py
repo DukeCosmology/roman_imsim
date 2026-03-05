@@ -104,8 +104,8 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
                 base['image'], 'bandpass', base, logger=logger)
 
         self.coadd_hdu = fits.open(params["coadd_file"])
-        self.white_scale = params['white_scale']
-        self.pink_scale = params['pink_scale']
+        self.white_scale = params['white_noise_weight']
+        self.pink_scale = params['pink_noise_weight']
 
         # return roman.n_pix, roman.n_pix
         return int(self.coadd_hdu[0].header['NAXIS1']), int(self.coadd_hdu[0].header['NAXIS2'])
