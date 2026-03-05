@@ -170,46 +170,9 @@ class RomanASDFBuilder(OutputBuilder):
 
         # use astropy.io.fits.header.Header form of header: required in wcs_from_fits_header
         wcs_header = image.wcs.header.header
-        # Don't remove, these are needed to create gwcs object.
-        ny, nx = image.array.shape
-        wcs_header["NAXIS"] = 2  # number of axes
-        wcs_header["NAXIS1"] = nx  # image width in pixels
-        wcs_header["NAXIS2"] = ny  # image height in pixels
-
-        # already assigned, redundant repetition?
-        # coordinate type
-        # wcs_header['CTYPE1'] = 'RA---TAN-SIP'
-        # wcs_header['CTYPE2'] = 'DEC--TAN-SIP'
-
-        # already assigned, redundant repetition, but conversion to int is required
-        # comment/delete this block if float is fine. This too is a repetition again.
-        # reference pixel
-        # wcs_header['CRPIX1'] = nx/2
-        # wcs_header['CRPIX2'] = ny/2
-        # Is the repetition really needed? already defined! but default value differs from assigned.
-        # reference coordinates
-        # wcs_header['CRVAL1'] = base['world_center'].ra.deg
-        # wcs_header['CRVAL2'] = base['world_center'].dec.deg
-
-        # Agreed with Arun to remove this part. Keeping commented for now.
-        # I can't find these information
-        # (I think they are also connected to border_ref_pix_left etc) so comment below out
-        # - the wcs is not correct without these info
-        # linear transformation: pixel scale in deg/pixel
-        # scale = 0.1 / 3600.0
-        # if the image has rotation wrt constant ra and dec
-        # wcs_header['CD1_1'] = -scale
-        # wcs_header['CD1_2'] = 0.0
-        # wcs_header['CD2_1'] = 0.0
-        # wcs_header['CD2_2'] = scale
-
-        # coordinate system
-        wcs_header.update([("RADESYS", "ICRS", "Reference Coordinate System")])
-        # also already defined
-        # wcs_header['LONPOLE'] = 180.0
-
-        # changing the instrument name from WFC -> WFI, OK?
-        wcs_header["INSTRUME"] = "WFI"
+        # Galsim uses to headers, one in the image and one in the WCS. We need to combine them to get the
+        # full information.
+        wcs_header.update(image.header)
 
         tree = ImageModel.create_fake_data()
 

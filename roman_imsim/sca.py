@@ -103,7 +103,14 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             full_image.header["VERSION"] = version("roman_imsim")
         except PackageNotFoundError:
             full_image.header["VERSION"] = "unknown"
+        # Some of these should be in the WCS creation but it will be changed in the future so we leave it
+        # here for now.
+        full_image.header["NAXIS"] = 2
+        full_image.header["NAXIS1"] = full_xsize
+        full_image.header["NAXIS2"] = full_ysize
+        full_image.header["RADESYS"] = "ICRS"
         full_image.header["SCA"] = self.sca
+        full_image.header["INSTRUME"] = "WFI"
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
         full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
