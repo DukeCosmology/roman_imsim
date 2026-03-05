@@ -1,8 +1,9 @@
 import galsim
 import galsim.roman as roman
-from galsim.config import WCSBuilder, RegisterWCSType
+from astropy.time import Time
 from galsim.angle import Angle
 from galsim.celestial import CelestialCoord
+from galsim.config import RegisterWCSType, WCSBuilder
 
 
 class RomanWCS(WCSBuilder):
