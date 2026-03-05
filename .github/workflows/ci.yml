@@ -35,6 +35,7 @@ jobs:
       - name: Run GalSim
         run: |
           pushd roman_imsim_testdata
+          git checkout revert-5-skylevel_date
           galsim hack.yaml
           popd
 
