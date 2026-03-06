@@ -169,12 +169,10 @@ class RomanASDFBuilder(OutputBuilder):
         # and copied to image.wcs
 
         # use astropy.io.fits.header.Header form of header: required in wcs_from_fits_header
-        breakpoint()
         wcs_header = image.wcs.header.header
         # Galsim uses two headers, one in the image and one in the WCS. We need to combine them to get the
         # full information.
         wcs_header.update(image.header)
-        breakpoint()
 
         tree = ImageModel.create_fake_data()
 
@@ -232,9 +230,6 @@ class RomanASDFBuilder(OutputBuilder):
         tree.meta.telescope = tree.meta.telescope
 
         tree.meta.coordinates.reference_frame = tree.meta.coordinates.reference_frame
-        # ===> I'm not sure this is the correct way to assigning.
-        # check by saving the file and checking the data type of tree["meta"]["coordinates"]
-        # tree.meta.coordinates = {'reference_frame': 'ICRS'}
 
         # meta.ephemeris
         tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
