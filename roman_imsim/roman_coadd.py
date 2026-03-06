@@ -44,8 +44,8 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
             "mjd": float,
             "exptime": float,
             "coadd_file": str,
-            "white_scale": float,
-            "pink_scale": float,
+            "white_noise_weight": float,
+            "pink_noise_weight": float,
             "pixel_scale": float,
         }
         opt = {
@@ -97,8 +97,8 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
             base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
 
         self.coadd_hdu = fits.open(params["coadd_file"])
-        self.white_scale = params["white_noise_weight"]
-        self.pink_scale = params["pink_noise_weight"]
+        self.white_noise_weight = params["white_noise_weight"]
+        self.pink_noise_weight = params["pink_noise_weight"]
 
         # return roman.n_pix, roman.n_pix
         return int(self.coadd_hdu[0].header["NAXIS1"]), int(self.coadd_hdu[0].header["NAXIS2"])
@@ -230,8 +230,8 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
 
         noise_white = self.coadd_hdu[0].data[0][11]
         noise_pink = self.coadd_hdu[0].data[0][10]
-        image += noise_white * self.white_scale
-        image += noise_pink * self.pink_scale
+        image += noise_white * self.white_noise_weight
+        image += noise_pink * self.pink_noise_weight
 
 
 # Register this as a valid type
