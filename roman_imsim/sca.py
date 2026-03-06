@@ -110,6 +110,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image.header["NAXIS2"] = full_ysize
         full_image.header["RADESYS"] = "ICRS"
         full_image.header["SCA"] = self.sca
+        #this should go to wcs header
         full_image.header["INSTRUME"] = "WFI"
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd

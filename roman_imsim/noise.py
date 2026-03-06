@@ -35,6 +35,7 @@ class RomanNoiseBuilder(NoiseBuilder):
 
         opt = {
             "mjd": float,
+            "ignore_noise": bool,
             "stray_light": bool,
             "thermal_background": bool,
             "reciprocity_failure": bool,
@@ -48,6 +49,7 @@ class RomanNoiseBuilder(NoiseBuilder):
         params, safe = galsim.config.GetAllParams(config, base, req={}, opt=opt, ignore=[])
 
         mjd = params.get("mjd", None)
+        ignore_noise = params.get("ignore_noise", True)
         stray_light = params.get("stray_light", False)
         thermal_background = params.get("thermal_background", False)
         reciprocity_failure = params.get("reciprocity_failure", False)
