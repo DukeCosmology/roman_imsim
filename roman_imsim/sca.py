@@ -141,7 +141,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             start_obj_num = self.nobjects * batch // nbatch
             # end id of objects in this batch
             end_obj_num = self.nobjects * (batch + 1) // nbatch
-            # Calculate the umber of objects in this batch
+            # Calculate the number of objects in this batch
             nobj_batch = end_obj_num - start_obj_num
             if nbatch > 1:
                 logger.warning(
