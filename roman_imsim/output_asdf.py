@@ -231,10 +231,10 @@ class RomanASDFBuilder(OutputBuilder):
 
         tree.meta.telescope = tree.meta.telescope
 
-        #tree.meta.coordinates.reference_frame = tree.meta.coordinates.reference_frame
+        tree.meta.coordinates.reference_frame = tree.meta.coordinates.reference_frame
         # ===> I'm not sure this is the correct way to assigning.
         # check by saving the file and checking the data type of tree["meta"]["coordinates"]
-        tree.meta.coordinates = {'reference_frame': 'ICRS'}
+        # tree.meta.coordinates = {'reference_frame': 'ICRS'}
 
         # meta.ephemeris
         tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
