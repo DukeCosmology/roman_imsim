@@ -89,6 +89,13 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image = Image(full_xsize, full_ysize, dtype=float)
         full_image.setOrigin(base["image_origin"])
         full_image.wcs = wcs
+        logger.debug("full image wcs: %s", full_image.wcs)
+        logger.debug("full image wcs type: %s", type(full_image.wcs))
+        logger.debug("full image wcs header: %s", full_image.wcs.header)
+        logger.debug("full image wcs header type: %s", type(full_image.wcs.header))
+        logger.debug("full image wcs header keys: %s", full_image.wcs.header.keys())
+        logger.debug("full image wcs methods: %s", dir(full_image.wcs))
+
         full_image.setZero()
 
         full_image.header = galsim.FitsHeader()
@@ -96,6 +103,15 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             full_image.header["VERSION"] = version("roman_imsim")
         except PackageNotFoundError:
             full_image.header["VERSION"] = "unknown"
+        # Some of these should be in the WCS creation but it will be changed in the future so we leave it
+        # here for now.
+        full_image.header["NAXIS"] = 2
+        full_image.header["NAXIS1"] = full_xsize
+        full_image.header["NAXIS2"] = full_ysize
+        full_image.header["RADESYS"] = "ICRS"
+        full_image.header["SCA"] = self.sca
+        #this should go to wcs header
+        full_image.header["INSTRUME"] = "WFI"
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
         full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
@@ -120,11 +136,13 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 "x": {"type": "Random", "min": xmin, "max": xmax},
                 "y": {"type": "Random", "min": ymin, "max": ymax},
             }
-
         nbatch = self.nobjects // 1000 + 1
         for batch in range(nbatch):
+            # start id of objects in this batch
             start_obj_num = self.nobjects * batch // nbatch
+            # end id of objects in this batch
             end_obj_num = self.nobjects * (batch + 1) // nbatch
+            # Calculate the number of objects in this batch
             nobj_batch = end_obj_num - start_obj_num
             if nbatch > 1:
                 logger.warning(
@@ -159,6 +177,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                     str(stamps[k].bounds),
                 )
                 logger.debug("image %d: Overlap = %s", image_num, str(bounds))
+                # imprint the stemp of each object in this loop
                 full_image[bounds] += stamps[k][bounds]
             stamps = None
 
