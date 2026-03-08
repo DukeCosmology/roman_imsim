@@ -301,7 +301,6 @@ class Roman_stamp(StampBuilder):
                 photon_ops=photon_ops,
                 sensor=None,
                 add_to_image=True,
-                poisson_flux=True,
             )
         else:
             fft_image = image.copy()
