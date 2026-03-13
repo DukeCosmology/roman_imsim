@@ -107,7 +107,7 @@ class RomanASDFBuilder(OutputBuilder):
             return pol
 
         w = fits_wcs.WCS(header)
-        ny, nx = header["NAXIS2"] + 1, header["NAXIS1"] + 1
+        ny, nx = header["NAXIS2"], header["NAXIS1"]
         x0, y0 = w.wcs.crpix
 
         cd = w.wcs.piximg_matrix
@@ -242,7 +242,7 @@ class RomanASDFBuilder(OutputBuilder):
         tree.meta.ephemeris.velocity_y = tree.meta.ephemeris.velocity_y
         tree.meta.ephemeris.velocity_z = tree.meta.ephemeris.velocity_z
         # .meta.exposure
-        tree.meta.exposure.type = tree.meta.exposure.type
+        tree.meta.exposure.type = "WFI_IMAGE"
         tree.meta.exposure.start_time = tree.meta.exposure.start_time
         tree.meta.exposure.end_time = tree.meta.exposure.end_time
         tree.meta.exposure.engineering_quality = tree.meta.exposure.engineering_quality
