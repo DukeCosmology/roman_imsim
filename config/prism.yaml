@@ -68,7 +68,7 @@ image:
     #     last: 18
     #     repeat: 3  # repeat each SCA num 3 times before moving on, for the 3 filters.
     #
-    SCA: 16
+    SCA: 4
     # mjd: { type: ObSeqData, field: mjd }
     mjd: { type: Sum_float, items: [ { type: ObSeqData_float, field: mjd }, 170 ] }
 
@@ -125,20 +125,20 @@ gal:
 input:
     obseq_data:
         #file_name: /hpc/group/cosmology/repos/prism_sim/Roman_TDS_obseq_prism.fits
-        file_name: /hpc/group/cosmology/OpenUniverse2024/RomanTDS/Roman_TDS_obseq_11_6_23.fits
-        visit: 14234
+        file_name: /hpc/group/cosmology/OpenUniverse2026/RomanTDS/Roman_TDS_obseq_11_6_23.fits
+        visit: 4191
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
         n_waves: 5
     sky_catalog:
-        file_name: /hpc/group/cosmology/repos/roman_imsim/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
+        file_name: /hpc/group/cosmology/OpenUniverse2026/roman_rubin_cats_v1.1.2_faint/skyCatalog.yaml 
         edge_pix: 512
         # mjd: { type: ObSeqData, field: mjd }
         mjd: { type: Sum_float, items: [ { type: ObSeqData_float, field: mjd }, 170 ] }
 
         exptime: { type: ObSeqData, field: exptime }          
-        obj_types: ["snana"]  # diffsky_galaxy, star
+        obj_types: ["snana", "diffsky_galaxy"]  # , "star"
 
 output:
 
