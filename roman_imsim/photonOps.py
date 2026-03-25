@@ -88,3 +88,64 @@ class ChargeDiffBuilder(PhotonOpBuilder):
 
 
 RegisterPhotonOpType("ChargeDiff", ChargeDiffBuilder())
+
+
+
+
+class BrighterFatter(PhotonOp):
+    """
+    Gradient-based brighter-fatter PhotonOp.
+
+    The current pre-readout image defines the displacement field.
+    Incoming photons are shifted in place.
+    """
+
+    def __init__(self, image=None, bfe_strength=1.038e-6, **kwargs):
+        self.bfe_strength = float(bfe_strength)
+        self.image = None
+        self.grad_x = None
+        self.grad_y = None
+
+        if image is not None:
+            self.set_image(image)
+
+    def set_image(self, image):
+        """
+        Set the current pre-readout image used to define the BFE field.
+        """
+        self.image = np.asarray(image, dtype=float)
+
+        # np.gradient returns derivatives in axis order:
+        # first output is dI/dy, second output is dI/dx
+        self.grad_y, self.grad_x = np.gradient(self.image)
+
+    def applyTo(self, photon_array, local_wcs=None, rng=None):
+        """
+        Apply brighter-fatter shifts to the incoming photon array in place.
+        """
+        if self.image is None:
+            raise RuntimeError("BrighterFatter requires image to be set via set_image().")
+
+        x = photon_array.x
+        y = photon_array.y
+
+        ny, nx = self.image.shape
+
+        ix = np.floor(x).astype(int)
+        iy = np.floor(y).astype(int)
+
+        valid = (ix >= 0) & (ix < nx) & (iy >= 0) & (iy < ny)
+
+        x[valid] += -self.bfe_strength * self.grad_x[iy[valid], ix[valid]]
+        y[valid] += -self.bfe_strength * self.grad_y[iy[valid], ix[valid]]
+        
+class BrighterFatterBuilder(PhotonOpBuilder):
+    """Build BrighterFatter photonOp"""
+
+    def buildPhotonOp(self, config, base, logger):
+        req, opt, single, takes_rng = get_cls_params(BrighterFatter)
+        kwargs, safe = GetAllParams(config, base, req, opt, single)
+        return BrighterFatter(**kwargs)
+
+
+RegisterPhotonOpType("BrighterFatter", BrighterFatterBuilder())
