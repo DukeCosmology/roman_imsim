@@ -2,7 +2,7 @@ from itertools import product
 
 import galsim
 import galsim.config
-import galsim.roman as roman
+import romanisim.models as models
 import numpy as np
 
 
@@ -72,9 +72,9 @@ class roman_utils(object):
                 raise ValueError(
                     "x,y position for pupil_bin values other than 8 not supported. Using SCA center."
                 )
-            return self.PSF.getPSF(pupil_bin, galsim.PositionD(roman.n_pix / 2, roman.n_pix / 2))
+            return self.PSF.getPSF(pupil_bin, galsim.PositionD(models.parameters.n_pix / 2, models.parameters.n_pix / 2))
         if (x is None) | (y is None):
-            return self.PSF.getPSF(8, galsim.PositionD(roman.n_pix / 2, roman.n_pix / 2))
+            return self.PSF.getPSF(8, galsim.PositionD(models.parameters.n_pix / 2, models.parameters.n_pix / 2))
         return self.PSF.getPSF(8, galsim.PositionD(x, y))
 
     def getWCS(self):
@@ -148,7 +148,7 @@ class roman_utils(object):
             return psf.drawImage(self.bpass, image=stamp, wcs=wcs, method=method)
         photon_ops = [self.getPSF(x, y, pupil_bin)] + self.photon_ops
         if include_pixel and oversampling_factor > 1:
-            scale = galsim.roman.pixel_scale
+            scale = models.parameters.pixel_scale
             # An array (comb) of Dirac Delta functions.
             comb = galsim.Add(
                 [

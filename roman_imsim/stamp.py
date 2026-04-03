@@ -1,6 +1,6 @@
 import galsim
 import galsim.config
-import galsim.roman as roman
+import romanisim.models as models
 import numpy as np
 from galsim.config import RegisterStampType, StampBuilder
 
@@ -100,7 +100,7 @@ class Roman_stamp(StampBuilder):
                 # psf = galsim.config.BuildGSObject(base, 'psf', logger=logger)[0]['achromatic']
                 # obj = galsim.Convolve(gal_achrom, psf).withFlux(self.flux)
                 obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20))
-                image_size = obj.getGoodImageSize(roman.pixel_scale)
+                image_size = obj.getGoodImageSize(models.parameters.pixel_scale)
 
         # print('stamp setup3',process.memory_info().rss)
         base["pupil_bin"] = self.pupil_bin

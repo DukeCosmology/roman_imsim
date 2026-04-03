@@ -2,7 +2,7 @@ from importlib.metadata import version, PackageNotFoundError
 
 import galsim
 import galsim.config
-import galsim.roman as roman
+import romanisim.models as models
 import numpy as np
 from astropy.time import Time
 from galsim.config import RegisterImageType
@@ -67,7 +67,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         if "bandpass" not in config:
             base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
 
-        return roman.n_pix, roman.n_pix
+        return models.parameters.n_pix, models.parameters.n_pix
 
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
@@ -100,7 +100,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         full_image.header["MJD-OBS"] = self.mjd
         full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
         full_image.header["FILTER"] = self.filter
-        full_image.header["ZPTMAG"] = 2.5 * np.log10(self.exptime * roman.collecting_area)
+        full_image.header["ZPTMAG"] = 2.5 * np.log10(self.exptime * models.parameters.collecting_area)
 
         base["current_image"] = full_image
 
