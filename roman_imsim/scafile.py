@@ -4,7 +4,7 @@ import warnings
 
 import astropy.time
 import galsim
-import galsim.roman as roman
+import romanisim.models as models
 from galsim.config import OutputBuilder, RegisterOutputType
 
 
@@ -29,7 +29,7 @@ class SCABuilder(OutputBuilder):
         if "exptime" in config:
             base["exptime"] = galsim.config.ParseValue(config, "exptime", base, float)[0]
         else:
-            base["exptime"] = roman.exptime
+            base["exptime"] = models.parameters.exptime
 
         # Save the detector size, so the input catalogs can use it to figure out which
         # objects will be visible.

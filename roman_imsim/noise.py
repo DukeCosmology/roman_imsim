@@ -1,5 +1,5 @@
 import galsim
-import galsim.roman as roman
+import romanisim.models as models
 from galsim.config import NoiseBuilder, RegisterNoiseType
 from astropy.time import Time
 
@@ -43,6 +43,7 @@ class RomanNoiseBuilder(NoiseBuilder):
             "ipc": bool,
             "read_noise": bool,
             "sky_subtract": bool,
+            "use_crds": bool,
         }
 
         params, safe = galsim.config.GetAllParams(config, base, req={}, opt=opt, ignore=[])
@@ -56,6 +57,8 @@ class RomanNoiseBuilder(NoiseBuilder):
         ipc = params.get("ipc", False)
         read_noise = params.get("read_noise", False)
         sky_subtract = params.get("sky_subtract", True)
+        
+        use_crds = params.get("use_crds", False)
 
         base["current_noise_image"] = base["current_image"]
         wcs = base["wcs"]
@@ -69,17 +72,17 @@ class RomanNoiseBuilder(NoiseBuilder):
         # value added to sky_image.  So technically, this includes things that aren't just sky.
         # E.g. includes dark_current and thermal backgrounds.
         sky_image = image.copy()
-        sky_level = roman.getSkyLevel(bp, world_pos=wcs.toWorld(image.true_center), date=date)
+        sky_level = models.backgrounds.getSkyLevel(bp, world_pos=wcs.toWorld(image.true_center), date=date)
         logger.debug("Adding sky_level = %s", sky_level)
         if stray_light:
-            logger.debug("Stray light fraction = %s", roman.stray_light_fraction)
-            sky_level *= 1.0 + roman.stray_light_fraction
+            logger.debug("Stray light fraction = %s", models.parameters.stray_light_fraction)
+            sky_level *= 1.0 + models.parameters.stray_light_fraction
         wcs.makeSkyImage(sky_image, sky_level)
 
         # The other background is the expected thermal backgrounds in this band.
         # These are provided in e-/pix/s, so we have to multiply by the exposure time.
         if thermal_background:
-            tb = roman.thermal_backgrounds[filter_name] * exptime
+            tb = models.backgrounds.thermal_backgrounds[filter_name] * exptime
             logger.debug("Adding thermal background: %s", tb)
             sky_image += tb
 
@@ -112,39 +115,41 @@ class RomanNoiseBuilder(NoiseBuilder):
 
         if reciprocity_failure:
             logger.debug("Applying reciprocity failure")
-            roman.addReciprocityFailure(image)
+            models.nonlinearity.addReciprocityFailure(img=image)
 
         if dark_current:
-            dc = roman.dark_current * exptime
-            logger.debug("Adding dark current: %s", dc)
-            sky_image += dc
-            dark_noise = galsim.noise.DeviateNoise(galsim.random.PoissonDeviate(rng, dc))
-            image.addNoise(dark_noise)
+            logger.debug("Adding dark current: %s")
+            dc = models.DarkCurrent(usecrds=use_crds)
+            dc.apply(img=image, exptime=exptime)
 
         if nonlinearity:
             logger.debug("Applying classical nonlinearity")
-            roman.applyNonlinearity(image)
+            non_linear = models.Nonlinearity(usecrds=use_crds)
+            non_linear.apply(img=image, electrons=False)
 
         # Mosby and Rauscher say there are two read noises. One happens before IPC, the other
         # one after.
         # TODO: Add read_noise1
         if ipc:
             logger.debug("Applying IPC")
-            roman.applyIPC(image)
+            IPC = models.IPC(usecrds=use_crds)
+            IPC.apply(img=image)
 
         if read_noise:
-            logger.debug("Adding read noise %s", roman.read_noise)
-            image.addNoise(galsim.GaussianNoise(rng, sigma=roman.read_noise))
+            logger.debug("Adding read noise")
+            rn = models.ReadNoise(usecrds=use_crds)
+            rn.apply(img=image)
 
-        logger.debug("Applying gain %s", roman.gain)
-        image /= roman.gain
+        logger.debug("Applying gain")
+        gain = models.Gain(usecrds=use_crds)
+        gain.apply(img=image)
 
         # Make integer ADU now.
         image.quantize()
 
         if sky_subtract:
             logger.debug("Subtracting sky image")
-            sky_image /= roman.gain
+            gain.apply(img=sky_image)
             sky_image.quantize()
             image -= sky_image
 
