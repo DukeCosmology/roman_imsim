@@ -155,7 +155,7 @@ class RomanASDFBuilder(OutputBuilder):
            as a dictionary in the ASDF file.
         """
 
-        sca = image.header["SCA"]
+        sca = image.header["SCA_NUM"]
         exptime = image.header["EXPTIME"]
         fltr = image.header["FILTER"]
         date_obs = image.header["DATE-OBS"]
@@ -169,7 +169,9 @@ class RomanASDFBuilder(OutputBuilder):
         # and copied to image.wcs
 
         # use astropy.io.fits.header.Header form of header: required in wcs_from_fits_header
-        wcs_header = image.wcs.header.header
+        # wcs_header = image.wcs.header.header
+        wcs_header = {}
+        image.wcs.writeToFitsHeader(wcs_header, image.bounds)
         # Galsim uses two headers, one in the image and one in the WCS. We need to combine them to get the
         # full information.
         wcs_header.update(image.header)
@@ -267,7 +269,7 @@ class RomanASDFBuilder(OutputBuilder):
         # meta.instrument
         tree.meta.instrument.name = wcs_header["INSTRUME"]
         tree.meta.instrument.detector = f"{wcs_header['INSTRUME']}{sca:02}"
-        tree.meta.instrument.optical_element = "F" + fltr[1:]
+        # tree.meta.instrument.optical_element = "F" + fltr[1:]
         # mata.observation
         tree.meta.observation.observation_id = tree.meta.observation.observation_id
         tree.meta.observation.visit_id = tree.meta.observation.visit_id
