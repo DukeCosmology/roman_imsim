@@ -22,10 +22,14 @@ class RomanBandpassBuilder(BandpassBuilder):
             the constructed Bandpass object.
         """
         req = {"name": str}
-        kwargs, safe = GetAllParams(config, base, req=req)
+        opt = {"SCA": int}
+        kwargs, safe = GetAllParams(config, base, req=req, opt=opt)
 
         name = kwargs["name"]
-        bandpass = models.bandpass.getBandpasses(red_limit=2000)[name]
+        if "SCA" in kwargs:
+            bandpass = models.bandpass.getBandpasses(red_limit=2000, sca=kwargs["SCA"])[name]
+        else:
+            bandpass = models.bandpass.getBandpasses(red_limit=2000)[name]
 
         return bandpass, safe
 
