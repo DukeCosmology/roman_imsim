@@ -38,12 +38,12 @@ class RomanNoiseBuilder(NoiseBuilder):
             "stray_light": bool,
             "thermal_background": bool,
             "reciprocity_failure": bool,
-            "dark_current": bool,
-            "nonlinearity": bool,
-            "ipc": bool,
-            "read_noise": bool,
+            "dark_current": dict,
+            "nonlinearity": dict,
+            "ipc": dict,
+            "read_noise": dict,
             "sky_subtract": bool,
-            "use_crds": bool,
+            "gain": dict,
         }
 
         params, safe = galsim.config.GetAllParams(config, base, req={}, opt=opt, ignore=[])
@@ -52,11 +52,13 @@ class RomanNoiseBuilder(NoiseBuilder):
         stray_light = params.get("stray_light", False)
         thermal_background = params.get("thermal_background", False)
         reciprocity_failure = params.get("reciprocity_failure", False)
-        dark_current = params.get("dark_current", False)
-        nonlinearity = params.get("nonlinearity", False)
-        ipc = params.get("ipc", False)
-        read_noise = params.get("read_noise", False)
+        # dark_current = params.get("dark_current", False)
+        dark_current = params.get("dark_current", {'turn_on': False, 'use_crds': False})
+        nonlinearity = params.get("nonlinearity", {'turn_on': False, 'use_crds': False})
+        ipc = params.get("ipc", {'turn_on': False, 'use_crds': False})
+        read_noise = params.get("read_noise", {'turn_on': False, 'use_crds': False})
         sky_subtract = params.get("sky_subtract", True)
+        gain = params.get('gain', {'turn_on': False, 'use_crds': False})
         
         use_crds = params.get("use_crds", False)
 
@@ -117,39 +119,43 @@ class RomanNoiseBuilder(NoiseBuilder):
             logger.debug("Applying reciprocity failure")
             models.nonlinearity.addReciprocityFailure(img=image)
 
-        if dark_current:
+        if dark_current['turn_on']:
             logger.debug("Adding dark current: %s")
-            dc = models.DarkCurrent(usecrds=use_crds)
+            # print(f'for drak_current, use_crds = {dark_current["use_crds"]}')
+            dc = models.DarkCurrent(usecrds=dark_current['use_crds'])
             dc.apply(img=image, exptime=exptime)
 
-        if nonlinearity:
+        if nonlinearity['turn_on']:
             logger.debug("Applying classical nonlinearity")
-            non_linear = models.Nonlinearity(usecrds=use_crds)
+            non_linear = models.Nonlinearity(usecrds=nonlinearity['use_crds'])
             non_linear.apply(img=image, electrons=False)
 
         # Mosby and Rauscher say there are two read noises. One happens before IPC, the other
         # one after.
         # TODO: Add read_noise1
-        if ipc:
+        if ipc['turn_on']:
             logger.debug("Applying IPC")
-            IPC = models.IPC(usecrds=use_crds)
+            IPC = models.IPC(usecrds=ipc['use_crds'])
             IPC.apply(img=image)
 
-        if read_noise:
+        if read_noise['turn_on']:
             logger.debug("Adding read noise")
-            rn = models.ReadNoise(usecrds=use_crds)
+            rn = models.ReadNoise(usecrds=read_noise['use_crds'])
             rn.apply(img=image)
 
-        logger.debug("Applying gain")
-        gain = models.Gain(usecrds=use_crds)
-        gain.apply(img=image)
+        if gain['turn_on']:
+            logger.debug("Applying gain")
+            gain_model = models.Gain(usecrds=gain['use_crds'])
+            gain_model.apply(img=image)
 
         # Make integer ADU now.
         image.quantize()
 
         if sky_subtract:
             logger.debug("Subtracting sky image")
-            gain.apply(img=sky_image)
+            if gain['turn_on']:
+                logger.debug("Applying gain")
+                gain_model.apply(img=sky_image)
             sky_image.quantize()
             image -= sky_image
 
