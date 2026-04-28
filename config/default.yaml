@@ -82,7 +82,6 @@ image:
     noise:
         # These are all by default turned on, but you can turn any of them off if desired:
         type: RomanNoise
-        ignore_noise: True
         stray_light: False
         thermal_background: False
         reciprocity_failure: False
