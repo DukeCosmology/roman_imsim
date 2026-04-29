@@ -23,6 +23,8 @@ dependencies = [
   "skycatalogs",
   "packaging",
   "setuptools",
+  "roman_datamodels",
+  "gwcs",
 ]
 
 [project.urls]
