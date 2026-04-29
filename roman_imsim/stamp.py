@@ -55,6 +55,14 @@ class Roman_stamp(StampBuilder):
             raise galsim.config.SkipThisObject("gal is None (invalid parameters)")
         base["object_type"] = getattr(gal, "object_type", "")
         bandpass = base["bandpass"]
+
+        if base["image"]["type"] == "roman_coadd":
+            self.is_coadd = True
+            self.pixel_scale = float(base["image"]["pixel_scale"])
+        else:
+            self.is_coadd = False
+            self.pixel_scale = roman.pixel_scale
+
         if not hasattr(gal, "flux"):
             # In this case, the object flux has not been precomputed
             # or cached by the skyCatalogs code.
@@ -100,7 +108,7 @@ class Roman_stamp(StampBuilder):
                 # psf = galsim.config.BuildGSObject(base, 'psf', logger=logger)[0]['achromatic']
                 # obj = galsim.Convolve(gal_achrom, psf).withFlux(self.flux)
                 obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20))
-                image_size = obj.getGoodImageSize(roman.pixel_scale)
+                image_size = obj.getGoodImageSize(self.pixel_scale)
 
         # print('stamp setup3',process.memory_info().rss)
         base["pupil_bin"] = self.pupil_bin
@@ -141,7 +149,7 @@ class Roman_stamp(StampBuilder):
             return galsim.config.BuildGSObject(base, "psf", gsparams=gsparams, logger=logger)[0]
 
         roman_psf = galsim.config.GetInputObj("roman_psf", config, base, "buildPSF")
-        psf = roman_psf.getPSF(self.pupil_bin, base["image_pos"])
+        psf = roman_psf.getPSF(self.pupil_bin, base["image_pos"], is_coadd=self.is_coadd)
         return psf
 
     def getDrawMethod(self, config, base, logger):
@@ -340,7 +348,7 @@ class Roman_stamp(StampBuilder):
                 raise
             # Check if we need to add photon noise for bright objects drawn
             # with FFT because we switched from phot to fft above.
-            if self.use_fft_bright:
+            if self.use_fft_bright and (not self.is_coadd):
                 self.add_poisson_noise(fft_image)
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
