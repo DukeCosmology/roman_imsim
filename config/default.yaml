@@ -79,6 +79,7 @@ image:
     # is even more pronounced in this case.
     use_fft_bright: True
 
+    # Override this in your config to enable noise, e.g. with type: RomanNoise
     noise:
         # These are all by default turned on, but you can turn any of them off if desired:
         type: RomanNoise
