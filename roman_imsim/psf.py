@@ -125,7 +125,9 @@ class RomanPSF(object):
         else:
             return pupil_bin
 
-    def _psf_call(self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations):
+    def _psf_call(
+        self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations
+    ):
 
         if pupil_bin == 8:
             psf = models.psf_utils.getPSF(
@@ -306,9 +308,9 @@ class CornerPSFInterpolator(PSFInterpolator):
         wlu = (models.parameters.n_pix - pos.x) * (pos.y - 1)
         wul = (pos.x - 1) * (models.parameters.n_pix - pos.y)
         wuu = (pos.x - 1) * (pos.y - 1)
-        return (wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]) / (
-            (models.parameters.n_pix - 1) * (models.parameters.n_pix - 1)
-        )
+        return (
+            wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]
+        ) / ((models.parameters.n_pix - 1) * (models.parameters.n_pix - 1))
 
 
 def RegisterPSFInterpolatorType(interp_type, builder, input_type=None):
@@ -346,7 +348,16 @@ class PSFInterpolatorLoader(InputLoader):
         }
         ignore = ["extra_aberrations"]
 
-        kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore)
+        # If SCA is in base, then don't require it in the config file.
+        # (Presumably because using Roman image type, which sets it there for convenience.)
+        if "SCA" in base:
+            opt["SCA"] = int
+        else:
+            req["SCA"] = int
+
+        kwargs, safe = galsim.config.GetAllParams(
+            config, base, req=req, opt=opt, ignore=ignore
+        )
 
         kwargs["extra_aberrations"] = galsim.config.ParseAberrations(
             "extra_aberrations", config, base, "RomanPSF"

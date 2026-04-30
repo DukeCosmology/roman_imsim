@@ -22,10 +22,18 @@ RTOL = 0
 
 def test_compare_truth():
     reference_truth = (
-        Path(TEST_REPO) / REFERENCE_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
+        Path(TEST_REPO)
+        / REFERENCE_DIR
+        / "RomanWAS_new"
+        / "truth"
+        / "Roman_WAS_index_J129_12909_4.txt"
     )
     output_truth = (
-        Path(TEST_REPO) / OUTPUT_DIR / "RomanWAS_new" / "truth" / "Roman_WAS_index_J129_12909_4.txt"
+        Path(TEST_REPO)
+        / OUTPUT_DIR
+        / "RomanWAS_new"
+        / "truth"
+        / "Roman_WAS_index_J129_12909_4.txt"
     )
 
     output_table = ascii.read(output_truth)
