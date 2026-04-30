@@ -82,15 +82,7 @@ image:
     # Override this in your config to enable noise, e.g. with type: RomanNoise
     noise:
         # These are all by default turned on, but you can turn any of them off if desired:
-        type: RomanNoise
-        stray_light: False
-        thermal_background: False
-        reciprocity_failure: False
-        dark_current: False
-        nonlinearity: False
-        ipc: False
-        read_noise: False
-        sky_subtract: False
+        type: NoNoise
 
 stamp:
     type: Roman_stamp
