@@ -125,9 +125,7 @@ class RomanPSF(object):
         else:
             return pupil_bin
 
-    def _psf_call(
-        self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations
-    ):
+    def _psf_call(self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations):
 
         if pupil_bin == 8:
             psf = models.psf_utils.getPSF(
@@ -246,10 +244,10 @@ class CornerPSFInterpolator(PSFInterpolator):
 
         self._image_xsize = image_xsize
         if self._image_xsize is None:
-            self._image_xsize = roman.n_pix
+            self._image_xsize = models.parameters.n_pix
         self._image_ysize = image_ysize
         if self._image_ysize is None:
-            self._image_ysize = roman.n_pix
+            self._image_ysize = models.parameters.n_pix
 
         corners = [
             galsim.PositionD(1, 1),
@@ -308,9 +306,9 @@ class CornerPSFInterpolator(PSFInterpolator):
         wlu = (models.parameters.n_pix - pos.x) * (pos.y - 1)
         wul = (pos.x - 1) * (models.parameters.n_pix - pos.y)
         wuu = (pos.x - 1) * (pos.y - 1)
-        return (
-            wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]
-        ) / ((models.parameters.n_pix - 1) * (models.parameters.n_pix - 1))
+        return (wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]) / (
+            (models.parameters.n_pix - 1) * (models.parameters.n_pix - 1)
+        )
 
 
 def RegisterPSFInterpolatorType(interp_type, builder, input_type=None):
@@ -493,7 +491,7 @@ def BuildRomanPSF(config, base, ignore, gsparams, logger):
             base["image_pos"],
         )
     else:
-        psf = roman.getPSF(
+        psf = models.psf_utils.getPSF(
             SCA=base["SCA"],
             bandpass=base["bandpass"].name,
             SCA_pos=base["image_pos"],

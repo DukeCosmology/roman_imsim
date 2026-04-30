@@ -26,17 +26,11 @@ class ObSeqDataLoader(object):
     def read_obseq(self):
         """Read visit info from the obseq file."""
         if self.file_name is None:
-            raise ValueError(
-                "No obseq filename provided, trying to build from config information."
-            )
+            raise ValueError("No obseq filename provided, trying to build from config information.")
         if self.visit is None:
-            raise ValueError(
-                "The visit must be set when reading visit info from an obseq file."
-            )
+            raise ValueError("The visit must be set when reading visit info from an obseq file.")
 
-        self.logger.warning(
-            "Reading info from obseq file %s for visit %s", self.file_name, self.visit
-        )
+        self.logger.warning("Reading info from obseq file %s for visit %s", self.file_name, self.visit)
 
         ob = fio.FITS(self.file_name)[-1][self.visit]
 
@@ -68,9 +62,5 @@ def ObSeqData(config, base, value_type):
     return val, safe
 
 
-RegisterInputType(
-    "obseq_data", InputLoader(ObSeqDataLoader, file_scope=True, takes_logger=True)
-)
-RegisterValueType(
-    "ObSeqData", ObSeqData, [float, int, str, Angle], input_type="obseq_data"
-)
+RegisterInputType("obseq_data", InputLoader(ObSeqDataLoader, file_scope=True, takes_logger=True))
+RegisterValueType("ObSeqData", ObSeqData, [float, int, str, Angle], input_type="obseq_data")
