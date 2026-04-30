@@ -7,7 +7,6 @@ from galsim.config import RegisterWCSType, WCSBuilder
 
 
 class RomanWCS(WCSBuilder):
-
     def buildWCS(self, config, base, logger):
 
         req = {

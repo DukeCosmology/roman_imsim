@@ -46,21 +46,21 @@ class RomanNoiseBuilder(NoiseBuilder):
             "gain": dict,
         }
 
-        params, safe = galsim.config.GetAllParams(config, base, req={}, opt=opt, ignore=[])
+        params, safe = galsim.config.GetAllParams(
+            config, base, req={}, opt=opt, ignore=[]
+        )
 
         mjd = params.get("mjd", None)
         stray_light = params.get("stray_light", False)
         thermal_background = params.get("thermal_background", False)
         reciprocity_failure = params.get("reciprocity_failure", False)
         # dark_current = params.get("dark_current", False)
-        dark_current = params.get("dark_current", {'turn_on': False, 'use_crds': False})
-        nonlinearity = params.get("nonlinearity", {'turn_on': False, 'use_crds': False})
-        ipc = params.get("ipc", {'turn_on': False, 'use_crds': False})
-        read_noise = params.get("read_noise", {'turn_on': False, 'use_crds': False})
+        dark_current = params.get("dark_current", {"turn_on": False, "use_crds": False})
+        nonlinearity = params.get("nonlinearity", {"turn_on": False, "use_crds": False})
+        ipc = params.get("ipc", {"turn_on": False, "use_crds": False})
+        read_noise = params.get("read_noise", {"turn_on": False, "use_crds": False})
         sky_subtract = params.get("sky_subtract", True)
-        gain = params.get('gain', {'turn_on': False, 'use_crds': False})
-        
-        use_crds = params.get("use_crds", False)
+        gain = params.get("gain", {"turn_on": False, "use_crds": False})
 
         base["current_noise_image"] = base["current_image"]
         wcs = base["wcs"]
@@ -68,16 +68,22 @@ class RomanNoiseBuilder(NoiseBuilder):
         filter_name = bp.name
         exptime, _ = galsim.config.ParseValue(base["image"], "exptime", base, float)
         date = Time(mjd, format="mjd").to_datetime() if mjd is not None else None
-        logger.info("image %d: Start RomanSCA detector effects", base.get("image_num", 0))
+        logger.info(
+            "image %d: Start RomanSCA detector effects", base.get("image_num", 0)
+        )
 
         # Things that will eventually be subtracted (if sky_subtract) will have their expectation
         # value added to sky_image.  So technically, this includes things that aren't just sky.
         # E.g. includes dark_current and thermal backgrounds.
         sky_image = image.copy()
-        sky_level = models.backgrounds.getSkyLevel(bp, world_pos=wcs.toWorld(image.true_center), date=date)
+        sky_level = models.backgrounds.getSkyLevel(
+            bp, world_pos=wcs.toWorld(image.true_center), date=date
+        )
         logger.debug("Adding sky_level = %s", sky_level)
         if stray_light:
-            logger.debug("Stray light fraction = %s", models.parameters.stray_light_fraction)
+            logger.debug(
+                "Stray light fraction = %s", models.parameters.stray_light_fraction
+            )
             sky_level *= 1.0 + models.parameters.stray_light_fraction
         wcs.makeSkyImage(sky_image, sky_level)
 
@@ -119,33 +125,33 @@ class RomanNoiseBuilder(NoiseBuilder):
             logger.debug("Applying reciprocity failure")
             models.nonlinearity.addReciprocityFailure(img=image)
 
-        if dark_current['turn_on']:
+        if dark_current["turn_on"]:
             logger.debug("Adding dark current: %s")
             # print(f'for drak_current, use_crds = {dark_current["use_crds"]}')
-            dc = models.DarkCurrent(usecrds=dark_current['use_crds'])
+            dc = models.DarkCurrent(usecrds=dark_current["use_crds"])
             dc.apply(img=image, exptime=exptime)
 
-        if nonlinearity['turn_on']:
+        if nonlinearity["turn_on"]:
             logger.debug("Applying classical nonlinearity")
-            non_linear = models.Nonlinearity(usecrds=nonlinearity['use_crds'])
+            non_linear = models.Nonlinearity(usecrds=nonlinearity["use_crds"])
             non_linear.apply(img=image, electrons=False)
 
         # Mosby and Rauscher say there are two read noises. One happens before IPC, the other
         # one after.
         # TODO: Add read_noise1
-        if ipc['turn_on']:
+        if ipc["turn_on"]:
             logger.debug("Applying IPC")
-            IPC = models.IPC(usecrds=ipc['use_crds'])
+            IPC = models.IPC(usecrds=ipc["use_crds"])
             IPC.apply(img=image)
 
-        if read_noise['turn_on']:
+        if read_noise["turn_on"]:
             logger.debug("Adding read noise")
-            rn = models.ReadNoise(usecrds=read_noise['use_crds'])
+            rn = models.ReadNoise(usecrds=read_noise["use_crds"])
             rn.apply(img=image)
 
-        if gain['turn_on']:
+        if gain["turn_on"]:
             logger.debug("Applying gain")
-            gain_model = models.Gain(usecrds=gain['use_crds'])
+            gain_model = models.Gain(usecrds=gain["use_crds"])
             gain_model.apply(img=image)
 
         # Make integer ADU now.
@@ -153,7 +159,7 @@ class RomanNoiseBuilder(NoiseBuilder):
 
         if sky_subtract:
             logger.debug("Subtracting sky image")
-            if gain['turn_on']:
+            if gain["turn_on"]:
                 logger.debug("Applying gain")
                 gain_model.apply(img=sky_image)
             sky_image.quantize()
