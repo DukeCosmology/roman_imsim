@@ -31,8 +31,8 @@ jobs:
       - name: Build the package
         run: python -m build
 
-      - name: Install package (editable)
-        run: pip install -e .
+      - name: Install package
+        run: pip install .
 
       - name: Check the distribution
         run: twine check dist/*
