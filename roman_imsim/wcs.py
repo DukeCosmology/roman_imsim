@@ -1,5 +1,5 @@
 import galsim
-import galsim.roman as roman
+import romanisim.models as models
 from astropy.time import Time
 from galsim.angle import Angle
 from galsim.celestial import CelestialCoord
@@ -7,7 +7,6 @@ from galsim.config import RegisterWCSType, WCSBuilder
 
 
 class RomanWCS(WCSBuilder):
-
     def buildWCS(self, config, base, logger):
 
         req = {
@@ -21,10 +20,10 @@ class RomanWCS(WCSBuilder):
 
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt)
         if "max_sun_angle" in kwargs:
-            roman.max_sun_angle = kwargs["max_sun_angle"]
-            roman.roman_wcs.max_sun_angle = kwargs["max_sun_angle"]
+            models.parameters.max_sun_angle = kwargs["max_sun_angle"]
+            models.wcs_utils.max_sun_angle = kwargs["max_sun_angle"]
         pointing = CelestialCoord(ra=kwargs["ra"], dec=kwargs["dec"])
-        wcs = roman.getWCS(
+        wcs = models.wcs_utils.getWCS(
             world_pos=pointing,
             PA=kwargs["pa"],
             date=Time(kwargs["mjd"], format="mjd").datetime,

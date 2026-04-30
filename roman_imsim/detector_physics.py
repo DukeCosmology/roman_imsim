@@ -172,7 +172,15 @@ class modify_image(object):
             self.pointing.sca,
             sky_mean=sky_mean,
         )
-        write_fits(old_filename, new_filename, img, sky_noise, dq, self.pointing.sca, sky_mean=sky_mean)
+        write_fits(
+            old_filename,
+            new_filename,
+            img,
+            sky_noise,
+            dq,
+            self.pointing.sca,
+            sky_mean=sky_mean,
+        )
 
     def get_path_name(self, use_galsim=False):
 
@@ -309,7 +317,13 @@ class modify_image(object):
             self.sky_mean,
             sky_noise,
         )
-        return im, self.sky[self.sky.bounds & im.bounds] - self.sky_mean, dq, self.sky_mean, sky_noise
+        return (
+            im,
+            self.sky[self.sky.bounds & im.bounds] - self.sky_mean,
+            dq,
+            self.sky_mean,
+            sky_noise,
+        )
 
     def add_effects_galsim(self, im, wt, pointing):
         """
@@ -439,7 +453,13 @@ class modify_image(object):
             self.sky_mean,
             sky_noise,
         )
-        return im, self.sky[self.sky.bounds & im.bounds] - self.sky_mean, dq, self.sky_mean, sky_noise
+        return (
+            im,
+            self.sky[self.sky.bounds & im.bounds] - self.sky_mean,
+            dq,
+            self.sky_mean,
+            sky_noise,
+        )
 
     def set_diff(self, im=None):
         if self.params["save_diff"]:
@@ -509,7 +529,16 @@ class modify_image(object):
                 a = (a + np.fliplr(a) + np.flipud(a) + np.flip(a)) / 4.0
 
                 r = 0.5 * (3.25 / 4.25) ** (1.5) / 1.5  # source-boundary projection
-                B = (a[2, 2], a[3, 2], a[2, 3], a[3, 3], a[4, 2], a[2, 4], a[3, 4], a[4, 4])
+                B = (
+                    a[2, 2],
+                    a[3, 2],
+                    a[2, 3],
+                    a[3, 3],
+                    a[4, 2],
+                    a[2, 4],
+                    a[3, 4],
+                    a[4, 4],
+                )
 
                 A = np.array(
                     [
@@ -584,7 +613,6 @@ class modify_image(object):
 
         for gj in range(num_grids):
             for gi in range(num_grids):
-
                 a_components_pad = np.zeros(
                     (
                         4,
@@ -595,7 +623,13 @@ class modify_image(object):
                     )
                 )  # (4,5,5,sub_grid,sub_grid)
                 a_components_pad = np.zeros(
-                    (4, 2 * nbfe + 1, 2 * nbfe + 1, bin_size * n_sub + 2 * nbfe, bin_size * m_sub + 2 * nbfe)
+                    (
+                        4,
+                        2 * nbfe + 1,
+                        2 * nbfe + 1,
+                        bin_size * n_sub + 2 * nbfe,
+                        bin_size * m_sub + 2 * nbfe,
+                    )
                 )  # (4,5,5,sub_grid,sub_grid)
 
                 for comp in range(4):
@@ -858,7 +892,6 @@ class modify_image(object):
             self.im_dark = im - self.im_dark
 
         else:
-
             dark_current_ = self.dark_current_.clip(0)
 
             # opt for numpy random geneator instead for speed
@@ -989,7 +1022,6 @@ class modify_image(object):
                 im.array[:, :] += galsim.roman.roman_detectors.fermi_linear(x.array, dt) * roman.exptime
 
         else:
-
             # setup parameters for persistence
             Q01 = self.df["PERSIST"].read_header()["Q01"]
             Q02 = self.df["PERSIST"].read_header()["Q02"]
@@ -1023,7 +1055,7 @@ class modify_image(object):
 
                 # Do linear interpolation
                 a = np.zeros(x.shape)
-                a += ((x < Q01)) * x / Q01
+                a += (x < Q01) * x / Q01
                 a += ((x >= Q01) & (x < Q02)) * (Q02 - x) / (Q02 - Q01)
                 im.array[:, :] += a * self.df["PERSIST"][0, :, :][0] * fac_dt
 
@@ -1049,7 +1081,7 @@ class modify_image(object):
 
                 a = np.zeros(x.shape)
                 a += ((x >= Q05) & (x < Q06)) * (x - Q05) / (Q06 - Q05)
-                a += ((x >= Q06)) * (x / Q06) ** alpha  # avoid fractional power of negative values
+                a += (x >= Q06) * (x / Q06) ** alpha  # avoid fractional power of negative values
                 im.array[:, :] += a * self.df["PERSIST"][5, :, :][0] * fac_dt
 
         return im
@@ -1132,7 +1164,6 @@ class modify_image(object):
 
                     for dy in range(-1, 2):
                         for dx in range(-1, 2):
-
                             array_out[
                                 gj * grid_size : (gj + 1) * grid_size,
                                 gi * grid_size : (gi + 1) * grid_size,
@@ -1258,7 +1289,6 @@ class modify_image(object):
             im = self.e_to_ADU(im)
             im.quantize()
         else:
-
             bound_pad = galsim.BoundsI(xmin=1, ymin=1, xmax=4096, ymax=4096)
             im_pad = galsim.Image(bound_pad)
             im_pad.array[4:-4, 4:-4] = im.array[:, :]

@@ -23,6 +23,7 @@ dependencies = [
   "skycatalogs",
   "packaging",
   "setuptools",
+  "romanisim",
 ]
 
 [project.urls]
