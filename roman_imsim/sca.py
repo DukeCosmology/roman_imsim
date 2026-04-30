@@ -52,9 +52,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             "draw_method": str,
             "use_fft_bright": bool,
         }
-        params = galsim.config.GetAllParams(
-            config, base, req=req, opt=opt, ignore=ignore + extra_ignore
-        )[0]
+        params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
         self.sca = params["SCA"]
         base["SCA"] = self.sca
@@ -63,15 +61,11 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.exptime = params["exptime"]
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
-        self.draw_method = params.get(
-            "draw_method", base.get("stamp", {}).get("draw_method", "phot")
-        )
+        self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "phot"))
 
         # If user hasn't overridden the bandpass to use, get the standard one.
         if "bandpass" not in config:
-            base["bandpass"] = galsim.config.BuildBandpass(
-                base["image"], "bandpass", base, logger=logger
-            )
+            base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
 
         return models.parameters.n_pix, models.parameters.n_pix
 
@@ -104,13 +98,9 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
             full_image.header["VERSION"] = "unknown"
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
-        full_image.header["DATE-OBS"] = Time(
-            self.mjd, format="mjd"
-        ).datetime.isoformat()
+        full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
         full_image.header["FILTER"] = self.filter
-        full_image.header["ZPTMAG"] = 2.5 * np.log10(
-            self.exptime * models.parameters.collecting_area
-        )
+        full_image.header["ZPTMAG"] = 2.5 * np.log10(self.exptime * models.parameters.collecting_area)
 
         base["current_image"] = full_image
 
@@ -161,9 +151,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                     # avoid an error.  But this isn't covered in the imsim test suite.
                     continue
 
-                logger.debug(
-                    "image %d: full bounds = %s", image_num, str(full_image.bounds)
-                )
+                logger.debug("image %d: full bounds = %s", image_num, str(full_image.bounds))
                 logger.debug(
                     "image %d: stamp %d bounds = %s",
                     image_num,

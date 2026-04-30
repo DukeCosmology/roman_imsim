@@ -75,30 +75,22 @@ class get_pointing(object):
         self.exptime = obseq_data.ob["exptime"]
         self.bpass = roman.getBandpasses()[self.filter]
         self.WCS = roman.getWCS(
-            world_pos=galsim.CelestialCoord(
-                ra=obseq_data.ob["ra"], dec=obseq_data.ob["dec"]
-            ),
+            world_pos=galsim.CelestialCoord(ra=obseq_data.ob["ra"], dec=obseq_data.ob["dec"]),
             PA=obseq_data.ob["pa"],
             date=self.date,
             SCAs=self.sca,
             PA_is_FPA=True,
         )[self.sca]
-        self.radec = self.WCS.toWorld(
-            galsim.PositionI(int(roman.n_pix / 2), int(roman.n_pix / 2))
-        )
+        self.radec = self.WCS.toWorld(galsim.PositionI(int(roman.n_pix / 2), int(roman.n_pix / 2)))
 
         self.WCS = roman.getWCS(
-            world_pos=galsim.CelestialCoord(
-                ra=obseq_data.ob["ra"], dec=obseq_data.ob["dec"]
-            ),
+            world_pos=galsim.CelestialCoord(ra=obseq_data.ob["ra"], dec=obseq_data.ob["dec"]),
             PA=obseq_data.ob["pa"],
             date=self.date,
             SCAs=self.sca,
             PA_is_FPA=True,
         )[self.sca]
-        self.radec = self.WCS.toWorld(
-            galsim.PositionI(int(roman.n_pix / 2), int(roman.n_pix / 2))
-        )
+        self.radec = self.WCS.toWorld(galsim.PositionI(int(roman.n_pix / 2), int(roman.n_pix / 2)))
 
 
 class modify_image(object):
@@ -106,9 +98,7 @@ class modify_image(object):
     Class to simulate non-idealities and noise of roman detector images.
     """
 
-    def __init__(
-        self, params, visit, sca, dither_from_file, sca_filepath=None, use_galsim=False
-    ):
+    def __init__(self, params, visit, sca, dither_from_file, sca_filepath=None, use_galsim=False):
         """
         Set up noise properties of image
 
@@ -129,13 +119,9 @@ class modify_image(object):
 
         # Load sca file if applicable
         if sca_filepath is not None:
-            self.df = fio.FITS(
-                sca_filepath + "/" + sca_number_to_file[self.pointing.sca]
-            )
+            self.df = fio.FITS(sca_filepath + "/" + sca_number_to_file[self.pointing.sca])
             print("------- Using SCA files --------")
-            self.df = fio.FITS(
-                sca_filepath + "/" + sca_number_to_file[self.pointing.sca]
-            )
+            self.df = fio.FITS(sca_filepath + "/" + sca_number_to_file[self.pointing.sca])
             print("------- Using SCA files --------")
         else:
             self.df = None
@@ -146,15 +132,9 @@ class modify_image(object):
 
         old_filename = os.path.join(self.params["output"]["dir"], imfilename)
         if not os.path.exists(
-            self.params["output"]["dir"].replace(
-                "truth", self.get_path_name(use_galsim=use_galsim)
-            )
+            self.params["output"]["dir"].replace("truth", self.get_path_name(use_galsim=use_galsim))
         ):
-            os.mkdir(
-                self.params["output"]["dir"].replace(
-                    "truth", self.get_path_name(use_galsim=use_galsim)
-                )
-            )
+            os.mkdir(self.params["output"]["dir"].replace("truth", self.get_path_name(use_galsim=use_galsim)))
         new_filename = os.path.join(self.params["output"]["dir"], imfilename).replace(
             "truth", self.get_path_name(use_galsim=use_galsim)
         )
@@ -162,15 +142,9 @@ class modify_image(object):
         b = galsim.BoundsI(xmin=1, ymin=1, xmax=roman.n_pix, ymax=roman.n_pix)
         old_filename = os.path.join(self.params["output"]["dir"], imfilename)
         if not os.path.exists(
-            self.params["output"]["dir"].replace(
-                "truth", self.get_path_name(use_galsim=use_galsim)
-            )
+            self.params["output"]["dir"].replace("truth", self.get_path_name(use_galsim=use_galsim))
         ):
-            os.mkdir(
-                self.params["output"]["dir"].replace(
-                    "truth", self.get_path_name(use_galsim=use_galsim)
-                )
-            )
+            os.mkdir(self.params["output"]["dir"].replace("truth", self.get_path_name(use_galsim=use_galsim)))
         new_filename = os.path.join(self.params["output"]["dir"], imfilename).replace(
             "truth", self.get_path_name(use_galsim=use_galsim)
         )
@@ -186,12 +160,8 @@ class modify_image(object):
                 force_cvz = True
         self.setup_sky(im, self.pointing, rng, visit * sca, force_cvz=force_cvz)
 
-        img, err, dq, sky_mean, sky_noise = self.add_effects(
-            im, None, self.pointing, use_galsim=use_galsim
-        )
-        img, err, dq, sky_mean, sky_noise = self.add_effects(
-            im, None, self.pointing, use_galsim=use_galsim
-        )
+        img, err, dq, sky_mean, sky_noise = self.add_effects(im, None, self.pointing, use_galsim=use_galsim)
+        img, err, dq, sky_mean, sky_noise = self.add_effects(im, None, self.pointing, use_galsim=use_galsim)
 
         write_fits(
             old_filename,
@@ -548,9 +518,7 @@ class modify_image(object):
         #      solve boundary shfit kernel aX components
         # =======================================================================
         a_area = self.df["BFE"][:, :, :, :]  # 5x5x32x32
-        a_components = np.zeros(
-            (4, 2 * nbfe + 1, 2 * nbfe + 1, n_max, m_max)
-        )  # 4x5x5x32x32
+        a_components = np.zeros((4, 2 * nbfe + 1, 2 * nbfe + 1, n_max, m_max))  # 4x5x5x32x32
 
         # solve aR aT aL aB for each a
         for n in range(n_max):  # m_max and n_max = 32 (binned in 128x128)
@@ -623,15 +591,11 @@ class modify_image(object):
         # The img is clipped by the saturation level here to cap the brighter fatter effect
         # and avoid unphysical behavior
 
-        array_pad = self.saturate(im.copy()).array[
-            4:-4, 4:-4
-        ]  # img of interest 4088x4088
+        array_pad = self.saturate(im.copy()).array[4:-4, 4:-4]  # img of interest 4088x4088
         array_pad = np.pad(
             array_pad, [(4 + nbfe, 4 + nbfe), (4 + nbfe, 4 + nbfe)], mode="symmetric"
         )  # 4100x4100 array
-        array_pad = self.saturate(im.copy()).array[
-            4:-4, 4:-4
-        ]  # img of interest 4088x4088
+        array_pad = self.saturate(im.copy()).array[4:-4, 4:-4]  # img of interest 4088x4088
         array_pad = np.pad(
             array_pad, [(4 + nbfe, 4 + nbfe), (4 + nbfe, 4 + nbfe)], mode="symmetric"
         )  # 4100x4100 array
@@ -681,7 +645,9 @@ class modify_image(object):
                                         gi * m_sub : (gi + 1) * m_sub,
                                     ]
                                 )
-                            ).dot(t.T)  # sub_grid*sub_grid
+                            ).dot(
+                                t.T
+                            )  # sub_grid*sub_grid
                             a_components_pad[comp, j, i, :, :] = np.pad(
                                 tmp, [(nbfe, nbfe), (nbfe, nbfe)], mode="symmetric"
                             )
@@ -703,10 +669,14 @@ class modify_image(object):
                                     nbfe - dx : nbfe - dx + bin_size * m_sub,
                                 ]
                                 * array_pad[
-                                    -dy + nbfe + gj * bin_size * n_sub : -dy
+                                    -dy
+                                    + nbfe
+                                    + gj * bin_size * n_sub : -dy
                                     + nbfe
                                     + (gj + 1) * bin_size * n_sub,
-                                    -dx + nbfe + gi * bin_size * m_sub : -dx
+                                    -dx
+                                    + nbfe
+                                    + gi * bin_size * m_sub : -dx
                                     + nbfe
                                     + (gi + 1) * bin_size * m_sub,
                                 ]
@@ -721,18 +691,12 @@ class modify_image(object):
                         gi * bin_size * m_sub : (gi + 1) * bin_size * m_sub,
                     ] *= 0.5 * (
                         array_pad[
-                            nbfe + gj * bin_size * n_sub : nbfe
-                            + (gj + 1) * bin_size * n_sub,
-                            nbfe + gi * bin_size * m_sub : nbfe
-                            + (gi + 1) * bin_size * m_sub,
+                            nbfe + gj * bin_size * n_sub : nbfe + (gj + 1) * bin_size * n_sub,
+                            nbfe + gi * bin_size * m_sub : nbfe + (gi + 1) * bin_size * m_sub,
                         ]
                         + array_pad[
-                            dj + nbfe + gj * bin_size * n_sub : dj
-                            + nbfe
-                            + (gj + 1) * bin_size * n_sub,
-                            di + nbfe + gi * bin_size * m_sub : di
-                            + nbfe
-                            + (gi + 1) * bin_size * m_sub,
+                            dj + nbfe + gj * bin_size * n_sub : dj + nbfe + (gj + 1) * bin_size * n_sub,
+                            di + nbfe + gi * bin_size * m_sub : di + nbfe + (gi + 1) * bin_size * m_sub,
                         ]
                     )
                     dQ_components[
@@ -741,18 +705,12 @@ class modify_image(object):
                         gi * bin_size * m_sub : (gi + 1) * bin_size * m_sub,
                     ] *= 0.5 * (
                         array_pad[
-                            nbfe + gj * bin_size * n_sub : nbfe
-                            + (gj + 1) * bin_size * n_sub,
-                            nbfe + gi * bin_size * m_sub : nbfe
-                            + (gi + 1) * bin_size * m_sub,
+                            nbfe + gj * bin_size * n_sub : nbfe + (gj + 1) * bin_size * n_sub,
+                            nbfe + gi * bin_size * m_sub : nbfe + (gi + 1) * bin_size * m_sub,
                         ]
                         + array_pad[
-                            dj + nbfe + gj * bin_size * n_sub : dj
-                            + nbfe
-                            + (gj + 1) * bin_size * n_sub,
-                            di + nbfe + gi * bin_size * m_sub : di
-                            + nbfe
-                            + (gi + 1) * bin_size * m_sub,
+                            dj + nbfe + gj * bin_size * n_sub : dj + nbfe + (gj + 1) * bin_size * n_sub,
+                            di + nbfe + gi * bin_size * m_sub : di + nbfe + (gi + 1) * bin_size * m_sub,
                         ]
                     )
 
@@ -773,20 +731,14 @@ class modify_image(object):
         radec               : World coordinate position of image
         """
 
-        sky_level = roman.getSkyLevel(
-            pointing.bpass, world_pos=radec, date=pointing.date
-        )
+        sky_level = roman.getSkyLevel(pointing.bpass, world_pos=radec, date=pointing.date)
         sky_level *= (1.0 + roman.stray_light_fraction) * roman.pixel_scale**2
-        sky_level = roman.getSkyLevel(
-            pointing.bpass, world_pos=radec, date=pointing.date
-        )
+        sky_level = roman.getSkyLevel(pointing.bpass, world_pos=radec, date=pointing.date)
         sky_level *= (1.0 + roman.stray_light_fraction) * roman.pixel_scale**2
 
         return sky_level
 
-    def translate_cvz(
-        self, orig_radec, field_ra=9.5, field_dec=-44, cvz_ra=61.24, cvz_dec=-48.42
-    ):
+    def translate_cvz(self, orig_radec, field_ra=9.5, field_dec=-44, cvz_ra=61.24, cvz_dec=-48.42):
 
         ra = orig_radec.ra / galsim.degrees - field_ra
         dec = orig_radec.dec / galsim.degrees - field_dec
@@ -819,12 +771,10 @@ class modify_image(object):
             self.dark_current_ = roman.dark_current * roman.exptime
         else:
             self.dark_current_ = (
-                roman.dark_current * roman.exptime
-                + self.df["DARK"][:, :].flatten() * roman.exptime
+                roman.dark_current * roman.exptime + self.df["DARK"][:, :].flatten() * roman.exptime
             )
             self.dark_current_ = (
-                roman.dark_current * roman.exptime
-                + self.df["DARK"][:, :].flatten() * roman.exptime
+                roman.dark_current * roman.exptime + self.df["DARK"][:, :].flatten() * roman.exptime
             )
         if self.df is None:
             self.gain = roman.gain
@@ -837,13 +787,9 @@ class modify_image(object):
             radec = self.translate_cvz(pointing.radec)
         else:
             radec = pointing.radec
-        sky_level = roman.getSkyLevel(
-            pointing.bpass, world_pos=radec, date=pointing.date
-        )
+        sky_level = roman.getSkyLevel(pointing.bpass, world_pos=radec, date=pointing.date)
         sky_level *= 1.0 + roman.stray_light_fraction
-        sky_level = roman.getSkyLevel(
-            pointing.bpass, world_pos=radec, date=pointing.date
-        )
+        sky_level = roman.getSkyLevel(pointing.bpass, world_pos=radec, date=pointing.date)
         sky_level *= 1.0 + roman.stray_light_fraction
         # Make a image of the sky that takes into account the spatially variable pixel scale. Note
         # that makeSkyImage() takes a bit of time. If you do not care about the variable pixel
@@ -863,10 +809,7 @@ class modify_image(object):
         # ~ (35, 3050, 0.008, 1.2E6)  (e-/p). Hot pixels could be removed in further analysis using the
         # dq array.
         self.sky_mean = np.mean(
-            np.round(
-                (np.round(self.sky.array) + round(np.median(self.dark_current_)))
-                / np.mean(self.gain)
-            )
+            np.round((np.round(self.sky.array) + round(np.median(self.dark_current_))) / np.mean(self.gain))
         )
 
         self.sky.addNoise(self.noise)
@@ -902,9 +845,7 @@ class modify_image(object):
 
         return im
 
-    def recip_failure(
-        self, im, exptime=roman.exptime, alpha=roman.reciprocity_alpha, base_flux=1.0
-    ):
+    def recip_failure(self, im, exptime=roman.exptime, alpha=roman.reciprocity_alpha, base_flux=1.0):
         """
         Introduce reciprocity failure to image.
 
@@ -946,9 +887,7 @@ class modify_image(object):
         if self.df is None:
             self.im_dark = im.copy()
             dark_current_ = self.dark_current_
-            dark_noise = galsim.DeviateNoise(
-                galsim.PoissonDeviate(self.rng, dark_current_)
-            )
+            dark_noise = galsim.DeviateNoise(galsim.PoissonDeviate(self.rng, dark_current_))
             im.addNoise(dark_noise)
             self.im_dark = im - self.im_dark
 
@@ -956,17 +895,9 @@ class modify_image(object):
             dark_current_ = self.dark_current_.clip(0)
 
             # opt for numpy random geneator instead for speed
-            self.im_dark = (
-                self.rng_np.poisson(dark_current_)
-                .reshape(im.array.shape)
-                .astype(im.dtype)
-            )
+            self.im_dark = self.rng_np.poisson(dark_current_).reshape(im.array.shape).astype(im.dtype)
             im.array[:, :] += self.im_dark
-            self.im_dark = (
-                self.rng_np.poisson(dark_current_)
-                .reshape(im.array.shape)
-                .astype(im.dtype)
-            )
+            self.im_dark = self.rng_np.poisson(dark_current_).reshape(im.array.shape).astype(im.dtype)
             im.array[:, :] += self.im_dark
 
         # NOTE: Sky level and dark current might appear like a constant background that can be
@@ -1057,26 +988,14 @@ class modify_image(object):
         dither_sca_array = np.loadtxt(self.params["dither_from_file"]).astype(int)
 
         # select adjacent exposures for the same sca (within 10*roman.exptime)
-        dither_list_selected = dither_sca_array[
-            dither_sca_array[:, 1] == pointing.sca, 0
-        ]
-        dither_list_selected = dither_list_selected[
-            np.abs(dither_list_selected - pointing.visit) < 10
-        ]
-        p_list = np.array(
-            [get_pointing(self.params, i, pointing.sca) for i in dither_list_selected]
-        )
+        dither_list_selected = dither_sca_array[dither_sca_array[:, 1] == pointing.sca, 0]
+        dither_list_selected = dither_list_selected[np.abs(dither_list_selected - pointing.visit) < 10]
+        p_list = np.array([get_pointing(self.params, i, pointing.sca) for i in dither_list_selected])
         dt_list = np.array([(pointing.date - p.date).total_seconds() for p in p_list])
         p_pers = p_list[np.where((dt_list > 0) & (dt_list < roman.exptime * 10))]
-        dither_list_selected = dither_sca_array[
-            dither_sca_array[:, 1] == pointing.sca, 0
-        ]
-        dither_list_selected = dither_list_selected[
-            np.abs(dither_list_selected - pointing.visit) < 10
-        ]
-        p_list = np.array(
-            [get_pointing(self.params, i, pointing.sca) for i in dither_list_selected]
-        )
+        dither_list_selected = dither_sca_array[dither_sca_array[:, 1] == pointing.sca, 0]
+        dither_list_selected = dither_list_selected[np.abs(dither_list_selected - pointing.visit) < 10]
+        p_list = np.array([get_pointing(self.params, i, pointing.sca) for i in dither_list_selected])
         dt_list = np.array([(pointing.date - p.date).total_seconds() for p in p_list])
         p_pers = p_list[np.where((dt_list > 0) & (dt_list < roman.exptime * 10))]
 
@@ -1087,9 +1006,7 @@ class modify_image(object):
                     pointing.date - p.date
                 ).total_seconds() - roman.exptime / 2  # avg time since end of exposures
                 self.params["output"]["file_name"]["items"] = [p.filter, p.visit, p.sca]
-                imfilename = ParseValue(
-                    self.params["output"], "file_name", self.params, str
-                )[0]
+                imfilename = ParseValue(self.params["output"], "file_name", self.params, str)[0]
                 fn = os.path.join(self.params["output"]["dir"], imfilename)
 
                 # apply all the effects that occured before persistence on the previouse exposures
@@ -1101,14 +1018,8 @@ class modify_image(object):
 
                 x = x.clip(0)  # remove negative stimulus
 
-                im.array[:, :] += (
-                    galsim.roman.roman_detectors.fermi_linear(x.array, dt)
-                    * roman.exptime
-                )
-                im.array[:, :] += (
-                    galsim.roman.roman_detectors.fermi_linear(x.array, dt)
-                    * roman.exptime
-                )
+                im.array[:, :] += galsim.roman.roman_detectors.fermi_linear(x.array, dt) * roman.exptime
+                im.array[:, :] += galsim.roman.roman_detectors.fermi_linear(x.array, dt) * roman.exptime
 
         else:
             # setup parameters for persistence
@@ -1126,12 +1037,10 @@ class modify_image(object):
                     pointing.date - p.date
                 ).total_seconds() - roman.exptime / 2  # avg time since end of exposures
                 fac_dt = (
-                    (roman.exptime / 2.0) / dt
-                )  # linear time dependence (approximate until we get t1 and Delat t of the data)
+                    roman.exptime / 2.0
+                ) / dt  # linear time dependence (approximate until we get t1 and Delat t of the data)
                 self.params["output"]["file_name"]["items"] = [p.filter, p.visit, p.sca]
-                imfilename = ParseValue(
-                    self.params["output"], "file_name", self.params, str
-                )[0]
+                imfilename = ParseValue(self.params["output"], "file_name", self.params, str)[0]
                 fn = os.path.join(self.params["output"]["dir"], imfilename)
 
                 # apply all the effects that occured before persistence on the previouse exposures
@@ -1172,9 +1081,7 @@ class modify_image(object):
 
                 a = np.zeros(x.shape)
                 a += ((x >= Q05) & (x < Q06)) * (x - Q05) / (Q06 - Q05)
-                a += (x >= Q06) * (
-                    x / Q06
-                ) ** alpha  # avoid fractional power of negative values
+                a += (x >= Q06) * (x / Q06) ** alpha  # avoid fractional power of negative values
                 im.array[:, :] += a * self.df["PERSIST"][5, :, :][0] * fac_dt
 
         return im
@@ -1232,13 +1139,9 @@ class modify_image(object):
             grid_size = 4096 // num_grids
 
             array_pad = im.array[4:-4, 4:-4]  # it's an array instead of img
-            array_pad = np.pad(
-                array_pad, [(5, 5), (5, 5)], mode="symmetric"
-            )  # 4098x4098 array
+            array_pad = np.pad(array_pad, [(5, 5), (5, 5)], mode="symmetric")  # 4098x4098 array
             array_pad = im.array[4:-4, 4:-4]  # it's an array instead of img
-            array_pad = np.pad(
-                array_pad, [(5, 5), (5, 5)], mode="symmetric"
-            )  # 4098x4098 array
+            array_pad = np.pad(array_pad, [(5, 5), (5, 5)], mode="symmetric")  # 4098x4098 array
 
             K = self.df["IPC"][:, :, :, :]  # 3,3,512, 512
 
@@ -1255,13 +1158,9 @@ class modify_image(object):
                     for j in range(3):
                         for i in range(3):
                             tmp = (t.dot(K[j, i, :, :])).dot(t.T)  # grid_sizexgrid_size
-                            K_pad[j, i, :, :] = np.pad(
-                                tmp, [(1, 1), (1, 1)], mode="symmetric"
-                            )
+                            K_pad[j, i, :, :] = np.pad(tmp, [(1, 1), (1, 1)], mode="symmetric")
                             tmp = (t.dot(K[j, i, :, :])).dot(t.T)  # grid_sizexgrid_size
-                            K_pad[j, i, :, :] = np.pad(
-                                tmp, [(1, 1), (1, 1)], mode="symmetric"
-                            )
+                            K_pad[j, i, :, :] = np.pad(tmp, [(1, 1), (1, 1)], mode="symmetric")
 
                     for dy in range(-1, 2):
                         for dx in range(-1, 2):
@@ -1276,12 +1175,8 @@ class modify_image(object):
                                     1 - dx : 1 - dx + grid_size,
                                 ]
                                 * array_pad[
-                                    1 - dy + gj * grid_size : 1
-                                    - dy
-                                    + (gj + 1) * grid_size,
-                                    1 - dx + gi * grid_size : 1
-                                    - dx
-                                    + (gi + 1) * grid_size,
+                                    1 - dy + gj * grid_size : 1 - dy + (gj + 1) * grid_size,
+                                    1 - dx + gi * grid_size : 1 - dx + (gi + 1) * grid_size,
                                 ]
                             )
 
@@ -1310,16 +1205,12 @@ class modify_image(object):
             # use numpy random generator to draw 2-d noise map
             read_noise = self.df["READ"][2, :, :].flatten()  # flattened 4096x4096 array
             self.im_read = (
-                self.rng_np.normal(loc=0.0, scale=read_noise)
-                .reshape(im.array.shape)
-                .astype(im.dtype)
+                self.rng_np.normal(loc=0.0, scale=read_noise).reshape(im.array.shape).astype(im.dtype)
             )
             im.array[:, :] += self.im_read
             read_noise = self.df["READ"][2, :, :].flatten()  # flattened 4096x4096 array
             self.im_read = (
-                self.rng_np.normal(loc=0.0, scale=read_noise)
-                .reshape(im.array.shape)
-                .astype(im.dtype)
+                self.rng_np.normal(loc=0.0, scale=read_noise).reshape(im.array.shape).astype(im.dtype)
             )
             im.array[:, :] += self.im_read
 
