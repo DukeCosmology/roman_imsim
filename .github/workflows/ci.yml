@@ -29,8 +29,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install build twine pytest pytest-cov
 
-      - name: Install package (editable)
-        run: pip install -e .
+      - name: Install package
+        run: pip install .
 
       - name: Run GalSim
         run: |

@@ -47,7 +47,7 @@ image:
     # move on to another sequence for the next 3 and so on.
     random_seed:
         # Used for noise and nobjects.
-        - 12345
+        - { type: ObSeqData, field: visit }
 
         # Used for objects.  Repeats sequence for each filter
         # Note: Don't use $ shorthand here, since that will implicitly be evaluated once and then
@@ -79,20 +79,10 @@ image:
     # is even more pronounced in this case.
     use_fft_bright: True
 
+    # Override this in your config to enable noise, e.g. with type: RomanNoise
     noise:
         # These are all by default turned on, but you can turn any of them off if desired:
-        type: RomanNoise
-        ignore_noise: True
-        stray_light: False
-        thermal_background: False
-        reciprocity_failure: False
-        dark_current: False
-        nonlinearity: False
-        ipc: False
-        read_noise: False
-        sky_subtract: False
-
-    nobjects: 500
+        type: NoNoise
 
 stamp:
     type: Roman_stamp
@@ -119,23 +109,24 @@ gal:
 
 input:
     obseq_data:
-        file_name: /hpc/group/cosmology/repos/roman_imsim/Roman_WAS_obseq_test.fits
-        visit: 80840
+        dir: /hpc/group/cosmology/OpenUniverse2024/
+        # file_name: Roman_WAS_obseq_11_1_23.fits
+        visit: 1
         SCA: '@image.SCA'
     roman_psf:
         SCA: '@image.SCA'
-        n_waves: 10
+        n_waves: 5
     sky_catalog:
-        file_name: /hpc/group/cosmology/repos/roman_imsim/skyCatalog.yaml 
+        file_name: config/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }          
-        # obj_types: ['star']
+        obj_types: ['diffsky_galaxy', 'snana', 'star', 'gaia_star']
 
 output:
 
     nfiles: 1
-    dir: output/images/truth
+    dir: output
     file_name:
         type: FormattedStr
         format: "Roman_LSST_true_%s_%s_%s.fits.gz"
@@ -145,7 +136,7 @@ output:
             - '@image.SCA'
 
     truth:
-        dir: output/truth
+        dir: output
         file_name:
             type: FormattedStr
             format: "Roman_LSST_index_%s_%s_%s.txt"
@@ -161,3 +152,5 @@ output:
             y: "$image_pos.y"
             realized_flux: "@realized_flux"
             flux: "@flux"
+            mag: "@mag"
+            obj_type: "@object_type"

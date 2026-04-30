@@ -220,3 +220,6 @@ __marimo__/
 
 # MacOS
 .DS_Store
+
+# Default outputs
+output/

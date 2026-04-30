@@ -1,0 +1,14 @@
+# Import just roman_imsim so we can access the registered template
+modules:
+    - roman_imsim
+
+# Start with the default.yaml file, which we will modify below
+template: roman_imsim_default
+
+input.obseq_data.file_name: RomanWAS/Roman_WAS_obseq_11_1_23.fits
+input.obseq_data.visit: 12909
+
+output.dir: 'output/was'  # Adjust this to a shared location with sufficient storage
+output.file_name.format: "Roman_WAS_truth_%s_%i_%i.fits.gz"
+output.truth.dir: 'output/was'  # Adjust this to a shared location with sufficient storage
+output.truth.file_name.format: "Roman_WAS_index_%s_%i_%i.txt"
