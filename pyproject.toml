@@ -23,7 +23,7 @@ dependencies = [
   "skycatalogs",
   "packaging",
   "setuptools",
-  "romanisim @ git+https://github.com/spacetelescope/romanisim.git@main",
+  "romanisim",
 ]
 
 [project.urls]
