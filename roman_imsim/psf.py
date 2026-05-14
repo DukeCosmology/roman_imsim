@@ -1,6 +1,6 @@
 import galsim
 import galsim.config
-import galsim.roman as roman
+import romanisim.models as models
 from galsim.config import InputLoader, RegisterInputType
 
 
@@ -27,11 +27,11 @@ class RomanPSF(object):
 
         corners = [
             galsim.PositionD(1, 1),
-            galsim.PositionD(1, roman.n_pix),
-            galsim.PositionD(roman.n_pix, 1),
-            galsim.PositionD(roman.n_pix, roman.n_pix),
+            galsim.PositionD(1, models.parameters.n_pix),
+            galsim.PositionD(models.parameters.n_pix, 1),
+            galsim.PositionD(models.parameters.n_pix, models.parameters.n_pix),
         ]
-        cc = galsim.PositionD(roman.n_pix / 2, roman.n_pix / 2)
+        cc = galsim.PositionD(models.parameters.n_pix / 2, models.parameters.n_pix / 2)
         tags = ["ll", "lu", "ul", "uu"]
         self.PSF = {}
         pupil_bin = 8
@@ -54,7 +54,7 @@ class RomanPSF(object):
     def _psf_call(self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations):
 
         if pupil_bin == 8:
-            psf = roman.getPSF(
+            psf = models.psf_utils.getPSF(
                 SCA,
                 bpass.name,
                 SCA_pos=SCA_pos,
@@ -68,7 +68,7 @@ class RomanPSF(object):
                 extra_aberrations=extra_aberrations,
             )
         else:
-            psf = roman.getPSF(
+            psf = models.psf_utils.getPSF(
                 SCA,
                 bpass.name,
                 SCA_pos=SCA_pos,
@@ -111,12 +111,12 @@ class RomanPSF(object):
         if pupil_bin != 8:
             return psf
 
-        wll = (roman.n_pix - pos.x) * (roman.n_pix - pos.y)
-        wlu = (roman.n_pix - pos.x) * (pos.y - 1)
-        wul = (pos.x - 1) * (roman.n_pix - pos.y)
+        wll = (models.parameters.n_pix - pos.x) * (models.parameters.n_pix - pos.y)
+        wlu = (models.parameters.n_pix - pos.x) * (pos.y - 1)
+        wul = (pos.x - 1) * (models.parameters.n_pix - pos.y)
         wuu = (pos.x - 1) * (pos.y - 1)
         return (wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]) / (
-            (roman.n_pix - 1) * (roman.n_pix - 1)
+            (models.parameters.n_pix - 1) * (models.parameters.n_pix - 1)
         )
 
 
