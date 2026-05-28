@@ -10,53 +10,58 @@ import numpy as np
 # since we use nanometers internally, we need to convert the C constants to nm²
 
 _B1, _B2, _B3 = 6.73693289e-01, 4.31173589e-01, 9.05320925e-01
-_NM_TO_UM = 1000.0                        
-_C1 = 4.50899296e-03 * _NM_TO_UM**2        
-_C2 = 1.33349842e-02 * _NM_TO_UM**2        
-_C3 = 9.92216527e+01 * _NM_TO_UM**2  
+_NM_TO_UM = 1000.0
+_C1 = 4.50899296e-03 * _NM_TO_UM**2
+_C2 = 1.33349842e-02 * _NM_TO_UM**2
+_C3 = 9.92216527e+01 * _NM_TO_UM**2
 
 
 # ===========================================================================
 # Roman WFI instrument constants
 # ===========================================================================
 
-PIXEL_SIZE_MM    = 0.010   # detector pixel size, 10 µm
+PIXEL_SIZE_MM = 0.010      # detector pixel size, 10 µm
 PIX_SCALE_ARCSEC = 0.11    # nominal plate scale, arcsec/pixel
-FRATIO           = 8       # telescope focal ratio
-TEL_DIAM         = 2.36    # telescope primary diameter, m
-PUPIL_DEMAG      = 26.7    # pupil demagnification factor
+FRATIO = 8                 # telescope focal ratio
+TEL_DIAM = 2.36            # telescope primary diameter, m
+PUPIL_DEMAG = 26.7         # pupil demagnification factor
 
 # Derived angular/spatial scale constants
 ARCSEC_TO_MM = PIXEL_SIZE_MM / PIX_SCALE_ARCSEC  # mm/arcsec
-MM_TO_DEG    = 1.0 / (ARCSEC_TO_MM * 3600.0)     # deg/mm
+MM_TO_DEG = 1.0 / (ARCSEC_TO_MM * 3600.0)        # deg/mm
 
 # Filter geometry (all in metres)
-FILTER_THICKNESS = 10e-3          # filter thickness
-R1               = 1.5000         # radius of curvature of the entrance surface (S1)
-R2               = 1.49931453814  # radius of curvature of the exit surface (S2)
-PUPIL_TO_S1      = 10e-3          # distance from the exit pupil to the S1 vertex
-S2_TO_FPA        = 0.673          # distance from the S2 vertex to the focal plane
+# Note on radius of curvature: The code used below assumes the +z direction is
+# towards the detector. This is opposite to the convention used in PSFSim and
+# in the Roman optical design, where the detector direction is in the -z direction.
+# To account for this change, we need to flip the sign of the radius of
+# curvature (-1.5m and -1.493m) in the Roman optical design specifications.
+FILTER_THICKNESS = 10e-3      # filter thickness
+R1 = 1.5000                   # radius of curvature of the entrance surface (S1)
+R2 = 1.49931453814            # radius of curvature of the exit surface (S2)
+PUPIL_TO_S1 = 10e-3           # distance from the exit pupil to the S1 vertex
+S2_TO_FPA = 0.673             # distance from the S2 vertex to the focal plane
 
-# Centre of each SCA in the FPA coordinate system, millimetres. 
-# Center at position (2044, 2044) in science frame 
+# Centre of each SCA in the FPA coordinate system, millimetres.
+# Center at position (2044, 2044) in science frame
 SCA_centers = {
-     1: (-22.257157,  11.646353),
-     2: (-22.231008, -36.256453),
-     3: (-22.185227, -79.102885),
-     4: (-66.654970,  20.515410),
-     5: (-66.677900, -27.488866),
-     6: (-66.625565, -70.230582),
-     7: (-110.948084,  41.997556),
-     8: (-111.036456,  -6.248923),
-     9: (-111.376836, -48.637204),
-    10: ( 22.183178,  11.649654),
-    11: ( 22.183137, -36.259689),
-    12: ( 22.156910, -79.106113),
-    13: ( 66.587496,  20.518763),
-    14: ( 66.633266, -27.495304),
-    15: ( 66.607034, -70.240271),
-    16: (110.893622,  42.007488),
-    17: (111.001570,  -6.252038),
+    1: (-22.257157, 11.646353),
+    2: (-22.231008, -36.256453),
+    3: (-22.185227, -79.102885),
+    4: (-66.654970, 20.515410),
+    5: (-66.677900, -27.488866),
+    6: (-66.625565, -70.230582),
+    7: (-110.948084, 41.997556),
+    8: (-111.036456, -6.248923),
+    9: (-111.376836, -48.637204),
+    10: (22.183178, 11.649654),
+    11: (22.183137, -36.259689),
+    12: (22.156910, -79.106113),
+    13: (66.587496, 20.518763),
+    14: (66.633266, -27.495304),
+    15: (66.607034, -70.240271),
+    16: (110.893622, 42.007488),
+    17: (111.001570, -6.252038),
     18: (111.368061, -48.650099),
 }
 
@@ -269,7 +274,7 @@ def _propagate_to_plane(q0, z0, p, z_plane):
     L : ndarray
         Path length from the origin to the plane, metres.
     """
-    p  = np.asarray(p, dtype=float)
+    p = np.asarray(p, dtype=float)
     pq = p[..., 0]
     pz = p[..., 1]
 
@@ -337,7 +342,7 @@ def _trace_chief_ray(theta0, n_glass, t, R1, R2, s_pupil_to_S1, L_S2_to_fpa):
 
 
 def _chromatic_lateral_shift(theta0, nfunc, lam, lam_ref,
-                              t, R1, R2, s_pupil_to_S1, L_S2_to_fpa):
+                             t, R1, R2, s_pupil_to_S1, L_S2_to_fpa):
     """
     Lateral chromatic image shift between two wavelengths in one orthogonal plane.
 
@@ -367,13 +372,13 @@ def _chromatic_lateral_shift(theta0, nfunc, lam, lam_ref,
     """
     lam = np.asarray(lam, dtype=float)
 
-    n     = nfunc(lam)
+    n = nfunc(lam)
     n_ref = nfunc(lam_ref)
 
     kwargs = dict(t=t, R1=R1, R2=R2,
                   s_pupil_to_S1=s_pupil_to_S1, L_S2_to_fpa=L_S2_to_fpa)
 
-    q     = _trace_chief_ray(theta0=theta0, n_glass=n,     **kwargs)
+    q = _trace_chief_ray(theta0=theta0, n_glass=n, **kwargs)
     q_ref = _trace_chief_ray(theta0=theta0, n_glass=n_ref, **kwargs)
 
     return q - q_ref
@@ -386,7 +391,7 @@ def _chromatic_lateral_shift(theta0, nfunc, lam, lam_ref,
 def _sca_to_fpa_coords(sca, x_sci, y_sci):
     """
     Convert SCA science-frame pixel coordinates to FPA-frame Cartesian coordinates.
-    Center positions are in position (2044, 2044) in science frame. 
+    Center positions are in position (2044, 2044) in science frame.
 
     Parameters
     ----------
@@ -467,14 +472,14 @@ class RomanFilterRefraction(galsim.PhotonOp):
                  SCA=1,
                  SCA_pos=None):
 
-        focal_length_m     = FRATIO * TEL_DIAM
-        pixscale_rad       = pixel_scale_arcsec * np.radians(1 / 3600)  # arcsec -> rad
-        self.pixel_pitch_um = focal_length_m * pixscale_rad * 1e6 # pixel pitch in micrometer
+        focal_length_m = FRATIO * TEL_DIAM
+        pixscale_rad = pixel_scale_arcsec * np.radians(1 / 3600)  # arcsec -> rad
+        self.pixel_pitch_um = focal_length_m * pixscale_rad * 1e6  # pixel pitch in micrometer
 
-        self.sca         = SCA
-        self.sca_pos     = SCA_pos if SCA_pos is not None else galsim.PositionD(2044, 2044)
-        self.eff_wave_nm = bandpass.effective_wavelength 
-        self.n           = n if n is not None else n_Suprasil3001
+        self.sca = SCA
+        self.sca_pos = SCA_pos if SCA_pos is not None else galsim.PositionD(2044, 2044)
+        self.eff_wave_nm = bandpass.effective_wavelength
+        self.n = n if n is not None else n_Suprasil3001
 
     def applyTo(self, photon_array, local_wcs=None, rng=None):
         """
@@ -495,7 +500,7 @@ class RomanFilterRefraction(galsim.PhotonOp):
         dx_um, dy_um = self._get_lateral_shifts(photon_array.wavelength)
 
         # convert shifts from um to pixels
-        dx_pix = dx_um / self.pixel_pitch_um 
+        dx_pix = dx_um / self.pixel_pitch_um
         dy_pix = dy_um / self.pixel_pitch_um
 
         photon_array.x += dx_pix
@@ -525,7 +530,7 @@ class RomanFilterRefraction(galsim.PhotonOp):
             lam2 = self.eff_wave_nm
 
         lam1 = np.asarray(lam1, dtype=float)
-        
+
         # get angles of incidence based on FPA position
         aoi, aoi_x, aoi_y = getAOI(self.sca, self.sca_pos.x, self.sca_pos.y)
 
@@ -545,6 +550,7 @@ class RomanFilterRefraction(galsim.PhotonOp):
         if lam1.ndim == 0:
             return float(dx), float(dy)
         return dx, dy
+
 
 class RomanFilterRefractionBuilder(galsim.config.PhotonOpBuilder):
     """Build a RomanFilterRefraction PhotonOp from a config dict.
@@ -571,9 +577,9 @@ class RomanFilterRefractionBuilder(galsim.config.PhotonOpBuilder):
         pos = base['image_pos']  # galsim.PositionD in pixel coordinates
 
         return RomanFilterRefraction(
-            bandpass = bandpass,
-            SCA = sca,
-            SCA_pos = galsim.PositionD(pos.x, pos.y),
+            bandpass=bandpass,
+            SCA=sca,
+            SCA_pos=galsim.PositionD(pos.x, pos.y),
         )
 
 
