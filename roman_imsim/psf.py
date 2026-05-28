@@ -353,9 +353,7 @@ class PSFInterpolatorLoader(InputLoader):
         else:
             req["SCA"] = int
 
-        kwargs, safe = galsim.config.GetAllParams(
-            config, base, req=req, opt=opt, ignore=ignore
-        )
+        kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore)
 
         kwargs["extra_aberrations"] = galsim.config.ParseAberrations(
             "extra_aberrations", config, base, "RomanPSF"
