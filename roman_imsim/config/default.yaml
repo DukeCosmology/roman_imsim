@@ -120,7 +120,6 @@ stamp:
         - 
             type: ChargeDiff
 
-
 psf:
     type: RomanPSF
     interpolator:
