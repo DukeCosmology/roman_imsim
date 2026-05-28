@@ -21,6 +21,7 @@ from .detector_physics import *
 from .noise import *
 from .obseq import *
 from .photonOps import *
+from .filter_refraction import *
 from .psf import *
 from .sca import *
 from .skycat import *
