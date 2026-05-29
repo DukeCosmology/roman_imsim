@@ -77,8 +77,6 @@ valid_psf_interpolator_types = {}
 class PSFInterpolator:
     """Base class for PSF interpolator"""
 
-    self.PSF_coadd = self._psf_call_coadd(bpass, n_waves, logger)
-
     def _parse_pupil_bin(self, pupil_bin):
         if pupil_bin == "achromatic":
             return 8
@@ -240,8 +238,10 @@ class CornerPSFInterpolator(PSFInterpolator):
             self.PSF[pupil_bin] = self._psf_call(
                 SCA, bandpass, cc, WCS, pupil_bin, n_waves, logger, self._extra_aberrations
             )
+        
+        self.PSF_coadd = self._psf_call_coadd(bandpass, n_waves, logger)
 
-    def getPSF(self, pupil_bin, pos):
+    def getPSF(self, pupil_bin, pos, is_coadd=False):
         """
         Return a PSF to be convolved with sources.
 
