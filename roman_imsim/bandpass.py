@@ -28,13 +28,11 @@ class RomanBandpassBuilder(BandpassBuilder):
 
         name = kwargs["name"]
         if "SCA" in kwargs:
-            bandpass = models.bandpass.getBandpasses(
-                red_limit=2000, sca=kwargs["SCA"], bandnames=[name]
-            )[name]
+            bandpass = models.bandpass.getBandpasses(red_limit=2000, sca=kwargs["SCA"], bandnames=[name])[
+                name
+            ]
         else:
-            bandpass = models.bandpass.getBandpasses(
-                red_limit=2000, bandnames=[name]
-            )[name]
+            bandpass = models.bandpass.getBandpasses(red_limit=2000, bandnames=[name])[name]
 
         return bandpass, safe
 

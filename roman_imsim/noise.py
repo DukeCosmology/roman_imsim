@@ -1,7 +1,8 @@
 import galsim
 import romanisim.models as models
-from galsim.config import NoiseBuilder, RegisterNoiseType
+
 from astropy.time import Time
+from galsim.config import NoiseBuilder, RegisterNoiseType
 
 
 class RomanNoiseBuilder(NoiseBuilder):
@@ -66,7 +67,10 @@ class RomanNoiseBuilder(NoiseBuilder):
         filter_name = bp.name
         exptime, _ = galsim.config.ParseValue(base["image"], "exptime", base, float)
         date = Time(mjd, format="mjd").to_datetime() if mjd is not None else None
-        logger.info("image %d: Start RomanSCA detector effects", base.get("image_num", 0))
+        logger.info(
+            "image %d: Start RomanSCA detector effects",
+            base.get("image_num", 0),
+        )
 
         # Things that will eventually be subtracted (if sky_subtract) will have their expectation
         # value added to sky_image.  So technically, this includes things that aren't just sky.
@@ -75,7 +79,10 @@ class RomanNoiseBuilder(NoiseBuilder):
         sky_level = models.backgrounds.getSkyLevel(bp, world_pos=wcs.toWorld(image.true_center), date=date)
         logger.debug("Adding sky_level = %s", sky_level)
         if stray_light:
-            logger.debug("Stray light fraction = %s", models.parameters.stray_light_fraction)
+            logger.debug(
+                "Stray light fraction = %s",
+                models.parameters.stray_light_fraction,
+            )
             sky_level *= 1.0 + models.parameters.stray_light_fraction
         wcs.makeSkyImage(sky_image, sky_level)
 
@@ -119,7 +126,6 @@ class RomanNoiseBuilder(NoiseBuilder):
 
         if dark_current["turn_on"]:
             logger.debug("Adding dark current: %s")
-            # print(f'for drak_current, use_crds = {dark_current["use_crds"]}')
             dc = models.DarkCurrent(usecrds=dark_current["use_crds"])
             dc.apply(img=image, exptime=exptime)
 
@@ -133,8 +139,8 @@ class RomanNoiseBuilder(NoiseBuilder):
         # TODO: Add read_noise1
         if ipc["turn_on"]:
             logger.debug("Applying IPC")
-            IPC = models.IPC(usecrds=ipc["use_crds"])
-            IPC.apply(img=image)
+            ipc_model = models.IPC(usecrds=ipc["use_crds"])
+            ipc_model.apply(img=image)
 
         if read_noise["turn_on"]:
             logger.debug("Adding read noise")
