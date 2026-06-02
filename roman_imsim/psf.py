@@ -77,10 +77,6 @@ valid_psf_interpolator_types = {}
 class PSFInterpolator:
     """Base class for PSF interpolator"""
 
-
-class RomanPSF(object):
-    """Class building needed Roman PSFs."""
-
     def __init__(
         self,
         SCA=None,
@@ -346,12 +342,12 @@ class PSFInterpolatorLoader(InputLoader):
         }
         ignore = ["extra_aberrations"]
 
-        # If SCA is in base, then don't require it in the config file.
-        # (Presumably because using Roman image type, which sets it there for convenience.)
-        if "SCA" in base:
-            opt["SCA"] = int
-        else:
-            req["SCA"] = int
+        # # If SCA is in base, then don't require it in the config file.
+        # # (Presumably because using Roman image type, which sets it there for convenience.)
+        # if "SCA" in base:
+        #     opt["SCA"] = int
+        # else:
+        #     req["SCA"] = int
 
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore)
 
