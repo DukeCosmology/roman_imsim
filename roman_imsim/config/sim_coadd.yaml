@@ -129,6 +129,11 @@ stamp:
 #     # Using 10 wavelengths usually gives decent accuracy.
 #     n_waves: 10
 
+psf:
+    type: RomanPSF
+    interpolator:
+        type: RomanPSFInterpolator
+
 # Define the galaxy type and positions to use
 gal:
     type: SkyCatObj
@@ -138,11 +143,14 @@ input:
         file_name: /hpc/group/cosmology/OpenUniverse2024/RomanWAS/Roman_WAS_obseq_11_1_23.fits
         visit: 4907
         SCA: '@image.SCA'
-    roman_psf:
-        SCA: '@image.SCA'
+    # roman_psf:
+    #     SCA: '@image.SCA'
+    #     n_waves: 5
+    RomanPSFInterpolator:
+        kind: corners
         n_waves: 5
     sky_catalog:
-        file_name: /hpc/home/yf194/Work/projects/roman_imsim/config/skyCatalog.yaml
+        file_name: /hpc/home/yf194/Work/test_coadd_sims/roman_imsim/config/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
         exptime: { type: ObSeqData, field: exptime }
