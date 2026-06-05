@@ -24,7 +24,7 @@ _C3 = 9.92216527e01 * _NM_TO_UM**2
 # https://roman-docs.stsci.edu/roman-instruments/the-wide-field-instrument/observing-with-the-wfi/wfi-quick-reference
 # The pupil demagnification is calculated from the ratio of the entrance and exit pupil.
 # Technically, the pupil is not perfectly circular, and the demagnification can vary accross
-# the field of view. For simplicity, we use an average demagnification from all 18 SCAS, 
+# the field of view. For simplicity, we use an average demagnification from all 18 SCAS,
 # one factor for each axis (x and y). This can be easily calculated using STPSF, where you
 # can access the demagnification from the WFI pupil header, example:
 # wfi = stpsf.roman.WFI()
@@ -501,8 +501,14 @@ class RomanFilterRefraction(galsim.PhotonOp):
     # Constructor and public interface
     # -----------------------------------------------------------------------
 
-    def __init__(self, bandpass, n=n_Suprasil3001, pixel_scale_arcsec=PIX_SCALE_ARCSEC, SCA=1,
-                 SCA_pos=galsim.PositionD(2044, 2044)):
+    def __init__(
+        self,
+        bandpass,
+        n=n_Suprasil3001,
+        pixel_scale_arcsec=PIX_SCALE_ARCSEC,
+        SCA=1,
+        SCA_pos=galsim.PositionD(2044, 2044),
+    ):
 
         focal_length_m = FRATIO * TEL_DIAM
         pixscale_rad = pixel_scale_arcsec * np.radians(1 / 3600)  # arcsec -> rad
