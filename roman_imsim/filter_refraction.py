@@ -24,7 +24,7 @@ _C3 = 9.92216527e01 * _NM_TO_UM**2
 # https://roman-docs.stsci.edu/roman-instruments/the-wide-field-instrument/observing-with-the-wfi/wfi-quick-reference
 # The pupil demagnification is calculated from the ratio of the entrance and exit pupil.
 # Technically, the pupil is not perfectly circular, and the demagnification can vary accross
-# the field of view. For simplicity, we use an average demagnification from all 18 SCAS,
+# the field of view. For simplicity, we use an average demagnification from all 18 SCAS, 
 # one factor for each axis (x and y). This can be easily calculated using STPSF, where you
 # can access the demagnification from the WFI pupil header, example:
 # wfi = stpsf.roman.WFI()
@@ -89,7 +89,7 @@ SCA_centers = {
 
 def sellmeier_dispersion(lam_nm, B1, B2, B3, C1, C2, C3):
     """
-    Sellmeier dispersion relation for the refractive index of a glass substrate.
+    Sellmeier dispersion relation for the refractive index of a transparent medium .
     (https://en.wikipedia.org/wiki/Sellmeier_equation)
 
     Parameters
@@ -104,7 +104,7 @@ def sellmeier_dispersion(lam_nm, B1, B2, B3, C1, C2, C3):
     Returns
     -------
     n : ndarray
-        Refractive index (dimensionless).
+        Refractive index.
     """
     lam_nm = np.asarray(lam_nm, dtype=float)
     lam2 = lam_nm**2
@@ -125,7 +125,7 @@ def n_Suprasil3001(lam_nm):
     Returns
     -------
     n : ndarray
-        Refractive index (dimensionless).
+        Refractive index.
     """
     return sellmeier_dispersion(lam_nm, _B1, _B2, _B3, _C1, _C2, _C3)
 
@@ -501,14 +501,8 @@ class RomanFilterRefraction(galsim.PhotonOp):
     # Constructor and public interface
     # -----------------------------------------------------------------------
 
-    def __init__(
-        self,
-        bandpass,
-        n=n_Suprasil3001,
-        pixel_scale_arcsec=PIX_SCALE_ARCSEC,
-        SCA=1,
-        SCA_pos=galsim.PositionD(2044, 2044),
-    ):
+    def __init__(self, bandpass, n=n_Suprasil3001, pixel_scale_arcsec=PIX_SCALE_ARCSEC, SCA=1,
+                 SCA_pos=galsim.PositionD(2044, 2044)):
 
         focal_length_m = FRATIO * TEL_DIAM
         pixscale_rad = pixel_scale_arcsec * np.radians(1 / 3600)  # arcsec -> rad
