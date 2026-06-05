@@ -20,11 +20,27 @@ _C3 = 9.92216527e01 * _NM_TO_UM**2
 # Roman WFI instrument constants
 # ===========================================================================
 
+# Most instrument constants can be found here:
+# https://roman-docs.stsci.edu/roman-instruments/the-wide-field-instrument/observing-with-the-wfi/wfi-quick-reference
+# The pupil demagnification is calculated from the ratio of the entrance and exit pupil.
+# Technically, the pupil is not perfectly circular, and the demagnification can vary accross
+# the field of view. For simplicity, we use an average demagnification from all 18 SCAS, 
+# one factor for each axis (x and y). This can be easily calculated using STPSF, where you
+# can access the demagnification from the WFI pupil header, example:
+# wfi = stpsf.roman.WFI()
+# wfi.filter = 'F158'
+# wfi.detector = 'SCA08'
+# with fits.open(wfi.pupil) as hdul:
+#    header = hdul[0].header
+#    pupil_demagnification_x = header['PUPIL SCALE FACTOR X']
+#    pupil_demagnification_y = header['PUPIL SCALE FACTOR Y']
 PIXEL_SIZE_MM = 0.010  # detector pixel size, 10 µm
 PIX_SCALE_ARCSEC = 0.11  # nominal plate scale, arcsec/pixel
 FRATIO = 8  # telescope focal ratio
 TEL_DIAM = 2.36  # telescope primary diameter, m
-PUPIL_DEMAG = 26.7  # pupil demagnification factor
+PUPIL_DEMAG_X = 26.8  # pupil demagnification factor along x-axis
+PUPIL_DEMAG_Y = 27.5  # pupil demagnification factor along y-axis
+PUPIL_DEMAG = 27.15  # pupil demagnification factor average x,y axis
 
 # Derived angular/spatial scale constants
 ARCSEC_TO_MM = PIXEL_SIZE_MM / PIX_SCALE_ARCSEC  # mm/arcsec
@@ -448,11 +464,10 @@ def getAOI(sca, x_sci, y_sci):
     aoi_x, aoi_y : float
         x- and y-plane components of the angle of incidence, degrees.
     """
-    C = MM_TO_DEG * PUPIL_DEMAG
     x_fpa, y_fpa = _sca_to_fpa_coords(sca, x_sci, y_sci)
-    aoi = np.hypot(x_fpa, y_fpa) * C
-    aoi_x = x_fpa * C
-    aoi_y = y_fpa * C
+    aoi = np.hypot(x_fpa, y_fpa) * MM_TO_DEG * PUPIL_DEMAG
+    aoi_x = x_fpa * MM_TO_DEG * PUPIL_DEMAG_X
+    aoi_y = y_fpa * MM_TO_DEG * PUPIL_DEMAG_Y
     return aoi, aoi_x, aoi_y
 
 
