@@ -71,10 +71,35 @@ SCA_centers = {
 # ===========================================================================
 
 
+def sellmeier_dispersion(lam_nm, B1, B2, B3, C1, C2, C3):
+    """
+    Sellmeier dispersion relation for the refractive index of a glass substrate.
+    (https://en.wikipedia.org/wiki/Sellmeier_equation)
+
+    Parameters
+    ----------
+    lam_nm : float or array_like
+        Wavelength(s) in nanometres.
+    B1, B2, B3 : float
+        Sellmeier B coefficients (dimensionless).
+    C1, C2, C3 : float
+        Sellmeier C coefficients (nm squared).
+
+    Returns
+    -------
+    n : ndarray
+        Refractive index (dimensionless).
+    """
+    lam_nm = np.asarray(lam_nm, dtype=float)
+    lam2 = lam_nm**2
+    return np.sqrt(1.0 + B1 * lam2 / (lam2 - C1) + B2 * lam2 / (lam2 - C2) + B3 * lam2 / (lam2 - C3))
+
+
 def n_Suprasil3001(lam_nm):
     """
-    Refractive index of the Roman filter substrate (Suprasil 3001)
-    Coefficients B and C come from Sellmeier dispersion formula.
+    Refractive index of the Roman filter substrate (Suprasil 3001).
+    Coefficients B and C come from Hareus fits of the Sellmeier
+    dispersion relation
 
     Parameters
     ----------
@@ -86,9 +111,7 @@ def n_Suprasil3001(lam_nm):
     n : ndarray
         Refractive index (dimensionless).
     """
-    lam_nm = np.asarray(lam_nm, dtype=float)
-    lam2 = lam_nm**2
-    return np.sqrt(1.0 + _B1 * lam2 / (lam2 - _C1) + _B2 * lam2 / (lam2 - _C2) + _B3 * lam2 / (lam2 - _C3))
+    return sellmeier_dispersion(lam_nm, _B1, _B2, _B3, _C1, _C2, _C3)
 
 
 # ===========================================================================
@@ -407,7 +430,7 @@ def _sca_to_fpa_coords(sca, x_sci, y_sci):
     return x_fpa, y_fpa
 
 
-def getAOI(sca, x_pos, y_pos):
+def getAOI(sca, x_sci, y_sci):
     """
     Angle of incidence (and its x/y components) for a given SCA pixel position.
 
@@ -415,7 +438,7 @@ def getAOI(sca, x_pos, y_pos):
     ----------
     sca : int
         SCA index.
-    x_pos, y_pos : float
+    x_sci, y_sci : float
         Pixel coordinates in the science frame.
 
     Returns
@@ -426,7 +449,7 @@ def getAOI(sca, x_pos, y_pos):
         x- and y-plane components of the angle of incidence, degrees.
     """
     C = MM_TO_DEG * PUPIL_DEMAG
-    x_fpa, y_fpa = _sca_to_fpa_coords(sca, x_pos, y_pos)
+    x_fpa, y_fpa = _sca_to_fpa_coords(sca, x_sci, y_sci)
     aoi = np.hypot(x_fpa, y_fpa) * C
     aoi_x = x_fpa * C
     aoi_y = y_fpa * C
@@ -463,16 +486,17 @@ class RomanFilterRefraction(galsim.PhotonOp):
     # Constructor and public interface
     # -----------------------------------------------------------------------
 
-    def __init__(self, bandpass, n=None, pixel_scale_arcsec=PIX_SCALE_ARCSEC, SCA=1, SCA_pos=None):
+    def __init__(self, bandpass, n=n_Suprasil3001, pixel_scale_arcsec=PIX_SCALE_ARCSEC, SCA=1,
+                 SCA_pos=galsim.PositionD(2044, 2044)):
 
         focal_length_m = FRATIO * TEL_DIAM
         pixscale_rad = pixel_scale_arcsec * np.radians(1 / 3600)  # arcsec -> rad
         self.pixel_pitch_um = focal_length_m * pixscale_rad * 1e6  # pixel pitch in micrometer
 
         self.sca = SCA
-        self.sca_pos = SCA_pos if SCA_pos is not None else galsim.PositionD(2044, 2044)
+        self.sca_pos = SCA_pos
         self.eff_wave_nm = bandpass.effective_wavelength
-        self.n = n if n is not None else n_Suprasil3001
+        self.n = n
 
     def applyTo(self, photon_array, local_wcs=None, rng=None):
         """
@@ -568,7 +592,7 @@ class RomanFilterRefractionBuilder(galsim.config.PhotonOpBuilder):
         return RomanFilterRefraction(
             bandpass=bandpass,
             SCA=sca,
-            SCA_pos=galsim.PositionD(pos.x, pos.y),
+            SCA_pos=pos,
         )
 
 
