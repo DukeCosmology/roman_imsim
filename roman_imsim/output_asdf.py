@@ -210,170 +210,38 @@ class RomanASDFBuilder(OutputBuilder):
         # template. Assigning default values when attribute not understood or
         # not available in the scope of the function.
         # --------------------------------------------------
-        tree.meta.calibration_software_name = tree.meta.calibration_software_name
-        tree.meta.calibration_software_version = tree.meta.calibration_software_version
-
-        tree.meta.product_type = tree.meta.product_type
-
         tree.meta.filename = Path(fname_path).name  # ===> save() appies this already. confirm!
 
         # tree.meta.file_date #=> don't assign value, it's set autometically at save() call
-
-        tree.meta.model_type = tree.meta.model_type  # 'ImageModel'
-
-        tree.meta.origin = tree.meta.origin  # defaults to 'STSCI/SOC'
-
-        tree.meta.prd_version = tree.meta.prd_version
-
-        tree.meta.sdf_software_version = tree.meta.sdf_software_version
-
-        tree.meta.telescope = tree.meta.telescope
-
-        tree.meta.coordinates.reference_frame = tree.meta.coordinates.reference_frame
-
-        # meta.ephemeris
-        tree.meta.ephemeris.ephemeris_reference_frame = tree.meta.ephemeris.ephemeris_reference_frame
-        tree.meta.ephemeris.type = tree.meta.ephemeris.type
-        tree.meta.ephemeris.time = tree.meta.ephemeris.time
-        tree.meta.ephemeris.spatial_x = tree.meta.ephemeris.spatial_x
-        tree.meta.ephemeris.spatial_y = tree.meta.ephemeris.spatial_y
-        tree.meta.ephemeris.spatial_z = tree.meta.ephemeris.spatial_z
-        tree.meta.ephemeris.velocity_x = tree.meta.ephemeris.velocity_x
-        tree.meta.ephemeris.velocity_y = tree.meta.ephemeris.velocity_y
-        tree.meta.ephemeris.velocity_z = tree.meta.ephemeris.velocity_z
         # .meta.exposure
         tree.meta.exposure.type = "WFI_IMAGE"
-        tree.meta.exposure.start_time = tree.meta.exposure.start_time
-        tree.meta.exposure.end_time = tree.meta.exposure.end_time
-        tree.meta.exposure.engineering_quality = tree.meta.exposure.engineering_quality
-        tree.meta.exposure.ma_table_id = tree.meta.exposure.ma_table_id
-        tree.meta.exposure.nresultants = tree.meta.exposure.nresultants
-        tree.meta.exposure.data_problem = tree.meta.exposure.data_problem
-        tree.meta.exposure.frame_time = tree.meta.exposure.frame_time
         tree.meta.exposure.exposure_time = exptime
-        tree.meta.exposure.effective_exposure_time = tree.meta.exposure.effective_exposure_time
-        tree.meta.exposure.ma_table_name = tree.meta.exposure.ma_table_name
-        tree.meta.exposure.ma_table_number = tree.meta.exposure.ma_table_number
-        tree.meta.exposure.truncated = tree.meta.exposure.truncated
         # meta.guide_star
-        tree.meta.guide_star.guide_window_id = tree.meta.guide_star.guide_window_id
-        tree.meta.guide_star.guide_mode = tree.meta.guide_star.guide_mode
-        tree.meta.guide_star.window_xstart = tree.meta.guide_star.window_xstart
-        tree.meta.guide_star.window_ystart = tree.meta.guide_star.window_ystart
-        tree.meta.guide_star.window_xstop = tree.meta.guide_star.window_xstop
-        tree.meta.guide_star.window_ystop = tree.meta.guide_star.window_ystop
-        tree.meta.guide_star.guide_star_id = tree.meta.guide_star.guide_star_id
-        tree.meta.guide_star.epoch = tree.meta.guide_star.epoch
         # meta.instrument
         tree.meta.instrument.name = wcs_header["INSTRUME"]
         tree.meta.instrument.detector = f"{wcs_header['INSTRUME']}{sca:02}"
         tree.meta.instrument.optical_element = "F" + fltr[1:]
         # mata.observation
-        tree.meta.observation.observation_id = tree.meta.observation.observation_id
-        tree.meta.observation.visit_id = tree.meta.observation.visit_id
-        tree.meta.observation.program = tree.meta.observation.program
-        tree.meta.observation.execution_plan = tree.meta.observation.execution_plan
         # pass being a special python-statement, dot call on attr named 'pass' ends up as Error
         # tree.meta.observation["pass'] = tree.meta.observation["pass"]
-        tree.meta.observation.segment = tree.meta.observation.segment
-        tree.meta.observation.observation = tree.meta.observation.observation
         tree.meta.observation.visit = base["input"]["obseq_data"]["visit"]
-        tree.meta.observation.visit_file_group = tree.meta.observation.visit_file_group
-        tree.meta.observation.visit_file_sequence = tree.meta.observation.visit_file_sequence
-        tree.meta.observation.visit_file_activity = tree.meta.observation.visit_file_activity
-        # The exposure number of the sequence (visit).
-        # If you do 2 dithers the first one is exp 1, and the second is exp 2.
-        tree.meta.observation.exposure = tree.meta.observation.exposure
-        tree.meta.observation.wfi_parallel = tree.meta.observation.wfi_parallel
         # meta.pointing
-        tree.meta.pointing.pa_aperture = tree.meta.pointing.pa_aperture
-        tree.meta.pointing.pointing_engineering_source = tree.meta.pointing.pointing_engineering_source
-        tree.meta.pointing.ra_v1 = tree.meta.pointing.ra_v1
-        tree.meta.pointing.dec_v1 = tree.meta.pointing.dec_v1
-        tree.meta.pointing.pa_v3 = tree.meta.pointing.pa_v3
         tree.meta.pointing.target_aperture = (
             f"{wcs_header['INSTRUME']}_CEN"  # what kind of aperture is wcs_header['RA_TARG']
         )
         tree.meta.pointing.target_ra = image.wcs.center.ra.deg  # or wcs_header['RA_TARG']?
-        tree.meta.pointing.target_dec = image.wcs.center.dec.deg  # or wcs_header['DEC_TARG']?
-        # meta.program
-        tree.meta.program.title = tree.meta.program.title
-        tree.meta.program.investigator_name = tree.meta.program.investigator_name
-        tree.meta.program.category = tree.meta.program.category
-        tree.meta.program.subcategory = tree.meta.program.subcategory
-        tree.meta.program.science_category = tree.meta.program.science_category
-        # meta.ref_file
-        tree.meta.ref_file.crds.version = tree.meta.ref_file.crds.version
-        tree.meta.ref_file.crds.context = tree.meta.ref_file.crds.context
-        tree.meta.ref_file.apcorr = tree.meta.ref_file.apcorr
-        tree.meta.ref_file.area = tree.meta.ref_file.area
-        tree.meta.ref_file.dark = tree.meta.ref_file.dark
-        # tree.meta.ref_file.darkdecaysignal = tree.meta.ref_file.darkdecaysignal
-        tree.meta.ref_file.distortion = tree.meta.ref_file.distortion
-        tree.meta.ref_file.epsf = tree.meta.ref_file.epsf
-        tree.meta.ref_file.mask = tree.meta.ref_file.mask
-        tree.meta.ref_file.flat = tree.meta.ref_file.flat
-        tree.meta.ref_file.gain = tree.meta.ref_file.gain
-        # tree.meta.ref_file.inverselinearity = tree.meta.ref_file.inverselinearity
-        tree.meta.ref_file.linearity = tree.meta.ref_file.linearity
-        # tree.meta.ref_file.integralnonlinearity = tree.meta.ref_file.integralnonlinearity
-        tree.meta.ref_file.photom = tree.meta.ref_file.photom
-        tree.meta.ref_file.readnoise = tree.meta.ref_file.readnoise
-        tree.meta.ref_file.refpix = tree.meta.ref_file.refpix
-        tree.meta.ref_file.saturation = tree.meta.ref_file.saturation
-        # .meta.rcs
-        tree.meta.rcs.active = tree.meta.rcs.active
-        tree.meta.rcs.electronics = tree.meta.rcs.electronics
-        tree.meta.rcs.bank = tree.meta.rcs.bank
-        tree.meta.rcs.led = tree.meta.rcs.led
-        tree.meta.rcs.counts = tree.meta.rcs.counts
-        # meta.velocity_aberration
-        tree.meta.velocity_aberration.ra_reference = tree.meta.velocity_aberration.ra_reference
-        tree.meta.velocity_aberration.dec_reference = tree.meta.velocity_aberration.dec_reference
-        tree.meta.velocity_aberration.scale_factor = tree.meta.velocity_aberration.scale_factor
-        # meta.visit
-        tree.meta.visit.dither.primary_name = tree.meta.visit.dither.primary_name
-        tree.meta.visit.dither.subpixel_name = tree.meta.visit.dither.subpixel_name
-        tree.meta.visit.type = tree.meta.visit.type
-        tree.meta.visit.start_time = tree.meta.visit.start_time
-        tree.meta.visit.nexposures = tree.meta.visit.nexposures
-        tree.meta.visit.internal_target = tree.meta.visit.internal_target
+        tree.meta.pointing.target_dec = image.wcs.center.dec.deg  # or wcs_header['DEC_TARG']
         # meta.wcs
         tree.meta.wcs = self.wcs_from_fits_header(wcs_header)
         # meta.wcsinfo
         tree.meta.wcsinfo.aperture_name = (
             f"{wcs_header['INSTRUME']}{sca:02}_FULL"  # what does full stand for? # FULL or CEN?
         )
-        tree.meta.wcsinfo.v2_ref = tree.meta.wcsinfo.v2_ref
-        tree.meta.wcsinfo.v3_ref = tree.meta.wcsinfo.v3_ref
-        tree.meta.wcsinfo.vparity = tree.meta.wcsinfo.vparity
-        tree.meta.wcsinfo.v3yangle = tree.meta.wcsinfo.v3yangle
-        tree.meta.wcsinfo.ra_ref = tree.meta.wcsinfo.ra_ref
-        tree.meta.wcsinfo.dec_ref = tree.meta.wcsinfo.dec_ref
-        tree.meta.wcsinfo.roll_ref = tree.meta.wcsinfo.roll_ref
-        tree.meta.wcsinfo.s_region = tree.meta.wcsinfo.s_region
         # meta.photometry
-        tree.meta.photometry.conversion_megajanskys = tree.meta.photometry.conversion_megajanskys
-        tree.meta.photometry.conversion_megajanskys_uncertainty = (
-            tree.meta.photometry.conversion_megajanskys_uncertainty
-        )
-        tree.meta.photometry.pixel_area = tree.meta.photometry.pixel_area
 
         tree.data = image.array.astype("float32")
         tree.dq = np.zeros_like(image.array, dtype="uint32")  # Placeholder for data quality array
         tree.err = np.zeros_like(image.array, dtype="float16")  # Placeholder for error array
-        tree.var_poisson = tree.var_poisson
-        tree.chisq = tree.chisq
-        tree.dumo = tree.dumo
-        tree.amp33 = tree.amp33
-        tree.border_ref_pix_left = tree.border_ref_pix_left
-        tree.border_ref_pix_right = tree.border_ref_pix_right
-        tree.border_ref_pix_top = tree.border_ref_pix_top
-        tree.border_ref_pix_bottom = tree.border_ref_pix_bottom
-        tree.dq_border_ref_pix_left = tree.dq_border_ref_pix_left
-        tree.dq_border_ref_pix_right = tree.dq_border_ref_pix_right
-        tree.dq_border_ref_pix_top = tree.dq_border_ref_pix_top
-        tree.dq_border_ref_pix_bottom = tree.dq_border_ref_pix_bottom
 
         _ = tree.to_asdf(fname_path)
         logger.info(f"saved {fname_path}")
