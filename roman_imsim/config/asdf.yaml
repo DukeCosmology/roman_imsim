@@ -1,6 +1,7 @@
 # Import just roman_imsim so we can access the registered template
 modules:
     - roman_imsim
+    - roman_imsim.output_asdf
 
 # Start with the default.yaml file, which we will modify below
 template: roman_imsim_default

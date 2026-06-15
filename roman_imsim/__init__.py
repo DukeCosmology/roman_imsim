@@ -20,7 +20,6 @@ from .detector_physics import *
 # Import core modules for public use
 from .noise import *
 from .obseq import *
-from .output_asdf import *
 from .photonOps import *
 from .psf import *
 from .sca import *
