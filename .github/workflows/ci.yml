@@ -30,6 +30,8 @@ jobs:
           pip install build twine pytest pytest-cov
 
       - name: Install package
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_LSSTDESC_DIFFSKY: "1.1.1"
         run: pip install .
 
       - name: Run GalSim
