@@ -32,6 +32,7 @@ jobs:
       - name: Install package
         env:
           SETUPTOOLS_SCM_PRETEND_VERSION_FOR_LSSTDESC_DIFFSKY: "1.1.1"
+          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_GALSAMPLER: "0.1.1"
         run: pip install .
 
       - name: Run GalSim
