@@ -32,7 +32,8 @@ image:
         mjd: { type: ObSeqData, field: mjd }
 
     bandpass:
-        type: RomanBandpass
+        type: RomanBandpassTrimmed
+        SCA: '@image.SCA'
         name: { type: ObSeqData, field: filter }
 
     # When you want to have multiple images generate the same random galaxies, then
@@ -65,7 +66,7 @@ image:
     #     last: 18
     #     repeat: 3  # repeat each SCA num 3 times before moving on, for the 3 filters.
     #
-    SCA: 10
+    SCA: 4
     mjd: { type: ObSeqData, field: mjd }
     filter: { type: ObSeqData, field: filter }
     exptime: { type: ObSeqData, field: exptime }
@@ -79,10 +80,32 @@ image:
     # is even more pronounced in this case.
     use_fft_bright: True
 
-    # Override this in your config to enable noise, e.g. with type: RomanNoise
     noise:
         # These are all by default turned on, but you can turn any of them off if desired:
-        type: NoNoise
+        type: RomanNoise
+        mjd: { type: ObSeqData, field: mjd }
+        stray_light: True
+        thermal_background: True
+        reciprocity_failure: True
+        dark_current:
+            turn_on: True
+            use_crds: True
+        nonlinearity:
+            turn_on: True
+            use_crds: True
+        ipc:
+            turn_on: True
+            use_crds: True
+        read_noise:
+            turn_on: True
+            use_crds: True
+        gain:
+            turn_on: True
+            use_crds: True
+        sky_subtract: False
+    # noise:
+    #     # These are all by default turned on, but you can turn any of them off if desired:
+    #     type: NoNoise
 
 stamp:
     type: Roman_stamp
@@ -105,24 +128,24 @@ gal:
 
 input:
     obseq_data:
-        dir: /hpc/group/cosmology/OpenUniverse2024/
-        # file_name: Roman_WAS_obseq_11_1_23.fits
-        visit: 1
+        # dir: /hpc/group/cosmology/OpenUniverse2024/
+        file_name: /home/yuedong/Work/SimHackJune2025/Roman_WAS_obseq_11_1_23.fits
+        visit: 12909
         SCA: '@image.SCA'
     RomanPSFInterpolator:
         kind: corners
         n_waves: 5
     sky_catalog:
-        file_name: config/skyCatalog.yaml
+        file_name: /home/yuedong/Work/SimHackJune2025/skyCatalog/skyCatalog.yaml
         edge_pix: 512
         mjd: { type: ObSeqData, field: mjd }
-        exptime: { type: ObSeqData, field: exptime }          
+        exptime: { type: ObSeqData, field: exptime }
         obj_types: ['diffsky_galaxy', 'snana', 'star', 'gaia_star']
 
 output:
 
     nfiles: 1
-    dir: output
+    dir: /home/yuedong/Work/SimHackJune2025/output/RomanWAS_new/images/truth
     file_name:
         type: FormattedStr
         format: "Roman_LSST_true_%s_%s_%s.fits.gz"
@@ -132,7 +155,7 @@ output:
             - '@image.SCA'
 
     truth:
-        dir: output
+        dir: output/RomanWAS_new/truth
         file_name:
             type: FormattedStr
             format: "Roman_LSST_index_%s_%s_%s.txt"

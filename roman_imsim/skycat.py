@@ -3,7 +3,7 @@ Interface to obtain objects from skyCatalogs.
 """
 
 import galsim
-import galsim.roman as roman
+import romanisim.models as models
 import numpy as np
 from galsim.config import (
     InputLoader,
@@ -68,11 +68,11 @@ class SkyCatalogInterface:
         if xsize is not None:
             self.xsize = xsize
         else:
-            self.xsize = roman.n_pix
+            self.xsize = models.parameters.n_pix
         if ysize is not None:
             self.ysize = ysize
         else:
-            self.ysize = roman.n_pix
+            self.ysize = models.parameters.n_pix
         self.obj_types = obj_types
         self.edge_pix = edge_pix
         self.logger = galsim.config.LoggerWrapper(logger)
@@ -184,7 +184,9 @@ class SkyCatalogInterface:
 
         # Compute the flux or get the cached value.
         flux = (
-            skycat_obj.get_roman_flux(self.bandpass.name, mjd=self.mjd) * self.exptime * roman.collecting_area
+            skycat_obj.get_roman_flux(self.bandpass.name, mjd=self.mjd)
+            * self.exptime
+            * models.parameters.collecting_area
         )
         if np.isnan(flux):
             return None
@@ -289,11 +291,11 @@ def SkyCatObj(config, base, ignore, gsparams, logger):
         message = (
             "skyCatalogs selection and SCA center do not agree: \n"
             "skycat.sca_center: "
-            f"{sca_center.ra/galsim.degrees:.5f}, "
-            f"{sca_center.dec/galsim.degrees:.5f}\n"
+            f"{sca_center.ra / galsim.degrees:.5f}, "
+            f"{sca_center.dec / galsim.degrees:.5f}\n"
             "world_center: "
-            f"{world_center.ra/galsim.degrees:.5f}, "
-            f"{world_center.dec/galsim.degrees:.5f} \n"
+            f"{world_center.ra / galsim.degrees:.5f}, "
+            f"{world_center.dec / galsim.degrees:.5f} \n"
             f"Separation: {sep:.2e} arcsec"
         )
         raise RuntimeError(message)

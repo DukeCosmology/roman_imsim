@@ -1,6 +1,6 @@
 import galsim
 import galsim.config
-import galsim.roman as roman
+import romanisim.models as models
 import numpy as np
 from galsim.config import RegisterStampType, StampBuilder
 
@@ -100,7 +100,7 @@ class Roman_stamp(StampBuilder):
                 # psf = galsim.config.BuildGSObject(base, 'psf', logger=logger)[0]['achromatic']
                 # obj = galsim.Convolve(gal_achrom, psf).withFlux(self.flux)
                 obj = gal_achrom.withGSParams(galsim.GSParams(stepk_minimum_hlr=20))
-                image_size = obj.getGoodImageSize(roman.pixel_scale)
+                image_size = obj.getGoodImageSize(models.parameters.pixel_scale)
 
         # print('stamp setup3',process.memory_info().rss)
         base["pupil_bin"] = self.pupil_bin
@@ -120,6 +120,29 @@ class Roman_stamp(StampBuilder):
             world_pos = None
 
         return image_size, image_size, image_pos, world_pos
+
+    def buildPSF(self, config, base, gsparams, logger):
+        """Build the PSF object.
+
+        For the Basic stamp type, this builds a PSF from the base['psf'] dict, if present,
+        else returns None.
+
+        Parameters:
+            config:     The configuration dict for the stamp field.
+            base:       The base configuration dict.
+            gsparams:   A dict of kwargs to use for a GSParams.  More may be added to this
+                        list by the galaxy object.
+            logger:     A logger object to log progress.
+
+        Returns:
+            the PSF
+        """
+        if base.get("psf", {}).get("type", "roman_psf") != "roman_psf":
+            return galsim.config.BuildGSObject(base, "psf", gsparams=gsparams, logger=logger)[0]
+
+        roman_psf = galsim.config.GetInputObj("roman_psf", config, base, "buildPSF")
+        psf = roman_psf.getPSF(self.pupil_bin, base["image_pos"])
+        return psf
 
     def getDrawMethod(self, config, base, logger):
         """Determine the draw method to use.

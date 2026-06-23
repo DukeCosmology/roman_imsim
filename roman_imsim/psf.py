@@ -57,7 +57,6 @@ input:
 """
 
 import galsim
-import galsim.roman as roman
 from galsim.config import (
     InputLoader,
     RegisterInputType,
@@ -66,6 +65,7 @@ from galsim.config import (
     RegisterObjectType,
 )
 from galsim.errors import GalSimConfigValueError
+import romanisim.models as models
 
 ##########################
 # PSF Interpolator Input #
@@ -77,6 +77,44 @@ valid_psf_interpolator_types = {}
 class PSFInterpolator:
     """Base class for PSF interpolator"""
 
+    def __init__(
+        self,
+        SCA=None,
+        WCS=None,
+        n_waves=None,
+        bpass=None,
+        extra_aberrations=None,
+        logger=None,
+    ):
+
+        logger = galsim.config.LoggerWrapper(logger)
+
+        if n_waves == -1:
+            if bpass.name == "W146":
+                n_waves = 10
+            else:
+                n_waves = 5
+
+        corners = [
+            galsim.PositionD(1, 1),
+            galsim.PositionD(1, models.parameters.n_pix),
+            galsim.PositionD(models.parameters.n_pix, 1),
+            galsim.PositionD(models.parameters.n_pix, models.parameters.n_pix),
+        ]
+        cc = galsim.PositionD(models.parameters.n_pix / 2, models.parameters.n_pix / 2)
+        tags = ["ll", "lu", "ul", "uu"]
+        self.PSF = {}
+        pupil_bin = 8
+        self.PSF[pupil_bin] = {}
+        for tag, SCA_pos in tuple(zip(tags, corners)):
+            self.PSF[pupil_bin][tag] = self._psf_call(
+                SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations
+            )
+        for pupil_bin in [4, 2, "achromatic"]:
+            self.PSF[pupil_bin] = self._psf_call(
+                SCA, bpass, cc, WCS, pupil_bin, n_waves, logger, extra_aberrations
+            )
+
     def _parse_pupil_bin(self, pupil_bin):
         if pupil_bin == "achromatic":
             return 8
@@ -86,7 +124,7 @@ class PSFInterpolator:
     def _psf_call(self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations):
 
         if pupil_bin == 8:
-            psf = roman.getPSF(
+            psf = models.psf_utils.getPSF(
                 SCA,
                 bpass.name,
                 SCA_pos=SCA_pos,
@@ -100,7 +138,7 @@ class PSFInterpolator:
                 extra_aberrations=extra_aberrations,
             )
         else:
-            psf = roman.getPSF(
+            psf = models.psf_utils.getPSF(
                 SCA,
                 bpass.name,
                 SCA_pos=SCA_pos,
@@ -202,10 +240,10 @@ class CornerPSFInterpolator(PSFInterpolator):
 
         self._image_xsize = image_xsize
         if self._image_xsize is None:
-            self._image_xsize = roman.n_pix
+            self._image_xsize = models.parameters.n_pix
         self._image_ysize = image_ysize
         if self._image_ysize is None:
-            self._image_ysize = roman.n_pix
+            self._image_ysize = models.parameters.n_pix
 
         corners = [
             galsim.PositionD(1, 1),
@@ -260,12 +298,12 @@ class CornerPSFInterpolator(PSFInterpolator):
         if pupil_bin != 8:
             return psf
 
-        wll = (self._image_xsize - pos.x) * (self._image_ysize - pos.y)
-        wlu = (self._image_xsize - pos.x) * (pos.y - 1)
-        wul = (pos.x - 1) * (self._image_ysize - pos.y)
+        wll = (models.parameters.n_pix - pos.x) * (models.parameters.n_pix - pos.y)
+        wlu = (models.parameters.n_pix - pos.x) * (pos.y - 1)
+        wul = (pos.x - 1) * (models.parameters.n_pix - pos.y)
         wuu = (pos.x - 1) * (pos.y - 1)
         return (wll * psf["ll"] + wlu * psf["lu"] + wul * psf["ul"] + wuu * psf["uu"]) / (
-            (self._image_xsize - 1) * (self._image_ysize - 1)
+            (models.parameters.n_pix - 1) * (models.parameters.n_pix - 1)
         )
 
 
@@ -303,6 +341,13 @@ class PSFInterpolatorLoader(InputLoader):
             "n_waves": int,
         }
         ignore = ["extra_aberrations"]
+
+        # # If SCA is in base, then don't require it in the config file.
+        # # (Presumably because using Roman image type, which sets it there for convenience.)
+        # if "SCA" in base:
+        #     opt["SCA"] = int
+        # else:
+        #     req["SCA"] = int
 
         kwargs, safe = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore)
 
@@ -440,7 +485,7 @@ def BuildRomanPSF(config, base, ignore, gsparams, logger):
             base["image_pos"],
         )
     else:
-        psf = roman.getPSF(
+        psf = models.psf_utils.getPSF(
             SCA=base["SCA"],
             bandpass=base["bandpass"].name,
             SCA_pos=base["image_pos"],
