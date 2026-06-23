@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.14]
+        python-version: [3.12]
 
     steps:
       - uses: actions/checkout@v6
@@ -30,12 +30,6 @@ jobs:
           pip install build twine pytest pytest-cov
 
       - name: Install package
-        env:
-          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_LSSTDESC_DIFFSKY: "1.1.1"
-          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_GALSAMPLER: "0.1.1"
-          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_DIFFMAH: "0.7.3"
-          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_DIFFSTAR: "1.0.3"
-          SETUPTOOLS_SCM_PRETEND_VERSION_FOR_DSPS: "0.4.8"
         run: pip install .
 
       - name: Run GalSim
