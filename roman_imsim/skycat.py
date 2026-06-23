@@ -291,11 +291,11 @@ def SkyCatObj(config, base, ignore, gsparams, logger):
         message = (
             "skyCatalogs selection and SCA center do not agree: \n"
             "skycat.sca_center: "
-            f"{sca_center.ra/galsim.degrees:.5f}, "
-            f"{sca_center.dec/galsim.degrees:.5f}\n"
+            f"{sca_center.ra / galsim.degrees:.5f}, "
+            f"{sca_center.dec / galsim.degrees:.5f}\n"
             "world_center: "
-            f"{world_center.ra/galsim.degrees:.5f}, "
-            f"{world_center.dec/galsim.degrees:.5f} \n"
+            f"{world_center.ra / galsim.degrees:.5f}, "
+            f"{world_center.dec / galsim.degrees:.5f} \n"
             f"Separation: {sep:.2e} arcsec"
         )
         raise RuntimeError(message)

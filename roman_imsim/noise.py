@@ -66,7 +66,10 @@ class RomanNoiseBuilder(NoiseBuilder):
         filter_name = bp.name
         exptime, _ = galsim.config.ParseValue(base["image"], "exptime", base, float)
         date = Time(mjd, format="mjd").to_datetime() if mjd is not None else None
-        logger.info("image %d: Start RomanSCA detector effects", base.get("image_num", 0))
+        logger.info(
+            "image %d: Start RomanSCA detector effects",
+            base.get("image_num", 0),
+        )
 
         # Things that will eventually be subtracted (if sky_subtract) will have their expectation
         # value added to sky_image.  So technically, this includes things that aren't just sky.
