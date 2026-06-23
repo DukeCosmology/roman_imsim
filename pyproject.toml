@@ -25,6 +25,7 @@ dependencies = [
   "setuptools",
   "roman_datamodels",
   "gwcs",
+  "romanisim",
 ]
 
 [project.urls]
