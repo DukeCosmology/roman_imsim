@@ -57,7 +57,6 @@ input:
 """
 
 import galsim
-import galsim.roman as roman
 from galsim.config import (
     InputLoader,
     RegisterInputType,
@@ -66,6 +65,7 @@ from galsim.config import (
     RegisterObjectType,
 )
 from galsim.errors import GalSimConfigValueError
+import romanisim.models as models
 
 ##########################
 # PSF Interpolator Input #
@@ -86,7 +86,7 @@ class PSFInterpolator:
     def _psf_call(self, SCA, bpass, SCA_pos, WCS, pupil_bin, n_waves, logger, extra_aberrations):
 
         if pupil_bin == 8:
-            psf = roman.getPSF(
+            psf = models.psf_utils.getPSF(
                 SCA,
                 bpass.name,
                 SCA_pos=SCA_pos,
@@ -100,7 +100,7 @@ class PSFInterpolator:
                 extra_aberrations=extra_aberrations,
             )
         else:
-            psf = roman.getPSF(
+            psf = models.psf_utils.getPSF(
                 SCA,
                 bpass.name,
                 SCA_pos=SCA_pos,
@@ -202,10 +202,10 @@ class CornerPSFInterpolator(PSFInterpolator):
 
         self._image_xsize = image_xsize
         if self._image_xsize is None:
-            self._image_xsize = roman.n_pix
+            self._image_xsize = models.parameters.n_pix
         self._image_ysize = image_ysize
         if self._image_ysize is None:
-            self._image_ysize = roman.n_pix
+            self._image_ysize = models.parameters.n_pix
 
         corners = [
             galsim.PositionD(1, 1),
@@ -440,7 +440,7 @@ def BuildRomanPSF(config, base, ignore, gsparams, logger):
             base["image_pos"],
         )
     else:
-        psf = roman.getPSF(
+        psf = models.psf_utils.getPSF(
             SCA=base["SCA"],
             bandpass=base["bandpass"].name,
             SCA_pos=base["image_pos"],
