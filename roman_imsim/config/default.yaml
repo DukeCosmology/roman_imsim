@@ -32,7 +32,7 @@ image:
         mjd: { type: ObSeqData, field: mjd }
 
     bandpass:
-        type: RomanBandpass
+        type: RomanBandpassTrimmed
         name: { type: ObSeqData, field: filter }
 
     # When you want to have multiple images generate the same random galaxies, then
