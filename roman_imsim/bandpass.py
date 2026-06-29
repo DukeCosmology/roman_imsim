@@ -30,7 +30,7 @@ class RomanBandpassBuilder(BandpassBuilder):
         bandpass = models.bandpass.getBandpass(
             red_limit=None,
             bandname=name,
-            sca=kwargs.get("SCA", None),
+            sca=None,
         )
 
         return bandpass, safe
