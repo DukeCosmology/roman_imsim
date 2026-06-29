@@ -1,6 +1,7 @@
 import romanisim.models as models
 
 from galsim.config import BandpassBuilder, GetAllParams, RegisterBandpassType
+from galsim.roman import getBandpass
 
 
 class RomanBandpassBuilder(BandpassBuilder):
@@ -27,7 +28,7 @@ class RomanBandpassBuilder(BandpassBuilder):
         kwargs, safe = GetAllParams(config, base, req=req, opt=opt)
 
         name = kwargs["name"]
-        bandpass = models.bandpass.getBandpass(
+        bandpass = getBandpass(
             red_limit=None,
             bandname=name,
             sca=None,
