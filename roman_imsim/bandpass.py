@@ -29,7 +29,6 @@ class RomanBandpassBuilder(BandpassBuilder):
 
         name = kwargs["name"]
         bandpass = getBandpass(
-            red_limit=2000,
             bandname=name,
         )
 
