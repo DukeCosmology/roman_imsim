@@ -32,7 +32,7 @@ image:
         mjd: { type: ObSeqData, field: mjd }
 
     bandpass:
-        type: RomanBandpass
+        type: RomanBandpassTrimmed
         name: { type: ObSeqData, field: filter }
 
     # When you want to have multiple images generate the same random galaxies, then
@@ -83,6 +83,26 @@ image:
     noise:
         # These are all by default turned on, but you can turn any of them off if desired:
         type: NoNoise
+        mjd: { type: ObSeqData, field: mjd }
+        stray_light: True
+        thermal_background: True
+        reciprocity_failure: True
+        dark_current:
+            turn_on: True
+            use_crds: True
+        nonlinearity:
+            turn_on: True
+            use_crds: True
+        ipc:
+            turn_on: True
+            use_crds: True
+        read_noise:
+            turn_on: True
+            use_crds: True
+        gain:
+            turn_on: True
+            use_crds: True
+        sky_subtract: False
 
 stamp:
     type: Roman_stamp
@@ -105,8 +125,6 @@ gal:
 
 input:
     obseq_data:
-        dir: /hpc/group/cosmology/OpenUniverse2024/
-        # file_name: Roman_WAS_obseq_11_1_23.fits
         visit: 1
         SCA: '@image.SCA'
     RomanPSFInterpolator:
