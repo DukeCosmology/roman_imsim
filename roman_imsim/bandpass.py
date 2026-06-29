@@ -28,7 +28,7 @@ class RomanBandpassBuilder(BandpassBuilder):
 
         name = kwargs["name"]
         bandpass = models.bandpass.getBandpass(
-            red_limit=2600,
+            red_limit=None,
             bandname=name,
             sca=kwargs.get("SCA", None),
         )
