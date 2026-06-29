@@ -125,8 +125,6 @@ gal:
 
 input:
     obseq_data:
-        dir: /hpc/group/cosmology/OpenUniverse2024/
-        # file_name: Roman_WAS_obseq_11_1_23.fits
         visit: 1
         SCA: '@image.SCA'
     RomanPSFInterpolator:
