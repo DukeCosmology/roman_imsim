@@ -1,4 +1,4 @@
-import romanisim.models as models
+import romanisim.models as models  # noqa
 
 from galsim.config import BandpassBuilder, GetAllParams, RegisterBandpassType
 from galsim.roman import getBandpass
@@ -31,7 +31,6 @@ class RomanBandpassBuilder(BandpassBuilder):
         bandpass = getBandpass(
             red_limit=None,
             bandname=name,
-            sca=None,
         )
 
         return bandpass, safe
