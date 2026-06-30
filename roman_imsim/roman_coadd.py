@@ -68,9 +68,7 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
             "xsize": int,
             "ysize": int,
         }
-        params = galsim.config.GetAllParams(
-            config, base, req=req, opt=opt, ignore=ignore + extra_ignore
-        )[0]
+        params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
         self.sca = params["SCA"]
         base["SCA"] = self.sca
@@ -81,26 +79,20 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         self.ignore_noise = params.get("ignore_noise", False)
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
-        self.draw_method = params.get(
-            "draw_method", base.get("stamp", {}).get("draw_method", "auto")
-        )
+        self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "auto"))
 
         self.rng = galsim.config.GetRNG(config, base)
         self.visit = int(base["input"]["obseq_data"]["visit"])
 
         # If user hasn't overridden the bandpass to use, get the standard one.
         if "bandpass" not in config:
-            base["bandpass"] = galsim.config.BuildBandpass(
-                base["image"], "bandpass", base, logger=logger
-            )
+            base["bandpass"] = galsim.config.BuildBandpass(base["image"], "bandpass", base, logger=logger)
 
         self.coadd_hdu = fits.open(params["coadd_file"])
         self.white_noise_weight = params["white_noise_weight"]
         self.pink_noise_weight = params["pink_noise_weight"]
 
-        return int(self.coadd_hdu[0].header["NAXIS1"]), int(
-            self.coadd_hdu[0].header["NAXIS2"]
-        )
+        return int(self.coadd_hdu[0].header["NAXIS1"]), int(self.coadd_hdu[0].header["NAXIS2"])
 
     def buildImage(self, config, base, image_num, obj_num, logger):
         """Build an Image containing multiple objects placed at arbitrary locations.
@@ -127,13 +119,9 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         full_image.header = galsim.FitsHeader()
         full_image.header["EXPTIME"] = self.exptime
         full_image.header["MJD-OBS"] = self.mjd
-        full_image.header["DATE-OBS"] = Time(
-            self.mjd, format="mjd"
-        ).datetime.isoformat()
+        full_image.header["DATE-OBS"] = Time(self.mjd, format="mjd").datetime.isoformat()
         full_image.header["FILTER"] = self.filter
-        full_image.header["ZPTMAG"] = 2.5 * np.log10(
-            self.exptime * models.parameters.collecting_area
-        )
+        full_image.header["ZPTMAG"] = 2.5 * np.log10(self.exptime * models.parameters.collecting_area)
 
         base["current_image"] = full_image
 
@@ -210,16 +198,12 @@ class RomanCoaddImageBuilder(ScatteredImageBuilder):
         # current_var = FlattenNoiseVariance(
         #         base, full_image, stamps, current_vars, logger)
 
-        logger.info(
-            "roman pixel scale: %.5f" % (models.parameters.pixel_scale)
-        )
+        logger.info("roman pixel scale: %.5f" % (models.parameters.pixel_scale))
         full_image /= (0.0390625 / 0.11) ** 2
 
         return full_image, None
 
-    def addNoise(
-        self, image, config, base, image_num, obj_num, current_var, logger
-    ):
+    def addNoise(self, image, config, base, image_num, obj_num, current_var, logger):
         """Add the final noise to a Scattered image
 
         Parameters:
