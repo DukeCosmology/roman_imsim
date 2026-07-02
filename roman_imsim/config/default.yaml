@@ -111,7 +111,9 @@ stamp:
     exptime: { type: ObSeqData, field: exptime }
 
     photon_ops:
-        -
+        - 
+            type: RomanFilterRefraction
+        - 
             type: ChargeDiff
 
 psf:
