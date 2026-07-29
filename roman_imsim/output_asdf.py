@@ -5,6 +5,7 @@ import astropy.units as u
 import galsim
 import gwcs
 import numpy as np
+import romanisim.util
 from astropy import wcs as fits_wcs
 from astropy.modeling.models import (
     Mapping,
@@ -155,7 +156,7 @@ class RomanASDFBuilder(OutputBuilder):
            as a dictionary in the ASDF file.
         """
 
-        sca = image.header["SCA"]
+        sca = image.header["SCA_NUM"]
         exptime = image.header["EXPTIME"]
         fltr = image.header["FILTER"]
         date_obs = image.header["DATE-OBS"]
@@ -169,7 +170,7 @@ class RomanASDFBuilder(OutputBuilder):
         # and copied to image.wcs
 
         # use astropy.io.fits.header.Header form of header: required in wcs_from_fits_header
-        wcs_header = image.wcs.header.header
+        wcs_header = image.header # image.wcs.header.header
         # Galsim uses two headers, one in the image and one in the WCS. We need to combine them to get the
         # full information.
         wcs_header.update(image.header)
@@ -233,10 +234,12 @@ class RomanASDFBuilder(OutputBuilder):
         tree.meta.pointing.target_dec = image.wcs.center.dec.deg  # or wcs_header['DEC_TARG']
         # meta.wcs
         tree.meta.wcs = self.wcs_from_fits_header(wcs_header)
+
         # meta.wcsinfo
         tree.meta.wcsinfo.aperture_name = (
             f"{wcs_header['INSTRUME']}{sca:02}_FULL"  # what does full stand for? # FULL or CEN?
         )
+        romanisim.util.update_pointing_and_wcsinfo_metadata(tree.meta, tree.meta.wcs)
         # meta.photometry
 
         tree.data = image.array.astype("float32")
