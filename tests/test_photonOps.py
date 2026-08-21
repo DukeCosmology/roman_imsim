@@ -37,10 +37,19 @@ class TestPhotonOps(unittest.TestCase):
 
     def test_photon_operators_smoke(self):
         """Test that all registered roman_imsim photon operators can be initialized and applied."""
-        photon_operators = [ChargeDiff, SlitlessSpec, GrismNV, GrismV, WFSSSDisperser]
-        for photon_operator_cls in photon_operators:
+        root = self.root_dir
+        prism = os.path.join(root, "optical_models/Roman_prism_OpticalModel_v0.8.yaml")
+        grism = os.path.join(root, "optical_models/Roman_grism_OpticalModel_v0.8.yaml")
+        constructors = [
+            (ChargeDiff, {}),
+            (SlitlessSpec, {}),
+            (GrismNV, {"config": grism, "sca": 16}),
+            (GrismV, {"config": grism, "sca": 16}),
+            (WFSSSDisperser, {"config": prism, "sca": 16}),
+        ]
+        for photon_operator_cls, kwargs in constructors:
             with self.subTest(operator=photon_operator_cls.__name__):
-                photon_op = photon_operator_cls()
+                photon_op = photon_operator_cls(**kwargs)
                 photon_op.applyTo(self.mock_photon_array)
 
 

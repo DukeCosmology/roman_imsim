@@ -1,10 +1,27 @@
 import yaml
 import numpy as np
-from galsim import PhotonOp, UniformDeviate
-from galsim.config import PhotonOpBuilder, RegisterPhotonOpType, get_cls_params, GetAllParams, GetRNG
+from galsim import GalSimConfigError, GalSimError, PhotonOp, UniformDeviate
+from galsim.config import (
+    PhotonOpBuilder,
+    RegisterPhotonOpType,
+    get_cls_params,
+    GetAllParams,
+    GetRNG,
+    ParseValue,
+)
+from roman_imsim.dispersion_trail import resolve_optical_model_path
 from .optical_model_utils import RomanDetectorCoordinates
 
 __all__ = ['GrismNV', 'GrismV']
+
+
+def _resolve_sca(kwargs, base):
+    if "sca" in kwargs and kwargs["sca"] is not None:
+        return int(kwargs["sca"])
+    if "SCA" in base.get("image", {}):
+        return int(ParseValue(base["image"], "SCA", base, int)[0])
+    raise GalSimConfigError("Grism photon op requires stamp.photon_ops.sca or image.SCA")
+
 
 class GrismNV(PhotonOp):
     """A photon operator that applies the dispersion effects of the
@@ -15,18 +32,24 @@ class GrismNV(PhotonOp):
     Parameters
         base_wavelength:    Wavelength (in nm) represented by the fiducial photon positions
     """
-    # what parameters are tunable
-    # _req_params = {"base_wavelength": float, "barycenter": list}
-    # _opt_params = {"resolution": list}
+    _req_params = {}
+    _opt_params = {
+        "config": str,
+        "order": str,
+        "sca": int,
+    }
+    _single_params = []
+    _takes_rng = False
 
     
-    def __init__(self, config=None):
-        if config is None:
-            self.config = 'optical_models/Roman_grism_OpticalModel_v0.8.yaml'
-        else:
-            self.config = config
-        self.order = '1'
-        self.sca = 16
+    def __init__(self, config=None, order=None, sca=None):
+        self.config = resolve_optical_model_path(
+            config or "optical_models/Roman_grism_OpticalModel_v0.8.yaml"
+        )
+        self.order = order or "1"
+        if sca is None:
+            raise ValueError("GrismNV requires an explicit sca (use image.SCA)")
+        self.sca = int(sca)
         # self.base_wavelength = base_wavelength
         # self.resolution = np.array(resolution)
         with open(self.config) as f:
@@ -40,9 +63,10 @@ class GrismNV(PhotonOp):
         self.ymap_coeff = np.array(order_dat['ymap_ij_coeff'])
         self.crv_coeff = np.array(order_dat['crv_ijk_coeff'])
         self.ids_coeff = np.array(order_dat['ids_ijk_coeff'])
-        self.wl_min = 0.9 
-        self.wl_max = 2.0
-        self.wl_ref = 1.55
+        self.wl_min = float(data.get('optical_model', {}).get('wl_min', 0.9))
+        self.wl_max = float(data.get('optical_model', {}).get('wl_max', 2.0))
+        self.wl_ref = float(data.get('optical_model', {}).get('wl_reference', 1.55))
+        self.wl_reference = self.wl_ref
 
         # initialize RomanDetectorCoordinates
         # need these for some of the functions called
@@ -57,6 +81,15 @@ class GrismNV(PhotonOp):
             xy_centers=data['detector_model'].get('xy_centers', {})
         )
 
+    def disperse_sca(self, x0, y0, lam, sca=None, order=None, pairwise=True):
+        """Disperse undispersed SCA coordinates (pairwise by default)."""
+        sca = self.sca if sca is None else int(sca)
+        order = self.order if order is None else order
+        if not pairwise:
+            lam = np.atleast_1d(np.asarray(lam, dtype=np.float64)).ravel()
+            x0 = np.full(lam.shape, float(np.asarray(x0).ravel()[0]))
+            y0 = np.full(lam.shape, float(np.asarray(y0).ravel()[0]))
+        return self._disperse(x0, y0, lam, sca, order=order)
     
     def _disperse(self, x0, y0, lam, sca, order='1'):
         # convert to FPA degrees
@@ -135,7 +168,7 @@ class GrismNV(PhotonOp):
             ympa_mm = yref_mm + delta_y_mm
             # go back to pixels
 
-            x_pix, y_pix = self.detector_coords.convert_mpa_to_sca(xmpa=xmpa_mm, ympa=ympa_mm, sca=self.sca)
+            x_pix, y_pix = self.detector_coords.convert_mpa_to_sca(xmpa=xmpa_mm, ympa=ympa_mm, sca=sca)
             
             return x_pix, y_pix
     
@@ -172,12 +205,10 @@ class GrismNV(PhotonOp):
 class GrismNVBuilder(PhotonOpBuilder):
     """Build a GrismNV
     """
-    # This one needs special handling for obj_coord
     def buildPhotonOp(self, config, base, logger):
         req, opt, single, takes_rng = get_cls_params(GrismNV)
         kwargs, safe = GetAllParams(config, base, req, opt, single)
-        #if 'sky_pos' in base:
-        #    kwargs['obj_coord'] = base['sky_pos']
+        kwargs["sca"] = _resolve_sca(kwargs, base)
         return GrismNV(**kwargs)
 
 
@@ -192,21 +223,23 @@ class GrismV(PhotonOp):
         order:          Grism order (e.g., '1')
         sca:            SCA number
     """
-    # what parameters are tunable
     _req_params = {}
-    _opt_params = {}
+    _opt_params = {
+        "config": str,
+        "order": str,
+        "sca": int,
+    }
     _single_params = []
     _takes_rng = False
     
     def __init__(self, config=None, order=None, sca=None):
-        if config is None:
-            self.config = "optical_models/Roman_grism_OpticalModel_v0.8.yaml"
-        else:
-            self.config = config
-        self.order = '1'
-        self.sca = 16
-        # self.base_wavelength = base_wavelength
-        # self.resolution = np.array(resolution)
+        self.config = resolve_optical_model_path(
+            config or "optical_models/Roman_grism_OpticalModel_v0.8.yaml"
+        )
+        self.order = order or "1"
+        if sca is None:
+            raise ValueError("GrismV requires an explicit sca (use image.SCA)")
+        self.sca = int(sca)
         with open(self.config) as f:
             data = yaml.safe_load(f)
         for order_key, order_data in data["optical_model"]["orders"].items():
@@ -218,9 +251,10 @@ class GrismV(PhotonOp):
         self.ymap_coeff = np.array(order_dat['ymap_ij_coeff'])
         self.crv_coeff = np.array(order_dat['crv_ijk_coeff'])
         self.ids_coeff = np.array(order_dat['ids_ijk_coeff'])
-        self.wl_min = 0.9 
-        self.wl_max = 2.0
-        self.wl_ref = 1.55
+        self.wl_min = float(data.get('optical_model', {}).get('wl_min', 0.9))
+        self.wl_max = float(data.get('optical_model', {}).get('wl_max', 2.0))
+        self.wl_ref = float(data.get('optical_model', {}).get('wl_reference', 1.55))
+        self.wl_reference = self.wl_ref
         # initialize RomanDetectorCoordinates
         # need these for some of the functions called
         self.detector_coords = RomanDetectorCoordinates(
@@ -234,9 +268,19 @@ class GrismV(PhotonOp):
             xy_centers=data['detector_model'].get('xy_centers', {})  # Dictionary of SCA centers
         )
 
+    def disperse_sca(self, x0, y0, lam, sca=None, order=None, pairwise=True):
+        """Disperse undispersed SCA coordinates (pairwise by default)."""
+        sca = self.sca if sca is None else int(sca)
+        order = self.order if order is None else order
+        if not pairwise:
+            lam = np.atleast_1d(np.asarray(lam, dtype=np.float64)).ravel()
+            x0 = np.full(lam.shape, float(np.asarray(x0).ravel()[0]))
+            y0 = np.full(lam.shape, float(np.asarray(y0).ravel()[0]))
+        return self._disperse(x0, y0, lam, sca, order=order)
+
     def _disperse(self, x0, y0, lam, sca, order='1'):
         # get the coords in degrees to match the matrices
-        xfpa_deg, yfpa_deg = self.detector_coords.convert_sca_to_fpa(x0, y0, sca = self.sca)
+        xfpa_deg, yfpa_deg = self.detector_coords.convert_sca_to_fpa(x0, y0, sca = sca)
 
         # we start by calculating the intial offset
         xfpa_deg = np.atleast_1d(xfpa_deg)
@@ -271,7 +315,7 @@ class GrismV(PhotonOp):
         xmpa_mm = xref_mm + delta_x_mm
         ympa_mm = yref_mm + delta_y_mm
 
-        x_pix, y_pix = self.detector_coords.convert_mpa_to_sca(xmpa=xmpa_mm, ympa=ympa_mm, sca=self.sca)
+        x_pix, y_pix = self.detector_coords.convert_mpa_to_sca(xmpa=xmpa_mm, ympa=ympa_mm, sca=sca)
 
         return x_pix, y_pix
         
@@ -307,12 +351,10 @@ class GrismV(PhotonOp):
 class GrismVBuilder(PhotonOpBuilder):
     """Build a Grism op 
     """
-    # This one needs special handling for obj_coord
     def buildPhotonOp(self, config, base, logger):
         req, opt, single, takes_rng = get_cls_params(GrismV)
         kwargs, safe = GetAllParams(config, base, req, opt, single)
-        #if 'sky_pos' in base:
-        #    kwargs['obj_coord'] = base['sky_pos']
+        kwargs["sca"] = _resolve_sca(kwargs, base)
         return GrismV(**kwargs)
 
 RegisterPhotonOpType('GrismV', GrismVBuilder())

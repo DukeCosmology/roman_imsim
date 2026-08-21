@@ -3,9 +3,16 @@ import galsim.config
 import romanisim.models as models
 import numpy as np
 from galsim.config import RegisterStampType, StampBuilder
+from galsim import WavelengthSampler
+import gc
+import math
 
-# import os, psutil
-# process = psutil.Process()
+from roman_imsim.dispersion_trail import (
+    compute_dispersion_trail,
+    get_dispersive_op_config,
+    parse_sca_from_config,
+    sample_wavelengths,
+)
 
 
 class Roman_stamp(StampBuilder):
@@ -20,6 +27,79 @@ class Roman_stamp(StampBuilder):
         wave_type="nm",
         flux_type="fphotons",
     )
+
+    def __init__(self):
+        super().__init__()
+        self._dispersion_trail = None
+
+    def _build_trail_disperser(self, op_config, base, logger):
+        """Instantiate the dispersive PhotonOp used for trail geometry."""
+        from roman_imsim.photonOps import (
+            GrismNV,
+            GrismV,
+            SlitlessSpec,
+            WFSSSDisperser,
+        )
+
+        typ = op_config["type"]
+        sca = parse_sca_from_config(op_config, base, logger)
+        order = None
+        config_file = None
+        if "order" in op_config:
+            order = galsim.config.ParseValue(op_config, "order", base, str)[0]
+        if "config" in op_config:
+            config_file = galsim.config.ParseValue(op_config, "config", base, str)[0]
+
+        if typ == "SlitlessSpec":
+            return SlitlessSpec()
+        if typ == "WFSSSDisperser":
+            return WFSSSDisperser(config=config_file, order=order, sca=sca)
+        if typ == "GrismV":
+            return GrismV(config=config_file, order=order, sca=sca)
+        if typ == "GrismNV":
+            return GrismNV(config=config_file, order=order, sca=sca)
+        raise galsim.GalSimConfigError(f"Unsupported dispersive photon op: {typ}")
+
+    def _apply_dispersion_trail(self, config, base, image_pos, world_pos, morph_size, logger):
+        """If a dispersive PhotonOp is configured, size/center the stamp on its trail."""
+        self._dispersion_trail = None
+        op_config = get_dispersive_op_config(config)
+        if op_config is None or image_pos is None:
+            return None, None
+
+        disperser = self._build_trail_disperser(op_config, base, logger)
+        sca = parse_sca_from_config(op_config, base, logger)
+        order = getattr(disperser, "order", "1") or "1"
+        wl_min = getattr(disperser, "wl_min", 0.75)
+        wl_max = getattr(disperser, "wl_max", 1.85)
+        bandpass = base.get("bandpass")
+        wavelengths = sample_wavelengths(wl_min, wl_max, n=21, bandpass=bandpass)
+        pad = max(morph_size / 2.0, 16.0)
+
+        trail = compute_dispersion_trail(
+            disperser.disperse_sca,
+            image_pos.x,
+            image_pos.y,
+            wavelengths,
+            sca=sca,
+            order=order,
+            pad=pad,
+        )
+        self._dispersion_trail = trail
+        base["dispersion_trail"] = trail
+        logger.info(
+            "Object %d dispersion trail: "
+            "x=[%.1f, %.1f] y=[%.1f, %.1f] -> stamp %d x %d (pad=%.1f)",
+            base.get("obj_num", 0),
+            trail.xmin,
+            trail.xmax,
+            trail.ymin,
+            trail.ymax,
+            trail.xsize,
+            trail.ysize,
+            pad,
+        )
+        return trail.xsize, trail.ysize
 
     def setup(self, config, base, xsize, ysize, ignore, logger):
         """
@@ -136,7 +216,75 @@ class Roman_stamp(StampBuilder):
         else:
             world_pos = None
 
-        return image_size, image_size, image_pos, world_pos
+        # Resolve image_pos early so dispersion trail sizing can use absolute SCA coords.
+        if image_pos is None and world_pos is not None:
+            if 'wcs' not in base:
+                base['wcs'] = galsim.config.BuildWCS(base['image'], 'wcs', base, logger)
+            image_pos = base['wcs'].toImage(world_pos)
+
+        xsize, ysize = image_size, image_size
+        trail_x, trail_y = self._apply_dispersion_trail(
+            config, base, image_pos, world_pos, image_size, logger
+        )
+        if trail_x is not None:
+            xsize, ysize = trail_x, trail_y
+            logger.info(
+                "Object %d dispersion-aware stamp size = %s x %s",
+                base.get("obj_num", 0),
+                xsize,
+                ysize,
+            )
+
+        return xsize, ysize, image_pos, world_pos
+
+    def locateStamp(self, config, base, xsize, ysize, image_pos, world_pos, logger):
+        """Locate the stamp, centering on the dispersion trail when present.
+
+        Keeps ``image_pos`` / ``world_pos`` as the undispersed catalog location so
+        PhotonOps still receive the correct starting SCA coordinates, but shifts
+        ``stamp_center`` onto the trail midpoint and compensates with
+        ``stamp_offset``.
+        """
+        super().locateStamp(config, base, xsize, ysize, image_pos, world_pos, logger)
+
+        trail = self._dispersion_trail
+        if trail is None:
+            return
+
+        image_pos = base["image_pos"]
+        if image_pos is None:
+            return
+
+        # Even-sized stamps use GalSim's nominal +0.5 convention for both the
+        # object and the stamp center so drawImage(offset=...) stays consistent.
+        nominal_obj_x = image_pos.x
+        nominal_obj_y = image_pos.y
+        nominal_trail_x = trail.center_x
+        nominal_trail_y = trail.center_y
+        if xsize % 2 == 0:
+            nominal_obj_x += 0.5
+            nominal_trail_x += 0.5
+        if ysize % 2 == 0:
+            nominal_obj_y += 0.5
+            nominal_trail_y += 0.5
+
+        stamp_center = galsim.PositionI(
+            int(math.floor(nominal_trail_x + 0.5)),
+            int(math.floor(nominal_trail_y + 0.5)),
+        )
+        stamp_offset = galsim.PositionD(
+            nominal_obj_x - stamp_center.x,
+            nominal_obj_y - stamp_center.y,
+        )
+        base["stamp_center"] = stamp_center
+        base["stamp_offset"] = stamp_offset
+        logger.info(
+            "Object %d stamp_center shifted to trail %s (undispersed image_pos=%s, offset=%s)",
+            base.get("obj_num", 0),
+            stamp_center,
+            image_pos,
+            stamp_offset,
+        )
 
     def getDrawMethod(self, config, base, logger):
         """Determine the draw method to use.
