@@ -8,6 +8,8 @@ from galsim.config import (
     get_cls_params,
 )
 
+__all__ = ["ChargeDiff"]
+
 _w1 = 0.17519
 _w2 = 0.53146
 _w3 = 0.29335

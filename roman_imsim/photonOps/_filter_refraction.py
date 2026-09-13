@@ -1,6 +1,8 @@
 import galsim
 import numpy as np
 
+__all__ = ["RomanFilterRefraction"]
+
 # ===========================================================================
 # Sellmeier coefficients for the filter substrate (Suprasil 3001)
 # Sellmeier coefficients can be found here:
