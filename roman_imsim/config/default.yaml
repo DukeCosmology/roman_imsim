@@ -115,7 +115,9 @@ stamp:
       star: 3.0e7
       gaia_star: 3.0e7
     photon_ops:
-        -
+        - 
+            type: RomanFilterRefraction
+        - 
             type: ChargeDiff
 
 psf:
