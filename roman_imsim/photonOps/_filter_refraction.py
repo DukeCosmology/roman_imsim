@@ -149,8 +149,10 @@ def _snell_refract_unit(p, n_hat, n_old, n_new):
         Unit outward surface normal (pointing away from the center of curvature).
         The formula assumes ``dot(n_hat, p) > 0`` when the ray travels in the
         same general direction as the normal.
-    n_old, n_new : float or ndarray
-        Refractive indices of the medium before and after the surface.
+    n_old : float or ndarray
+        Refractive index of the medium before the surface.
+    n_new : float or ndarray
+        Refractive index of the medium after the surface.
 
     Returns
     -------
@@ -197,6 +199,11 @@ def _sphere_sag(q, R):
     -------
     z : ndarray
         Surface height in metres at each q.
+
+    Raises
+    ------
+    ValueError
+        Raised if ``R`` is smaller than (any of) ``q``.
     """
     q = np.asarray(q, dtype=float)
     disc = R**2 - q**2
@@ -211,8 +218,10 @@ def _sphere_normal(q, z, R):
 
     Parameters
     ----------
-    q, z : float or array_like
-        Transverse and axial coordinates of the surface point, metres.
+    q : float or array_like
+        Transverse coordinate of the surface point, metres.
+    z : float or array_like
+        Axial coordinate of the surface point, metres.
     R : float
         Radius of curvature, metres.
 
@@ -236,8 +245,10 @@ def _intersect_line_with_sphere(q0, z0, p, R, z_vertex):
 
     Parameters
     ----------
-    q0, z0 : float
-        Ray origin, metres.
+    q0 : float
+        Transverse coordinate of the ray origin, metres.
+    z0 : float
+        Axial coordinate of the ray origin, metres.
     p : array_like, shape (..., 2)
         Unit ray direction(s) [pq, pz].  Leading dimensions are broadcast.
     R : float
@@ -247,10 +258,18 @@ def _intersect_line_with_sphere(q0, z0, p, R, z_vertex):
 
     Returns
     -------
-    q_hit, z_hit : ndarray
-        Intersection coordinates, metres.
+    q_hit : ndarray
+        Transverse coordinate of the intersection, metres.
+    z_hit : ndarray
+        Axial coordinate of the intersection, metres.
     L : ndarray
         Path length from the ray origin to the intersection, metres.
+
+    Raises
+    ------
+    ValueError
+        Raised if there is no real intersection with the spherical surface,
+        or if there is no forward intersection along the ray.
     """
     p = np.asarray(p, dtype=float)
     pq = p[..., 0]
@@ -296,8 +315,10 @@ def _propagate_to_plane(q0, z0, p, z_plane):
 
     Parameters
     ----------
-    q0, z0 : float
-        Ray origin, metres.
+    q0 : float
+        Transverse coordinate of the ray origin, metres.
+    z0 : float
+        Axial coordinate of the ray origin, metres.
     p : array_like, shape (..., 2)
         Unit ray direction(s) [pq, pz].
     z_plane : float
@@ -311,6 +332,11 @@ def _propagate_to_plane(q0, z0, p, z_plane):
         z_plane (returned for interface consistency).
     L : ndarray
         Path length from the origin to the plane, metres.
+
+    Raises
+    ------
+    ValueError
+        Raised if the ray is parallel to the target plane.
     """
     p = np.asarray(p, dtype=float)
     pq = p[..., 0]
