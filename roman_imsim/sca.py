@@ -1,9 +1,9 @@
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 import galsim
 import galsim.config
-import romanisim.models as models
 import numpy as np
+import romanisim.models as models
 from astropy.time import Time
 from galsim.config import RegisterImageType
 from galsim.config.image_scattered import ScatteredImageBuilder
@@ -51,6 +51,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         opt = {
             "draw_method": str,
             "use_fft_bright": bool,
+            "object_batch_size": int,
         }
         params = galsim.config.GetAllParams(config, base, req=req, opt=opt, ignore=ignore + extra_ignore)[0]
 
@@ -59,6 +60,12 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
         self.filter = params["filter"]
         self.mjd = params["mjd"]
         self.exptime = params["exptime"]
+        self.object_batch_size = params.get("object_batch_size", 1000)
+        if self.object_batch_size < 1:
+            raise galsim.GalSimConfigValueError(
+                "object_batch_size must be a positive integer",
+                self.object_batch_size,
+            )
 
         # If draw_method isn't in image field, it may be in stamp.  Check.
         self.draw_method = params.get("draw_method", base.get("stamp", {}).get("draw_method", "phot"))
@@ -136,7 +143,7 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                 "x": {"type": "Random", "min": xmin, "max": xmax},
                 "y": {"type": "Random", "min": ymin, "max": ymax},
             }
-        nbatch = self.nobjects // 1000 + 1
+        nbatch = self.nobjects // self.object_batch_size + 1
         for batch in range(nbatch):
             # start id of objects in this batch
             start_obj_num = self.nobjects * batch // nbatch
@@ -153,9 +160,15 @@ class RomanSCAImageBuilder(ScatteredImageBuilder):
                     start_obj_num,
                     end_obj_num,
                 )
-            stamps, current_vars = galsim.config.BuildStamps(
-                nobj_batch, base, logger=logger, obj_num=start_obj_num, do_noise=False
-            )
+            # SkyCatObj uses these bounds to prefetch runtime Diffsky SEDs for
+            # only the objects BuildStamps will request next.
+            base["_roman_imsim_sed_batch"] = (start_obj_num, end_obj_num)
+            try:
+                stamps, current_vars = galsim.config.BuildStamps(
+                    nobj_batch, base, logger=logger, obj_num=start_obj_num, do_noise=False
+                )
+            finally:
+                base.pop("_roman_imsim_sed_batch", None)
             base["index_key"] = "image_num"
 
             for k in range(nobj_batch):
