@@ -18,13 +18,6 @@ _s1 = 0.4522 * _s
 _s2 = 0.8050 * _s
 _s3 = 1.4329 * _s
 
-<<<<<<< HEAD:roman_imsim/photonOps/_charge_diffusion.py
-=======
-import numpy as np
-from galsim import PhotonOp,UniformDeviate,GaussianDeviate
-from galsim.config import PhotonOpBuilder,RegisterPhotonOpType,get_cls_params,GetAllParams,GetRNG
-import galsim
->>>>>>> c5e9e0ef (Implement Grism PhotonOps):roman_imsim/photonOps.py
 
 class ChargeDiff(PhotonOp):
     """A photon operator that applies the effect of charge diffusion via a
@@ -181,18 +174,12 @@ class GrismNV(PhotonOp):
     # _req_params = {"base_wavelength": float, "barycenter": list}
     # _opt_params = {"resolution": list}
 
-<<<<<<< HEAD:roman_imsim/photonOps/_charge_diffusion.py
-
-    def __init__(self):
-        self.config = 'Roman_grism_OpticalModel_v0.8.yaml'
-=======
 
     def __init__(self, config=None):
         if config is None:
             self.config = 'Roman_grism_OpticalModel_v0.8.yaml'
         else:
             self.config = config
->>>>>>> 4ec1fc4d (Allow config to be provided to the Grism classes):roman_imsim/photonOps.py
         self.order = '1'
         self.sca = 16
         # self.base_wavelength = base_wavelength
