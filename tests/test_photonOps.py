@@ -37,7 +37,7 @@ class TestPhotonOps(unittest.TestCase):
 
     def test_photon_operators_smoke(self):
         """Test that all registered roman_imsim photon operators can be initialized and applied."""
-        photon_operators = [ChargeDiff, SlitlessSpec, GrismNV, GrismV, WFSSSDisperser]
+        photon_operators = [ChargeDiff, RomanFilterRefraction, SlitlessSpec, GrismNV, GrismV, WFSSSDisperser]
         for photon_operator_cls in photon_operators:
             with self.subTest(operator=photon_operator_cls.__name__):
                 photon_op = photon_operator_cls()
