@@ -1,7 +1,7 @@
 import numpy as np
 import yaml
-from galsim import PhotonOp, UniformDeviate
-from galsim.config import GetAllParams, GetRNG, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
+from galsim import GalSimError, PhotonOp
+from galsim.config import GetAllParams, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
 
 from .optical_model_utils import RomanDetectorCoordinates
 
@@ -305,7 +305,7 @@ class GrismV(PhotonOp):
 
         # )
         # s += ")"
-        return f"galsim.GrismV()"
+        return "galsim.GrismV()"
 
 
 class GrismVBuilder(PhotonOpBuilder):

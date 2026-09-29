@@ -1,5 +1,6 @@
 import numpy as np
 from galsim import GaussianDeviate, PhotonOp, UniformDeviate
+from galsim.config import GetAllParams, GetRNG, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
 
 _w1 = 0.17519
 _w2 = 0.53146
@@ -8,11 +9,6 @@ _s = 0.3279
 _s1 = 0.4522 * _s
 _s2 = 0.8050 * _s
 _s3 = 1.4329 * _s
-
-import galsim
-import numpy as np
-from galsim import GaussianDeviate, PhotonOp, UniformDeviate
-from galsim.config import GetAllParams, GetRNG, PhotonOpBuilder, RegisterPhotonOpType, get_cls_params
 
 __all__ = ["ChargeDiff"]
 
