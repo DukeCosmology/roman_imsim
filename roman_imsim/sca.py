@@ -1,9 +1,9 @@
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 import galsim
 import galsim.config
-import romanisim.models as models
 import numpy as np
+import romanisim.models as models
 from astropy.time import Time
 from galsim.config import RegisterImageType
 from galsim.config.image_scattered import ScatteredImageBuilder

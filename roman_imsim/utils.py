@@ -2,8 +2,8 @@ from itertools import product
 
 import galsim
 import galsim.config
-import romanisim.models as models
 import numpy as np
+import romanisim.models as models
 
 
 class roman_utils(object):

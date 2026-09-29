@@ -1,5 +1,4 @@
 import romanisim.models as models
-
 from galsim.config import BandpassBuilder, GetAllParams, RegisterBandpassType
 
 

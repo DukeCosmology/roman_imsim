@@ -1,7 +1,7 @@
 import galsim
 import galsim.config
-import romanisim.models as models
 import numpy as np
+import romanisim.models as models
 from galsim.config import RegisterStampType, StampBuilder
 
 # import os, psutil
@@ -75,7 +75,7 @@ class Roman_stamp(StampBuilder):
                 gal = gal.withFlux(flux_cap, bandpass)
                 self.flux = flux_cap
                 gal.flux = flux_cap
-                logger.info("Limiting the flux of object %d to %e", base['obj_num'], flux_cap)
+                logger.info("Limiting the flux of object %d to %e", base["obj_num"], flux_cap)
         base["flux"] = gal.flux
         base["mag"] = -2.5 * np.log10(gal.flux) + bandpass.zeropoint
         # print('stamp setup2',process.memory_info().rss)
@@ -339,7 +339,7 @@ class Roman_stamp(StampBuilder):
             # In case we had to make a bigger image, just copy the part we need.
             image += fft_image[image.bounds]
         # print('stamp draw3',process.memory_info().rss)
-        SED_wavelengths = gal.SED.wave_list               # Wavelengths in nm
+        SED_wavelengths = gal.SED.wave_list  # Wavelengths in nm
         SED_vals = [gal.SED(w) for w in SED_wavelengths]
         return image
 
