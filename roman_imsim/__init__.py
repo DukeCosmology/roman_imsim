@@ -1,4 +1,4 @@
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 try:
     from lsst.utils.threads import disable_implicit_threading
@@ -14,8 +14,6 @@ except PackageNotFoundError:
 
 # Register the template on importing
 from ._templates import *
-from .bandpass import *
-from .detector_physics import *
 
 # Import core modules for public use
 from .noise import *

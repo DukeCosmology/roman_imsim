@@ -1,6 +1,5 @@
 import galsim
 import romanisim.models as models
-
 from astropy.time import Time
 from galsim.config import NoiseBuilder, RegisterNoiseType
 

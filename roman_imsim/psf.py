@@ -57,15 +57,15 @@ input:
 """
 
 import galsim
+import romanisim.models as models
 from galsim.config import (
     InputLoader,
-    RegisterInputType,
     RegisterInputConnectedType,
-    RegisterValueType,
+    RegisterInputType,
     RegisterObjectType,
+    RegisterValueType,
 )
 from galsim.errors import GalSimConfigValueError
-import romanisim.models as models
 
 ##########################
 # PSF Interpolator Input #

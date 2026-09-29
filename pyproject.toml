@@ -26,6 +26,10 @@ dependencies = [
   "roman_datamodels",
   "gwcs",
   "romanisim",
+  "matplotlib",
+  "PyYAML",
+  "numba",
+  "pandas",
 ]
 
 [project.urls]

@@ -5,8 +5,8 @@ Interface to obtain objects from skyCatalogs.
 import warnings
 
 import galsim
-import romanisim.models as models
 import numpy as np
+import romanisim.models as models
 from galsim.config import (
     InputLoader,
     RegisterInputType,
