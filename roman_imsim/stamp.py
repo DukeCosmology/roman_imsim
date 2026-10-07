@@ -7,11 +7,10 @@ from galsim.config import RegisterStampType, StampBuilder
 
 # import os, psutil
 # process = psutil.Process()
-class Roman_stamp(StampBuilder):
-    """This performs the tasks necessary for building the stamp for a single object.
+class RomanStampBase(StampBuilder):
+    """Shared draw-method selection and SED preparation for Roman stamps.
 
-    It uses the regular Basic functions for most things.
-    It specializes the quickSkip, buildProfile, and draw methods.
+    The flat fallback SED is shared by subclasses and treated as read-only.
     """
 
     _trivial_sed = galsim.SED(
@@ -19,6 +18,100 @@ class Roman_stamp(StampBuilder):
         wave_type="nm",
         flux_type="fphotons",
     )
+
+    def getDrawMethod(self, config, base, logger):
+        """Determine the draw method to use.
+
+        @param config       The configuration dict for the stamp field.
+        @param base         The base configuration dict.
+        @param logger       A logger object to log progress.
+
+        @returns method
+        """
+        method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
+        self.use_fft_bright = False
+        if "use_fft_bright" in config:
+            self.use_fft_bright = galsim.config.ParseValue(config, "use_fft_bright", base, bool)[0]
+
+        if method not in galsim.config.valid_draw_methods:
+            raise galsim.GalSimConfigValueError(
+                "Invalid draw_method.", method, galsim.config.valid_draw_methods
+            )
+
+        if method == "phot":
+            if self.pupil_bin in [4, 2] and self.use_fft_bright:
+                logger.info("Auto -> Use FFT drawing for object %d.", base["obj_num"])
+                return "fft"
+            else:
+                logger.info("Auto -> Use photon shooting for object %d.", base["obj_num"])
+                return "phot"
+        else:
+            # If user sets something specific for the method, rather than auto,
+            # then respect their wishes.
+            logger.info("Use specified method=%s for object %d.", method, base["obj_num"])
+            return method
+
+    @classmethod
+    def _fix_seds_24(cls, prof, bandpass):
+        # If any SEDs are not currently using a LookupTable for the function or if they are
+        # using spline interpolation, then the codepath is quite slow.
+        # Better to fix them before doing WavelengthSampler.
+        if isinstance(prof, galsim.ChromaticObject):
+            wave_list, _, _ = galsim.utilities.combine_wave_list(prof.sed, bandpass)
+            sed = prof.sed
+            # TODO: This bit should probably be ported back to Galsim.
+            #       Something like sed.make_tabulated()
+            if not isinstance(sed._spec, galsim.LookupTable) or sed._spec.interpolant != "linear":
+                # Workaround for https://github.com/GalSim-developers/GalSim/issues/1228
+                f = np.broadcast_to(sed(wave_list), wave_list.shape)
+                new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
+                new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
+                prof.sed = new_sed
+
+            # Also recurse onto any components.
+            if hasattr(prof, "obj_list"):
+                for obj in prof.obj_list:
+                    cls._fix_seds_24(obj, bandpass)
+            if hasattr(prof, "original"):
+                cls._fix_seds_24(prof.original, bandpass)
+
+    @classmethod
+    def _fix_seds_25(cls, prof, bandpass):
+        # If any SEDs are not currently using a LookupTable for the function or if they are
+        # using spline interpolation, then the codepath is quite slow.
+        # Better to fix them before doing WavelengthSampler.
+
+        # In GalSim 2.5, SEDs are not necessarily constructed in most chromatic objects.
+        # And really the only ones we need to worry about are the ones that come from
+        # SkyCatalog, since they might not have linear interpolants.
+        # Those objects are always SimpleChromaticTransformations.  So only fix those.
+        if isinstance(prof, galsim.SimpleChromaticTransformation) and (
+            not isinstance(prof._flux_ratio._spec, galsim.LookupTable)
+            or prof._flux_ratio._spec.interpolant != "linear"
+        ):
+            sed = prof._flux_ratio
+            wave_list, _, _ = galsim.utilities.combine_wave_list(sed, bandpass)
+            f = np.broadcast_to(sed(wave_list), wave_list.shape)
+            new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
+            new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
+            prof._flux_ratio = new_sed
+
+        # Also recurse onto any components.
+        if isinstance(prof, galsim.ChromaticObject):
+            if hasattr(prof, "obj_list"):
+                for obj in prof.obj_list:
+                    cls._fix_seds_25(obj, bandpass)
+            if hasattr(prof, "original"):
+                cls._fix_seds_25(prof.original, bandpass)
+
+    if galsim.__version_info__ < (2, 5):
+        fix_seds = _fix_seds_24
+    else:
+        fix_seds = _fix_seds_25
+
+
+class Roman_stamp(RomanStampBase):
+    """Build a full-exposure image stamp using shared Roman stamp behavior."""
 
     def setup(self, config, base, xsize, ysize, ignore, logger):
         """
@@ -135,91 +228,6 @@ class Roman_stamp(StampBuilder):
             world_pos = None
 
         return image_size, image_size, image_pos, world_pos
-
-    def getDrawMethod(self, config, base, logger):
-        """Determine the draw method to use.
-
-        @param config       The configuration dict for the stamp field.
-        @param base         The base configuration dict.
-        @param logger       A logger object to log progress.
-
-        @returns method
-        """
-        method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
-        self.use_fft_bright = False
-        if "use_fft_bright" in config:
-            self.use_fft_bright = galsim.config.ParseValue(config, "use_fft_bright", base, bool)[0]
-
-        if method not in galsim.config.valid_draw_methods:
-            raise galsim.GalSimConfigValueError(
-                "Invalid draw_method.", method, galsim.config.valid_draw_methods
-            )
-
-        if method == "phot":
-            if self.pupil_bin in [4, 2] and self.use_fft_bright:
-                logger.info("Auto -> Use FFT drawing for object %d.", base["obj_num"])
-                return "fft"
-            else:
-                logger.info("Auto -> Use photon shooting for object %d.", base["obj_num"])
-                return "phot"
-        else:
-            # If user sets something specific for the method, rather than auto,
-            # then respect their wishes.
-            logger.info("Use specified method=%s for object %d.", method, base["obj_num"])
-            return method
-
-    @classmethod
-    def _fix_seds_24(cls, prof, bandpass):
-        # If any SEDs are not currently using a LookupTable for the function or if they are
-        # using spline interpolation, then the codepath is quite slow.
-        # Better to fix them before doing WavelengthSampler.
-        if isinstance(prof, galsim.ChromaticObject):
-            wave_list, _, _ = galsim.utilities.combine_wave_list(prof.sed, bandpass)
-            sed = prof.sed
-            # TODO: This bit should probably be ported back to Galsim.
-            #       Something like sed.make_tabulated()
-            if not isinstance(sed._spec, galsim.LookupTable) or sed._spec.interpolant != "linear":
-                # Workaround for https://github.com/GalSim-developers/GalSim/issues/1228
-                f = np.broadcast_to(sed(wave_list), wave_list.shape)
-                new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
-                new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
-                prof.sed = new_sed
-
-            # Also recurse onto any components.
-            if hasattr(prof, "obj_list"):
-                for obj in prof.obj_list:
-                    cls._fix_seds_24(obj, bandpass)
-            if hasattr(prof, "original"):
-                cls._fix_seds_24(prof.original, bandpass)
-
-    @classmethod
-    def _fix_seds_25(cls, prof, bandpass):
-        # If any SEDs are not currently using a LookupTable for the function or if they are
-        # using spline interpolation, then the codepath is quite slow.
-        # Better to fix them before doing WavelengthSampler.
-
-        # In GalSim 2.5, SEDs are not necessarily constructed in most chromatic objects.
-        # And really the only ones we need to worry about are the ones that come from
-        # SkyCatalog, since they might not have linear interpolants.
-        # Those objects are always SimpleChromaticTransformations.  So only fix those.
-        if isinstance(prof, galsim.SimpleChromaticTransformation) and (
-            not isinstance(prof._flux_ratio._spec, galsim.LookupTable)
-            or prof._flux_ratio._spec.interpolant != "linear"
-        ):
-            sed = prof._flux_ratio
-            wave_list, _, _ = galsim.utilities.combine_wave_list(sed, bandpass)
-            f = np.broadcast_to(sed(wave_list), wave_list.shape)
-            new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
-            new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
-            prof._flux_ratio = new_sed
-
-        # Also recurse onto any components.
-        if isinstance(prof, galsim.ChromaticObject):
-            if hasattr(prof, "obj_list"):
-                for obj in prof.obj_list:
-                    cls._fix_seds_25(obj, bandpass)
-            if hasattr(prof, "original"):
-                cls._fix_seds_25(prof.original, bandpass)
 
     def draw(self, prof, image, method, offset, config, base, logger):
         """Draw the profile on the postage stamp image.
@@ -346,25 +354,8 @@ class Roman_stamp(StampBuilder):
         fft_image.addNoise(galsim.PoissonNoise(rng=self.rng))
 
 
-# Pick the right function to be _fix_seds.
-if galsim.__version_info__ < (2, 5):
-    Roman_stamp.fix_seds = Roman_stamp._fix_seds_24
-else:
-    Roman_stamp.fix_seds = Roman_stamp._fix_seds_25
-
-
-class Roman_stamp_CMOS(StampBuilder):
-    """This performs the tasks necessary for building the stamp for a single object per dt.
-
-    It uses the regular Basic functions for most things.
-    It specializes the quickSkip, buildProfile, and draw methods.
-    """
-
-    _trivial_sed = galsim.SED(
-        galsim.LookupTable([100, 2600], [1, 1], interpolant="linear"),
-        wave_type="nm",
-        flux_type="fphotons",
-    )
+class Roman_stamp_CMOS(RomanStampBase):
+    """Build interval photons using shared Roman stamp behavior."""
 
     def setup(self, config, base, xsize, ysize, ignore, logger):
         """
@@ -390,6 +381,7 @@ class Roman_stamp_CMOS(StampBuilder):
             xsize, ysize, image_pos, world_pos
         """
         # print('stamp setup',process.memory_info().rss)
+
         # Handle the "use_fft_bright" parameter as it can be provided in either image or stamp config
         if "use_fft_bright" in base["image"] and "use_fft_bright" not in config:
             config["use_fft_bright"] = base["image"]["use_fft_bright"]
@@ -535,114 +527,6 @@ class Roman_stamp_CMOS(StampBuilder):
                 "world_pos": world_pos,
             }
         return image_size, image_size, image_pos, world_pos
-
-    def buildPSF(self, config, base, gsparams, logger):
-        """Build the PSF object.
-
-        For the Basic stamp type, this builds a PSF from the base['psf'] dict, if present,
-        else returns None.
-
-        Parameters:
-            config:     The configuration dict for the stamp field.
-            base:       The base configuration dict.
-            gsparams:   A dict of kwargs to use for a GSParams.  More may be added to this
-                        list by the galaxy object.
-            logger:     A logger object to log progress.
-
-        Returns:
-            the PSF
-        """
-        if base.get("psf", {}).get("type", "roman_psf") != "roman_psf":
-            return galsim.config.BuildGSObject(base, "psf", gsparams=gsparams, logger=logger)[0]
-
-        roman_psf = galsim.config.GetInputObj("roman_psf", config, base, "buildPSF")
-        psf = roman_psf.getPSF(self.pupil_bin, base["image_pos"])
-        return psf
-
-    def getDrawMethod(self, config, base, logger):
-        """Determine the draw method to use.
-
-        @param config       The configuration dict for the stamp field.
-        @param base         The base configuration dict.
-        @param logger       A logger object to log progress.
-
-        @returns method
-        """
-        method = galsim.config.ParseValue(config, "draw_method", base, str)[0]
-        self.use_fft_bright = False
-        if "use_fft_bright" in config:
-            self.use_fft_bright = galsim.config.ParseValue(config, "use_fft_bright", base, bool)[0]
-
-        if method not in galsim.config.valid_draw_methods:
-            raise galsim.GalSimConfigValueError(
-                "Invalid draw_method.", method, galsim.config.valid_draw_methods
-            )
-
-        if method == "phot":
-            if self.pupil_bin in [4, 2] and self.use_fft_bright:
-                logger.info("Auto -> Use FFT drawing for object %d.", base["obj_num"])
-                return "fft"
-            else:
-                logger.info("Auto -> Use photon shooting for object %d.", base["obj_num"])
-                return "phot"
-        else:
-            # If user sets something specific for the method, rather than auto,
-            # then respect their wishes.
-            logger.info("Use specified method=%s for object %d.", method, base["obj_num"])
-            return method
-
-    @classmethod
-    def _fix_seds_24(cls, prof, bandpass):
-        # If any SEDs are not currently using a LookupTable for the function or if they are
-        # using spline interpolation, then the codepath is quite slow.
-        # Better to fix them before doing WavelengthSampler.
-        if isinstance(prof, galsim.ChromaticObject):
-            wave_list, _, _ = galsim.utilities.combine_wave_list(prof.sed, bandpass)
-            sed = prof.sed
-            # TODO: This bit should probably be ported back to Galsim.
-            #       Something like sed.make_tabulated()
-            if not isinstance(sed._spec, galsim.LookupTable) or sed._spec.interpolant != "linear":
-                # Workaround for https://github.com/GalSim-developers/GalSim/issues/1228
-                f = np.broadcast_to(sed(wave_list), wave_list.shape)
-                new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
-                new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
-                prof.sed = new_sed
-
-            # Also recurse onto any components.
-            if hasattr(prof, "obj_list"):
-                for obj in prof.obj_list:
-                    cls._fix_seds_24(obj, bandpass)
-            if hasattr(prof, "original"):
-                cls._fix_seds_24(prof.original, bandpass)
-
-    @classmethod
-    def _fix_seds_25(cls, prof, bandpass):
-        # If any SEDs are not currently using a LookupTable for the function or if they are
-        # using spline interpolation, then the codepath is quite slow.
-        # Better to fix them before doing WavelengthSampler.
-
-        # In GalSim 2.5, SEDs are not necessarily constructed in most chromatic objects.
-        # And really the only ones we need to worry about are the ones that come from
-        # SkyCatalog, since they might not have linear interpolants.
-        # Those objects are always SimpleChromaticTransformations.  So only fix those.
-        if isinstance(prof, galsim.SimpleChromaticTransformation) and (
-            not isinstance(prof._flux_ratio._spec, galsim.LookupTable)
-            or prof._flux_ratio._spec.interpolant != "linear"
-        ):
-            sed = prof._flux_ratio
-            wave_list, _, _ = galsim.utilities.combine_wave_list(sed, bandpass)
-            f = np.broadcast_to(sed(wave_list), wave_list.shape)
-            new_spec = galsim.LookupTable(wave_list, f, interpolant="linear")
-            new_sed = galsim.SED(new_spec, "nm", "fphotons" if sed.spectral else "1")
-            prof._flux_ratio = new_sed
-
-        # Also recurse onto any components.
-        if isinstance(prof, galsim.ChromaticObject):
-            if hasattr(prof, "obj_list"):
-                for obj in prof.obj_list:
-                    cls._fix_seds_25(obj, bandpass)
-            if hasattr(prof, "original"):
-                cls._fix_seds_25(prof.original, bandpass)
 
     def draw(self, prof, image, method, offset, config, base, logger):
         """Draw the profile on the postage stamp for fft and convert to photonArray or create photonArray
@@ -835,13 +719,6 @@ class Roman_stamp_CMOS(StampBuilder):
                 photons = galsim.PhotonArray(0)
         # print('stamp draw3',process.memory_info().rss)
         return photons
-
-
-# Pick the right function to be _fix_seds.
-if galsim.__version_info__ < (2, 5):
-    Roman_stamp_CMOS.fix_seds = Roman_stamp_CMOS._fix_seds_24
-else:
-    Roman_stamp_CMOS.fix_seds = Roman_stamp_CMOS._fix_seds_25
 
 
 # Register this as a valid type
