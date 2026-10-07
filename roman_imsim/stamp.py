@@ -388,10 +388,7 @@ class Roman_stamp_CMOS(RomanStampBase):
         # Define the exp time for use in adjusting flux/photon for any dt
         # slice and exposure time based on previously defined values
 
-        if "exptime" in config:
-            self.exptime = galsim.config.ParseValue(config, "exptime", base, float)[0]
-        else:
-            self.exptime = roman.exptime
+        self.exptime = galsim.config.ParseValue(config, "exptime", base, float)[0]
 
         dt = galsim.config.ParseValue(config, "dt", base, float)[0]
         self.dt = dt
