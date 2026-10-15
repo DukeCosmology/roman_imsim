@@ -14,6 +14,9 @@ from galsim.config import (
     RegisterValueType,
 )
 
+_RUNTIME_DIFFSKY_OBJECT_TYPES = frozenset({"diffsky26_galaxy"})
+_GALAXY_OBJECT_TYPES = frozenset({"galaxy", "diffsky_galaxy", "diffsky26_galaxy"})
+
 
 class SkyCatalogInterface:
     """Interface to skyCatalogs package."""
@@ -176,7 +179,7 @@ class SkyCatalogInterface:
             )
 
         objects = skycat.objects[start:stop]
-        diffsky_objects = [obj for obj in objects if obj.object_type == "diffsky_galaxy"]
+        diffsky_objects = [obj for obj in objects if obj.object_type in _RUNTIME_DIFFSKY_OBJECT_TYPES]
         if diffsky_objects and hasattr(diffsky_objects[0], "prefetch_seds"):
             if hasattr(diffsky_objects[0], "clear_prefetched_seds"):
                 diffsky_objects[0].clear_prefetched_seds()
@@ -284,7 +287,7 @@ class SkyCatalogInterface:
         gs_object.flux = flux
 
         # Get the object type
-        if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
+        if skycat_obj.object_type in _GALAXY_OBJECT_TYPES:
             gs_object.object_type = "galaxy"
         if skycat_obj.object_type in {"star", "gaia_star"}:
             gs_object.object_type = "star"
