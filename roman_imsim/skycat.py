@@ -5,14 +5,17 @@ Interface to obtain objects from skyCatalogs.
 import warnings
 
 import galsim
-import romanisim.models as models
 import numpy as np
+import romanisim.models as models
 from galsim.config import (
     InputLoader,
     RegisterInputType,
     RegisterObjectType,
     RegisterValueType,
 )
+
+_RUNTIME_DIFFSKY_OBJECT_TYPES = frozenset({"diffsky26_galaxy"})
+_GALAXY_OBJECT_TYPES = frozenset({"galaxy", "diffsky_galaxy", "diffsky26_galaxy"})
 
 
 class SkyCatalogInterface:
@@ -101,6 +104,7 @@ class SkyCatalogInterface:
             self.logger.warning(f"Object types restricted to {obj_types}")
         self.sca_center = wcs.toWorld(galsim.PositionD(self.xsize / 2.0, self.ysize / 2.0))
         self._objects = None
+        self._prefetched_sed_batch = None
 
         # import os, psutil
         # process = psutil.Process()
@@ -160,6 +164,38 @@ class SkyCatalogInterface:
         the class initializer.
         """
         return self.getNObjects()
+
+    def prefetch_seds(self, start, stop):
+        """
+        Prefetch runtime SEDs for a half-open range of image objects.
+        """
+        batch_key = (int(start), int(stop))
+        if batch_key == self._prefetched_sed_batch:
+            return
+        if not 0 <= start < len(self.objects):
+            raise IndexError(
+                f"Invalid SkyCatalog SED prefetch range [{start}, {stop}) " f"for {len(self.objects)} objects"
+            )
+        elif stop >= len(self.objects):
+            self.logger.warning(
+                f"SkyCatalog SED prefetch range [{start}, {stop}) exceeds the"
+                f"number of objects in the catalog: {len(self.objects)}."
+            )
+
+        objects = self.objects[start:stop]
+        diffsky_objects = [obj for obj in objects if obj.object_type in _RUNTIME_DIFFSKY_OBJECT_TYPES]
+        if diffsky_objects and hasattr(diffsky_objects[0], "prefetch_seds"):
+            if hasattr(diffsky_objects[0], "clear_prefetched_seds"):
+                diffsky_objects[0].clear_prefetched_seds()
+            self.logger.info(
+                "Prefetching Diffsky SEDs for %d objects [%d, %d)",
+                len(diffsky_objects),
+                start,
+                stop,
+            )
+            diffsky_objects[0].prefetch_seds(diffsky_objects)
+
+        self._prefetched_sed_batch = batch_key
 
     def getWorldPos(self, index):
         """
@@ -255,7 +291,7 @@ class SkyCatalogInterface:
         gs_object.flux = flux
 
         # Get the object type
-        if (skycat_obj.object_type == "diffsky_galaxy") | (skycat_obj.object_type == "galaxy"):
+        if skycat_obj.object_type in _GALAXY_OBJECT_TYPES:
             gs_object.object_type = "galaxy"
         if skycat_obj.object_type in {"star", "gaia_star"}:
             gs_object.object_type = "star"
@@ -303,6 +339,14 @@ def SkyCatObj(config, base, ignore, gsparams, logger):
     Build an object according to info in the sky catalog.
     """
     skycat = galsim.config.GetInputObj("sky_catalog", config, base, "SkyCatObj")
+
+    # RomanSCAImageBuilder exposes the exact range that BuildStamps is about
+    # to render. Prefetching here happens before the first object's SED lookup
+    # and only once for the range.
+    sed_batch = base.get("_roman_imsim_sed_batch")
+    if sed_batch is not None:
+        start, stop = sed_batch
+        skycat.prefetch_seds(start=start, stop=stop)
 
     # Ensure that this sky catalog matches the CCD being simulated by
     # comparing center locations on the sky.
