@@ -174,8 +174,7 @@ class SkyCatalogInterface:
             return
         if not 0 <= start <= stop <= len(self.objects):
             raise IndexError(
-                f"Invalid SkyCatalog SED prefetch range [{start}, {stop}) "
-                f"for {len(self.objects)} objects"
+                f"Invalid SkyCatalog SED prefetch range [{start}, {stop}) " f"for {len(self.objects)} objects"
             )
 
         objects = self.objects[start:stop]
