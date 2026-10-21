@@ -31,7 +31,7 @@ def test_prefetch_seds_ignores_legacy_diffsky_objects():
     star = _FakeObject("star", calls)
     interface = _interface([diffsky[0], star, diffsky[1], diffsky[2]])
 
-    interface.prefetch_seds(0, 3)
+    interface.prefetch_seds(start=0, stop=3)
     assert calls == []
 
 
@@ -40,16 +40,16 @@ def test_prefetch_seds_selects_diffsky26_objects():
     diffsky26 = [_FakeObject("diffsky26_galaxy", calls) for _ in range(2)]
     interface = _interface(diffsky26)
 
-    interface.prefetch_seds(0, 2)
+    interface.prefetch_seds(start=0, stop=2)
 
     assert calls == [("clear",), ("prefetch", tuple(diffsky26))]
 
     # Per-object GalSim calls for the same range must not recompute the batch.
-    interface.prefetch_seds(0, 2)
+    interface.prefetch_seds(start=0, stop=2)
     assert len(calls) == 2
 
 
 def test_prefetch_seds_validates_batch_bounds():
     interface = _interface([])
     with pytest.raises(IndexError, match="Invalid SkyCatalog SED prefetch"):
-        interface.prefetch_seds(0, 1)
+        interface.prefetch_seds(start=0, stop=1)

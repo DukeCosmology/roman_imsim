@@ -165,25 +165,25 @@ class SkyCatalogInterface:
         """
         return self.getNObjects()
 
-    def prefetch_seds(skycat, start, stop):
+    def prefetch_seds(self, start, stop):
         """
         Prefetch runtime SEDs for a half-open range of image objects.
         """
         batch_key = (int(start), int(stop))
-        if batch_key == skycat._prefetched_sed_batch:
+        if batch_key == self._prefetched_sed_batch:
             return
-        if not 0 <= start <= stop <= len(skycat.objects):
+        if not 0 <= start <= stop <= len(self.objects):
             raise IndexError(
                 f"Invalid SkyCatalog SED prefetch range [{start}, {stop}) "
-                f"for {len(skycat.objects)} objects"
+                f"for {len(self.objects)} objects"
             )
 
-        objects = skycat.objects[start:stop]
+        objects = self.objects[start:stop]
         diffsky_objects = [obj for obj in objects if obj.object_type in _RUNTIME_DIFFSKY_OBJECT_TYPES]
         if diffsky_objects and hasattr(diffsky_objects[0], "prefetch_seds"):
             if hasattr(diffsky_objects[0], "clear_prefetched_seds"):
                 diffsky_objects[0].clear_prefetched_seds()
-            skycat.logger.info(
+            self.logger.info(
                 "Prefetching Diffsky SEDs for %d objects [%d, %d)",
                 len(diffsky_objects),
                 start,
@@ -191,7 +191,7 @@ class SkyCatalogInterface:
             )
             diffsky_objects[0].prefetch_seds(diffsky_objects)
 
-        skycat._prefetched_sed_batch = batch_key
+        self._prefetched_sed_batch = batch_key
 
     def getWorldPos(self, index):
         """
@@ -341,7 +341,8 @@ def SkyCatObj(config, base, ignore, gsparams, logger):
     # and only once for the range.
     sed_batch = base.get("_roman_imsim_sed_batch")
     if sed_batch is not None:
-        skycat.prefetch_seds(*sed_batch)
+        start, stop = sed_batch
+        skycat.prefetch_seds(start=start, stop=stop)
 
     # Ensure that this sky catalog matches the CCD being simulated by
     # comparing center locations on the sky.
