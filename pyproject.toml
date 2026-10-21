@@ -24,6 +24,7 @@ dependencies = [
   "packaging",
   "setuptools",
   "roman_datamodels",
+  "asdf",
   "gwcs",
   "romanisim",
 ]

@@ -1,5 +1,4 @@
 from importlib.metadata import version, PackageNotFoundError
-import gc
 import galsim
 import galsim.config
 import romanisim.models as models
@@ -8,6 +7,8 @@ from astropy.time import Time
 from galsim.config import RegisterImageType
 from galsim.config.image_scattered import ScatteredImageBuilder
 from galsim.image import Image
+
+from .ramp import CMOSRamp, CMOSReadout, validate_read_pattern
 
 
 class RomanSCAImageBuilderBase(ScatteredImageBuilder):
@@ -202,123 +203,65 @@ class RomanSCAImageBuilder(RomanSCAImageBuilderBase):
 
 
 class RomanSCAImageBuilderCMOS(RomanSCAImageBuilderBase):
-    """Accumulate interval photons and process reads using image.noise."""
+    """Sample all sources for each frame and retain nondestructive L1 resultants."""
+
+    def setup(self, config, base, image_num, obj_num, ignore, logger):
+        if 'nproc' in config and galsim.config.ParseValue(config, 'nproc', base, int)[0] != 1:
+            raise galsim.GalSimConfigError(
+                'CMOS frame sampling requires image.nproc: 1 to retain object RNG streams')
+        return super().setup(config, base, image_num, obj_num,
+                             ignore + ['pedestal', 'pedestal_extra_noise', 'saturation', 'reference_read'], logger)
 
     def buildImage(self, config, base, image_num, obj_num, logger):
-        """Build an Image containing multiple objects placed at arbitrary locations.
-
-        Parameters:
-            config:     The configuration dict for the image field.
-            base:       The base configuration dict.
-            image_num:  The current image number.
-            obj_num:    The first object number in the image.
-            logger:     If given, a logger object to log progress.
-
-        Returns:
-            the final image and the current noise variance in the image as a tuple
-        """
-        rdata = galsim.config.GetInputObj("resultant_data", config, base, "ResultantDataLoader")
-        strategy = rdata.get("strategy")
-        full_image = self._makeImage(base)
+        rdata = galsim.config.GetInputObj('resultant_data', config, base, 'CMOS ramp')
+        pattern = validate_read_pattern(rdata.get('strategy'))
+        if not np.isfinite(self.exptime) or self.exptime <= 0:
+            raise galsim.GalSimConfigError('CMOS exposure time must be finite and positive')
+        if base['stamp']['type'] != 'Roman_stamp_CMOS':
+            raise galsim.GalSimConfigError('roman_sca_cmos requires stamp.type: Roman_stamp_CMOS')
+        frame_time = self.exptime / pattern[-1][-1]
+        charge = self._makeImage(base)
         self._setupPositions(config, base)
-        # Create index and lists for resultant management
-        max_dt = strategy[-1][-1]
-        resultant_i = 0
-        resultant_buffer = []
-        # Iterate through all dt
-        if "_global" not in base:
-            base["_global"] = {}
-        if "stamp_setup_cache" not in base["_global"]:
-            base["_global"]["stamp_setup_cache"] = {}
-
-        for dt in np.arange(1, max_dt + 1):
-
-            full_array = galsim.PhotonArray(0)
-
-            for batch, nbatch, start_obj_num, end_obj_num in self._iterObjectBatches():
-                nobj_batch = end_obj_num - start_obj_num
-                if nbatch > 1:
-                    logger.warning(
-                        "Start batch %d/%d with %d objects [%d, %d)",
-                        batch + 1,
-                        nbatch,
-                        nobj_batch,
-                        start_obj_num,
-                        end_obj_num,
-                    )
-                stamps, current_vars = galsim.config.BuildStamps(
-                    nobj_batch, base, logger=logger, obj_num=start_obj_num, do_noise=False
-                )
-                # logger.warning(base["_global"]["stamp_setup_cache"][batch])
-                base["index_key"] = "image_num"
-
-                for k in range(nobj_batch):
-                    # This is our signal that the object was skipped.
-                    if stamps[k] is None:
+        # Exposure-local state: preserve each object's RNG across intervals but
+        # never reuse charge, samplers, or a previous exposure's resultants.
+        base.pop('_cmos_ramp', None)
+        base['_cmos_object_rngs'] = {}
+        base['_cmos_dt'] = frame_time
+        rng = galsim.config.GetRNG(config, base, logger, 'CMOS readout')
+        readout = CMOSReadout(config, base, charge, rng, logger)
+        want_reference = galsim.config.ParseValue(config, 'reference_read', base, bool)[0] if 'reference_read' in config else False
+        reference = readout.read(charge) if want_reference else None
+        group_for_read = {read: i for i, group in enumerate(pattern) for read in group}
+        resultants = np.zeros((len(pattern),) + charge.array.shape, dtype='f8')
+        for frame in range(1, pattern[-1][-1] + 1):
+            for batch, nbatch, start, end in self._iterObjectBatches():
+                stamps, _ = galsim.config.BuildStamps(
+                    end - start, base, logger=logger, obj_num=obj_num + start, do_noise=False)
+                base['index_key'] = 'image_num'
+                for stamp in stamps:
+                    if stamp is None:
                         continue
-                    bounds = full_image.bounds  # stamps[k].bounds &
-                    if not bounds.isDefined():  # pragma: no cover
-                        # These noramlly show up as stamp==None, but technically it is possible
-                        # to get a stamp that is off the main image, so check for that here to
-                        # avoid an error.  But this isn't covered in the imsim test suite.
-                        continue
-
-                    # logger.debug("image %d: full bounds = %s", image_num, str(full_image.bounds))
-                    # logger.debug(
-                    #     "image %d: stamp %d bounds = %s",
-                    #     image_num,
-                    #     k + start_obj_num,
-                    #     str(stamps[k].bounds),
-                    # )
-                    # logger.debug("image %d: Overlap = %s", image_num, str(bounds))
-                    # full_image[bounds] += stamps[k][bounds]
-                    # logger.warning(stamps[k])
-                full_array = galsim.PhotonArray.concatenate([*stamps, full_array])
-
-                stamps = None
-
-            # # Bring the image so far up to a flat noise variance
-            # current_var = FlattenNoiseVariance(
-            #         base, full_image, stamps, current_vars, logger)
-            # TODO : Apply BFE photon operation (uses current pre-read image and next photon array)
-
-            # Turn full_image into running pre-read image
-            full_array.addTo(full_image)
-            del full_array
-            gc.collect()
-            # Decide what to do with readout based on resultant strategy
-            if (
-                np.array([item for sub in strategy for item in sub]) == dt
-            ).any():  # does this dt exist in strategy
-                if (np.array(strategy[resultant_i]) == dt).any():  # is it in our current resultant
-                    readout_im = full_image.copy()
-                    # Temporary full-exposure noise processing per read; interval
-                    # backgrounds and read covariance are TODO.
-                    galsim.config.AddNoise(base, readout_im, current_var=0, logger=logger)
-                    resultant_buffer.extend([readout_im])
-                    if len(resultant_buffer) > 1:
-                        # combine readout images
-                        resultant_buffer[0].array = resultant_buffer[0].array + resultant_buffer[1].array
-                        del resultant_buffer[-1]
-                        gc.collect()
-
-                if np.array(strategy[resultant_i][-1]) == dt:  # is this dt the last in our current resultant
-                    divisor = len(np.array(strategy[resultant_i]))
-                    # divide summed images by the length of resultant to get the average
-                    # apply headers to the image array
-                    # TODO:apply header to the image array
-                    resultant_buffer[0].array = resultant_buffer[0].array / divisor
-                    resultant_buffer[0].write("resultant_{0}.fits".format(resultant_i))
-                    resultant_i += 1
-                    resultant_buffer = []
-                    logger.warning("resultant{0} done".format(resultant_i))
-
-        # full_array.write("photonarray.fits")
-        # full_image.write("phot_image.fits")
-
-        return full_image, None
+                    bounds = stamp.bounds & charge.bounds
+                    if bounds.isDefined():
+                        charge[bounds] += stamp[bounds]
+            readout.accumulate_background(charge, frame_time)
+            charge.quantize()  # remove floating roundoff from unit-electron photon weights
+            if frame in group_for_read:
+                i = group_for_read[frame]
+                resultants[i] += readout.read(charge) / len(pattern[i])
+        if reference is not None:
+            all_reads = np.concatenate([reference[None], resultants])
+            cube, all_dq = readout.digitize(all_reads, [[0]] + pattern, frame_time)
+            reference, cube, dq = cube[0], cube[1:], all_dq[1:]
+        else:
+            cube, dq = readout.digitize(resultants, pattern, frame_time)
+        base['_cmos_ramp'] = CMOSRamp(cube, dq, pattern, frame_time, readout.gain, reference)
+        base.pop('_cmos_dt', None)
+        base.pop('_cmos_object_rngs', None)
+        return charge, None
 
     def addNoise(self, image, config, base, image_num, obj_num, current_var, logger):
+        # Read electronics have already been applied to resultant copies.
         pass
 
 
