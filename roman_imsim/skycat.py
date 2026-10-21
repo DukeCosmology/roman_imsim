@@ -172,9 +172,14 @@ class SkyCatalogInterface:
         batch_key = (int(start), int(stop))
         if batch_key == self._prefetched_sed_batch:
             return
-        if not 0 <= start <= stop <= len(self.objects):
+        if not 0 <= start < len(self.objects):
             raise IndexError(
                 f"Invalid SkyCatalog SED prefetch range [{start}, {stop}) " f"for {len(self.objects)} objects"
+            )
+        elif stop >= len(self.objects):
+            self.logger.warning(
+                f"SkyCatalog SED prefetch range [{start}, {stop}) exceeds the"
+                f"number of objects in the catalog: {len(self.objects)}."
             )
 
         objects = self.objects[start:stop]
