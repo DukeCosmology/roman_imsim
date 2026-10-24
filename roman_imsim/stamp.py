@@ -158,6 +158,7 @@ class Roman_stamp(RomanStampBase):
         flux_cap = config.get("flux_cap", np.inf)
         if isinstance(flux_cap, dict):
             flux_cap = flux_cap.get(base.get("object_type", ""), np.inf)
+        flux_cap = float(flux_cap)
         if self.flux > flux_cap:
             if (
                 hasattr(gal, "original")
@@ -406,6 +407,7 @@ class Roman_stamp_CMOS(RomanStampBase):
         flux_cap = config.get("flux_cap", np.inf)
         if isinstance(flux_cap, dict):
             flux_cap = flux_cap.get(base.get("object_type", ""), np.inf)
+        flux_cap = float(flux_cap)
         if self.flux > flux_cap:
             if (
                 hasattr(gal, "original")

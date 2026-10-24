@@ -246,7 +246,7 @@ class SkyCatalogInterface:
         # Cap flux for configured object types to avoid gross artifacts when
         # trying to draw the Roman PSF in finite time and memory.
         if self.flux_cap and skycat_obj.object_type in self.flux_cap:
-            cap = self.flux_cap[skycat_obj.object_type]
+            cap = float(self.flux_cap[skycat_obj.object_type])
             if flux > cap:
                 flux = cap
 
