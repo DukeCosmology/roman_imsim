@@ -1,0 +1,39 @@
+# Run from roman_imsim_testdata; override the local inputs below for other datasets.
+modules:
+    - roman_imsim
+    - roman_imsim.output_asdf
+
+template: roman_imsim_default
+
+image.type: roman_sca_cmos
+image.draw_method: phot
+image.use_fft_bright: false
+# Reference-read subtraction and flight-like uint16 encoding are optional.
+image.reference_read: false
+# Romanisim L1 does not apply this legacy full-exposure approximation.
+image.noise.reciprocity_failure: false
+image.noise.sky_subtract: false
+# Use the selected MA table at Romanisim's physical frame cadence.
+image.exptime: {type: ResultantData, field: exptime}
+input.resultant_data:
+    ma_table_number: 3
+
+stamp.type: Roman_stamp_CMOS
+stamp.draw_method: phot
+stamp.use_fft_bright: false
+
+output.type: RomanASDF
+output.level: 1
+output.file_name.format: "Roman_WAS_L1_%s_%i_%i.asdf"
+
+# Local test-data inputs, matching hack.yaml.
+image.SCA: 4
+input.obseq_data.file_name: "Roman_WAS_obseq_11_1_23.fits"
+input.obseq_data.visit: 12909
+input.sky_catalog.file_name: "skyCatalog/skyCatalog.yaml"
+# Catalog fluxes must be integrated for the same duration as the ramp.
+input.sky_catalog.exptime: '@image.exptime'
+
+output.dir: output/RomanWAS_new/images/l1
+output.truth.dir: output/RomanWAS_new/truth/l1
+
