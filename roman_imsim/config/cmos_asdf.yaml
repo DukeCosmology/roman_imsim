@@ -21,6 +21,7 @@ input.resultant_data:
 stamp.type: Roman_stamp_CMOS
 stamp.draw_method: phot
 stamp.use_fft_bright: false
+stamp.skip_failures: true
 
 output.type: RomanASDF
 output.level: 1
