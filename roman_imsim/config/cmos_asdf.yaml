@@ -16,7 +16,8 @@ image.noise.sky_subtract: false
 # Use the selected MA table at Romanisim's physical frame cadence.
 image.exptime: {type: ResultantData, field: exptime}
 input.resultant_data:
-    ma_table_number: 3
+     # read_pattern: [[1]]
+     ma_table_number: 3
 
 stamp.type: Roman_stamp_CMOS
 stamp.draw_method: phot
@@ -28,7 +29,7 @@ output.level: 1
 output.file_name.format: "Roman_WAS_L1_%s_%i_%i.asdf"
 
 # Local test-data inputs, matching hack.yaml.
-image.SCA: 4
+image.SCA: 3
 input.obseq_data.file_name: "Roman_WAS_obseq_11_1_23.fits"
 input.obseq_data.visit: 12909
 input.sky_catalog.file_name: "skyCatalog/skyCatalog.yaml"
