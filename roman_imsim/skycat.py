@@ -741,7 +741,7 @@ class SkyCatalogInterface:
         gs_object = galsim.InterpolatedImage(
             image,
             x_interpolant="lanczos5",
-            gsparams=gsparams,
+            # gsparams=gsparams,
         )
 
         gs_object.object_type = "galaxy"
