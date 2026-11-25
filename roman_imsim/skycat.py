@@ -370,11 +370,11 @@ class SkyCatalogInterface:
         # -----------------------------------------------------
 
         roman_catalog_dir = Path(
-            "/PATH/TO/PHOTUTILS/CSV/FILES"
+            "/hpc/group/cosmology/ds772/RomanGenGal/GenGal_ParamCat/cat_v1/"
         )
 
         roman_hdf5_dir = Path(
-            "/PATH/TO/GENERATED/HDF5/FILES"
+            "/hpc/group/cosmology/ds772/RomanGenGal/GenGal_hdf5"
         )
 
         n_gpu = 4
