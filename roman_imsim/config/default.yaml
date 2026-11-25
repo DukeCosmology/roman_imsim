@@ -127,7 +127,8 @@ psf:
 
 # Define the galaxy type and positions to use
 gal:
-    type: SkyCatObj
+    #type: SkyCatObj
+    type: GenGal
 
 input:
     obseq_data:
