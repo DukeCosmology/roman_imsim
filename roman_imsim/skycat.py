@@ -3,10 +3,14 @@ Interface to obtain objects from skyCatalogs.
 """
 
 import warnings
+from pathlib import Path
 
 import galsim
 import numpy as np
 import romanisim.models as models
+import h5py
+import pandas as pd
+
 from galsim.config import (
     InputLoader,
     RegisterInputType,
@@ -300,6 +304,451 @@ class SkyCatalogInterface:
 
         return gs_object
 
+    
+    def getGenGal(self, index, gsparams=None, rng=None, exptime=30):
+        """
+        Return a diffusion-generated GalSim object matched to the
+        morphology of the corresponding DiffSky26 galaxy.
+
+        The matching is based on galaxy size, reduced-shear
+        ellipticity amplitude, and position angle, using morphology
+        measurements obtained with Photutils.
+
+        If no generated galaxy satisfies the morphology matching
+        tolerances, a random generated galaxy is selected.
+
+        Parameters
+        ----------
+        index : int
+            Index of the object in the self.objects catalog.
+        gsparams : galsim.GSParams, optional
+            GalSim accuracy parameters.
+        rng : galsim.BaseDeviate, optional
+            Random number generator used for the random fallback.
+        exptime : float
+            Exposure time, retained for compatibility with getObj.
+
+        Returns
+        -------
+        galsim.GSObject or None
+
+        Notes
+        -----
+        This is a preliminary morphology-only implementation.
+        No additional flux normalization or SED is applied.
+
+        DiffSky component half-light radii and Photutils moment
+        radii are not identical observables. The radius proxy
+        factor is not a scientifically validated calibration.
+
+        Pixel and sky position angle conventions must also be
+        validated before scientific use.
+        """
+
+        if not self.objects:
+            raise RuntimeError(
+                "Trying to get an object from an empty sky catalog"
+            )
+
+        skycat_obj = self.objects[index]
+
+        # Preserve the original implementation for non-galaxy
+        # objects, including stars and supernovae.
+        if skycat_obj.object_type not in _GALAXY_OBJECT_TYPES:
+            return self.getObj(
+                index, gsparams=gsparams, rng=rng, exptime=exptime
+            )
+
+        # The current morphology matching is specific to DiffSky26.
+        if skycat_obj.object_type != "diffsky26_galaxy":
+            raise NotImplementedError(
+                "GenGal currently supports diffsky26_galaxy only."
+            )
+
+        # -----------------------------------------------------
+        # 1. Generated galaxy catalogs and matching parameters
+        # -----------------------------------------------------
+
+        roman_catalog_dir = Path(
+            "/PATH/TO/PHOTUTILS/CSV/FILES"
+        )
+
+        roman_hdf5_dir = Path(
+            "/PATH/TO/GENERATED/HDF5/FILES"
+        )
+
+        n_gpu = 4
+        dataset_name = "images"
+
+        # DiffSky component and reference matching band.
+        component = "disk"
+        band = "H"
+
+        # Morphology conversion parameters.
+        pixel_scale_arcsec = 0.1
+        radius_proxy_factor = 1.0
+        pa_offset_deg = 0.0
+        pa_parity = 1
+
+        # Morphology matching tolerances.
+        max_frac_radius = 0.5
+        max_delta_g = 0.15
+        max_delta_pa_deg = 30.0
+        circular_g_threshold = 0.03
+
+        require_selected_radial = True
+
+        # -----------------------------------------------------
+        # 2. Extract and convert the DiffSky26 morphology
+        # -----------------------------------------------------
+
+        prefix = "disk" if component == "disk" else "spheroid"
+
+        target_radius = float(
+            skycat_obj.get_native_attribute(
+                f"{prefix}HalfLightRadiusArcsec"
+            )
+        )
+
+        target_g1 = float(
+            skycat_obj.get_native_attribute(
+                f"{prefix}Ellipticity1"
+            )
+        )
+
+        target_g2 = float(
+            skycat_obj.get_native_attribute(
+                f"{prefix}Ellipticity2"
+            )
+        )
+
+        # DiffSky26 uses the GalSim reduced-shear convention.
+        target_g = np.hypot(target_g1, target_g2)
+
+        target_pa = np.degrees(
+            0.5 * np.arctan2(target_g2, target_g1)
+        ) % 180.0
+
+        # Check whether the target morphology is valid.
+        target_valid = (
+            np.all(np.isfinite([
+                target_radius,
+                target_g1,
+                target_g2,
+                target_g,
+                target_pa,
+            ]))
+            and target_radius > 0
+            and target_g < 1
+        )
+
+        # -----------------------------------------------------
+        # 3. Load and cache the Photutils morphology catalogs
+        # -----------------------------------------------------
+
+        if not hasattr(self, "_gen_gal_catalog"):
+
+            catalogs = []
+
+            columns = [
+                "stamp_index",
+                "object_id",
+                "band",
+                "detected",
+                "selected_radial",
+                "Rm_pix",
+                "ellipticity_moments",
+                "orientation_rad",
+            ]
+
+            for gpu in range(n_gpu):
+
+                csv_path = (
+                    roman_catalog_dir
+                    / f"all_stamps_all_bands_gpu{gpu}.csv"
+                )
+
+                catalog = pd.read_csv(
+                    csv_path,
+                    usecols=columns,
+                )
+
+                # Preserve the association with the original
+                # HDF5 file.
+                catalog["gpu"] = gpu
+
+                # Select the reference matching band.
+                catalog = catalog.loc[
+                    catalog["band"].astype(str).str.upper()
+                    == band.upper()
+                ]
+
+                # Keep detected galaxies.
+                catalog = catalog.loc[
+                    catalog["detected"].eq(True)
+                ]
+
+                # Keep centrally selected galaxies.
+                if require_selected_radial:
+                    catalog = catalog.loc[
+                        catalog["selected_radial"].eq(True)
+                    ]
+
+                catalogs.append(catalog)
+
+            # Combine the four Photutils catalogs.
+            catalog = pd.concat(
+                catalogs,
+                ignore_index=True,
+            )
+
+            # Remove missing morphology measurements.
+            catalog = catalog.dropna(
+                subset=[
+                    "stamp_index",
+                    "Rm_pix",
+                    "ellipticity_moments",
+                    "orientation_rad",
+                ]
+            )
+
+            # Remove non-physical morphology measurements.
+            catalog = catalog.loc[
+                (catalog["Rm_pix"] > 0)
+                & (catalog["ellipticity_moments"] >= 0)
+                & (catalog["ellipticity_moments"] < 1)
+            ].copy()
+
+            # -------------------------------------------------
+            # 4. Convert the Photutils morphology
+            # -------------------------------------------------
+
+            # Convert the moment radius from pixels to arcsec.
+            catalog["radius_proxy_arcsec"] = (
+                catalog["Rm_pix"]
+                * pixel_scale_arcsec
+                * radius_proxy_factor
+            )
+
+            # Photutils ellipticity is defined as e = 1 - q.
+            # Convert to reduced-shear ellipticity:
+            # g = (1 - q) / (1 + q) = e / (2 - e).
+            e = catalog["ellipticity_moments"].to_numpy(
+                dtype=float
+            )
+
+            catalog["g"] = e / (2.0 - e)
+
+            # Convert the Photutils pixel orientation to the
+            # assumed DiffSky coordinate convention.
+            theta = (
+                pa_parity
+                * catalog["orientation_rad"].to_numpy(dtype=float)
+                + np.deg2rad(pa_offset_deg)
+            )
+
+            catalog["pa_deg"] = np.degrees(theta) % 180.0
+
+            catalog["g1"] = (
+                catalog["g"] * np.cos(2.0 * theta)
+            )
+
+            catalog["g2"] = (
+                catalog["g"] * np.sin(2.0 * theta)
+            )
+
+            # Remove non-finite morphology measurements.
+            valid = (
+                np.isfinite(catalog["radius_proxy_arcsec"])
+                & np.isfinite(catalog["g"])
+                & np.isfinite(catalog["g1"])
+                & np.isfinite(catalog["g2"])
+                & np.isfinite(catalog["pa_deg"])
+            )
+
+            catalog = catalog.loc[valid].reset_index(drop=True)
+
+            if catalog.empty:
+                raise RuntimeError(
+                    "No valid generated galaxies available."
+                )
+
+            # Cache the converted catalog for subsequent calls.
+            self._gen_gal_catalog = catalog
+
+        roman_catalog = self._gen_gal_catalog
+
+        # -----------------------------------------------------
+        # 5. Morphology matching
+        # -----------------------------------------------------
+
+        best_index = None
+
+        if target_valid:
+
+            radius = roman_catalog[
+                "radius_proxy_arcsec"
+            ].to_numpy()
+
+            g = roman_catalog["g"].to_numpy()
+
+            pa = roman_catalog["pa_deg"].to_numpy()
+
+            # Relative radius difference.
+            dr = (
+                np.abs(radius - target_radius)
+                / target_radius
+            )
+
+            # Absolute reduced-shear amplitude difference.
+            dg = np.abs(g - target_g)
+
+            # Position angle difference modulo 180 degrees.
+            dpa = np.abs(
+                (pa - target_pa + 90.0) % 180.0 - 90.0
+            )
+
+            # Ignore PA when either galaxy is nearly circular.
+            ignore_pa = (
+                np.minimum(g, target_g)
+                < circular_g_threshold
+            )
+
+            # Apply the morphology matching tolerances.
+            valid = (
+                (dr <= max_frac_radius)
+                & (dg <= max_delta_g)
+                & (
+                    ignore_pa
+                    | (dpa <= max_delta_pa_deg)
+                )
+            )
+
+            # If valid matches exist, select the candidate
+            # with the lowest morphology matching score.
+            if np.any(valid):
+
+                score = (
+                    (dr / max_frac_radius) ** 2
+                    + (dg / max_delta_g) ** 2
+                    + np.where(
+                        ignore_pa,
+                        0.0,
+                        (dpa / max_delta_pa_deg) ** 2,
+                    )
+                )
+
+                # Exclude candidates outside the tolerances.
+                score[~valid] = np.inf
+
+                best_index = int(np.argmin(score))
+
+        # -----------------------------------------------------
+        # 6. Random fallback if no morphology match is found
+        # -----------------------------------------------------
+
+        if best_index is None:
+
+            # Use the GalSim random number generator to ensure
+            # reproducibility within the simulation.
+            if rng is None:
+                raise ValueError(
+                    "A GalSim RNG is required for random fallback."
+                )
+
+            uniform_rng = galsim.UniformDeviate(rng)
+
+            best_index = int(
+                uniform_rng() * len(roman_catalog)
+            )
+
+        # Retrieve the selected generated galaxy.
+        best = roman_catalog.iloc[best_index]
+
+        stamp_index = int(best["stamp_index"])
+        gpu = int(best["gpu"])
+
+        # -----------------------------------------------------
+        # 7. Identify the HDF5 file and rendering band
+        # -----------------------------------------------------
+
+        hdf5_path = (
+            roman_hdf5_dir
+            / f"pub_100k_gpu{gpu}.hdf5"
+        )
+
+        # Assumed channel ordering: Y, J, H.
+        band_map = {
+            "Y106": 0,
+            "J129": 1,
+            "H158": 2,
+        }
+
+        current_band = self.bandpass.name
+
+        if current_band not in band_map:
+            raise NotImplementedError(
+                f"No generated galaxy stamps available "
+                f"for Roman band {current_band}"
+            )
+
+        band_index = band_map[current_band]
+
+        # -----------------------------------------------------
+        # 8. Retrieve the generated galaxy stamp
+        # -----------------------------------------------------
+
+        with h5py.File(hdf5_path, "r") as h5:
+
+            dataset = h5[dataset_name]
+
+            if dataset.ndim != 4 or dataset.shape[1] != 3:
+                raise ValueError(
+                    "Expected an HDF5 dataset with shape "
+                    "(N, 3, height, width)."
+                )
+
+            if not 0 <= stamp_index < dataset.shape[0]:
+                raise IndexError(
+                    f"Invalid stamp index {stamp_index} "
+                    f"in {hdf5_path}"
+                )
+
+            stamp = np.asarray(
+                dataset[stamp_index, band_index],
+                dtype=np.float64,
+            )
+
+        # Reject invalid generated images.
+        if (
+            stamp.ndim != 2
+            or not np.all(np.isfinite(stamp))
+            or stamp.sum() <= 0
+        ):
+            return None
+
+        # -----------------------------------------------------
+        # 9. Construct the GalSim object
+        # -----------------------------------------------------
+
+        image = galsim.Image(
+            stamp,
+            scale=pixel_scale_arcsec,
+        )
+
+        # TODO: Implement physical flux normalization,
+        # unit conversion, and SED assignment.
+        gs_object = galsim.InterpolatedImage(
+            image,
+            x_interpolant="lanczos5",
+            gsparams=gsparams,
+        )
+
+        gs_object.object_type = "galaxy"
+
+        return gs_object
+
+   
 
 class SkyCatalogLoader(InputLoader):
     """
@@ -386,6 +835,49 @@ def SkyCatObj(config, base, ignore, gsparams, logger):
     return obj, safe
 
 
+def SkyCatGenObj(config, base, ignore, gsparams, logger):
+    """
+    Build an object using a diffusion-generated galaxy
+    from the HDF5 files.
+    """
+
+    skycat = galsim.config.GetInputObj(
+        "sky_catalog", config, base, "GenGal"
+    )
+
+    # Ensure that the sky catalog matches the SCA.
+    world_center = base["world_center"]
+    sca_center = skycat.get_sca_center()
+    sep = sca_center.distanceTo(world_center) / galsim.arcsec
+
+    if sep > 1.0:
+        raise RuntimeError(
+            f"Sky catalog and SCA centers do not agree. "
+            f"Separation: {sep:.2e} arcsec"
+        )
+
+    # Set up the indexing sequence.
+    galsim.config.SetDefaultIndex(config, skycat.getNObjects())
+
+    req = {"index": int}
+    opt = {"num": int}
+
+    kwargs, safe = galsim.config.GetAllParams(
+        config, base, req=req, opt=opt, ignore=ignore
+    )
+
+    index = kwargs["index"]
+
+    rng = galsim.config.GetRNG(config, base, logger, "GenGal")
+
+    # Retrieve the diffusion-generated galaxy.
+    obj = skycat.getGenGal(index, gsparams=gsparams, rng=rng)
+
+    base["object_id"] = skycat.objects[index].id
+
+    return obj, False
+
+
 def SkyCatWorldPos(config, base, value_type):
     """Return a value from the object part of the skyCatalog"""
     skycat = galsim.config.GetInputObj("sky_catalog", config, base, "SkyCatWorldPos")
@@ -408,6 +900,7 @@ def SkyCatWorldPos(config, base, value_type):
 RegisterInputType("sky_catalog", SkyCatalogLoader(SkyCatalogInterface, has_nobj=True))
 RegisterObjectType("SkyCatObj", SkyCatObj, input_type="sky_catalog")
 RegisterValueType("SkyCatWorldPos", SkyCatWorldPos, [galsim.CelestialCoord], input_type="sky_catalog")
+RegisterObjectType("GenGal", SkyCatGenObj, input_type="sky_catalog")
 
 # This class was modified from https://github.com/LSSTDESC/imSim/. License info follows:
 
