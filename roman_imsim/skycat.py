@@ -360,7 +360,7 @@ class SkyCatalogInterface:
             )
 
         # The current morphology matching is specific to DiffSky26.
-        if skycat_obj.object_type != "diffsky26_galaxy":
+        if skycat_obj.object_type != "diffsky_galaxy":
             raise NotImplementedError(
                 "GenGal currently supports diffsky26_galaxy only."
             )

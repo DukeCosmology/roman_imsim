@@ -282,7 +282,8 @@ class Roman_stamp(RomanStampBase):
             # Put the psfs at the start of the photon_ops.
             # Probably a little better to put them a bit later than the start in some cases
             # (e.g. after TimeSampler, PupilAnnulusSampler), but leave that as a todo for now.
-            photon_ops = psfs + photon_ops
+            if not isinstance(gal, galsim.InterpolatedImage):
+                photon_ops = psfs + photon_ops
 
             # prof = galsim.Convolve([gal] + psfs)
 
@@ -296,7 +297,7 @@ class Roman_stamp(RomanStampBase):
                 offset=offset,
                 rng=self.rng,
                 maxN=maxN,
-                n_photons=self.realized_flux,
+                n_photons=self.realized_flux*10000,
                 image=image,
                 photon_ops=photon_ops,
                 sensor=None,
