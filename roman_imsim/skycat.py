@@ -378,7 +378,7 @@ class SkyCatalogInterface:
         )
 
         n_gpu = 4
-        dataset_name = "images"
+        dataset_name = "stamps"
 
         # DiffSky component and reference matching band.
         component = "disk"
