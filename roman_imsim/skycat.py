@@ -10,6 +10,7 @@ import numpy as np
 import romanisim.models as models
 import h5py
 import pandas as pd
+from astropy.stats import sigma_clipped_stats
 
 from galsim.config import (
     InputLoader,
@@ -334,8 +335,13 @@ class SkyCatalogInterface:
 
         Notes
         -----
-        This is a preliminary morphology-only implementation.
-        No additional flux normalization or SED is applied.
+        Generated galaxy stamps are background-subtracted and 
+        apodized using a cosine tapering window.
+
+        Each generated galaxy is normalized to the flux of the
+        corresponding DiffSky galaxy in the current Roman band.
+
+        No SED is currently assigned to the generated galaxies.
 
         DiffSky component half-light radii and Photutils moment
         radii are not identical observables. The radius proxy
@@ -719,16 +725,89 @@ class SkyCatalogInterface:
                 dtype=np.float64,
             )
 
+        
         # Reject invalid generated images.
         if (
             stamp.ndim != 2
             or not np.all(np.isfinite(stamp))
-            or stamp.sum() <= 0
         ):
             return None
 
         # -----------------------------------------------------
-        # 9. Construct the GalSim object
+        # 9. Estimate and subtract the residual background
+        # -----------------------------------------------------
+
+        border_width = 4
+
+        border_mask = np.ones(stamp.shape, dtype=bool)
+
+        border_mask[
+            border_width:-border_width,
+            border_width:-border_width
+        ] = False
+
+        _, background, _ = sigma_clipped_stats(
+            stamp[border_mask],
+            sigma=3.0,
+            maxiters=5,
+        )
+
+        stamp = stamp - background
+
+        # -----------------------------------------------------
+        # 10. Apply cosine tapering
+        # -----------------------------------------------------
+
+        taper_width = 6
+
+        ny, nx = stamp.shape
+        yy, xx = np.indices(stamp.shape)
+
+        distance_to_edge = np.minimum(
+            np.minimum(xx, nx - 1 - xx),
+            np.minimum(yy, ny - 1 - yy),
+        )
+
+        t = np.clip(
+            distance_to_edge / taper_width,
+            0.0,
+            1.0,
+        )
+
+        window = 0.5 * (1.0 - np.cos(np.pi * t))
+
+        stamp = stamp * window
+
+        stamp_flux = stamp.sum()
+
+        if not np.isfinite(stamp_flux) or stamp_flux <= 0:
+            return None
+
+        # -----------------------------------------------------
+        # 11. Retrieve the individual DiffSky galaxy flux
+        # -----------------------------------------------------
+
+        flux = (
+            skycat_obj.get_roman_flux(
+                self.bandpass.name,
+                mjd=self.mjd,
+            )
+            * self.exptime
+            * models.parameters.collecting_area
+        )
+
+        if not np.isfinite(flux) or flux <= 0:
+            return None
+
+        # Apply the original flux cap, if configured.
+        if self.flux_cap and skycat_obj.object_type in self.flux_cap:
+            cap = self.flux_cap[skycat_obj.object_type]
+
+            if flux > cap:
+                flux = cap
+
+        # -----------------------------------------------------
+        # 12. Construct the flux-normalized GalSim object
         # -----------------------------------------------------
 
         image = galsim.Image(
@@ -736,17 +815,18 @@ class SkyCatalogInterface:
             scale=pixel_scale_arcsec,
         )
 
-        # TODO: Implement physical flux normalization,
-        # unit conversion, and SED assignment.
         gs_object = galsim.InterpolatedImage(
             image,
             x_interpolant="lanczos5",
+            normalization="flux",
+            flux=flux,
             # gsparams=gsparams,
         )
 
         gs_object.object_type = "galaxy"
 
         return gs_object
+
 
    
 
